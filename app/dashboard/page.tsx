@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import AdminSidebar from "@/components/AdminSidebar";
 
 export const metadata: Metadata = {
   title: "Dashboard Admin | EventHub Kampus",
@@ -15,54 +16,9 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
-      {/* Sidebar Shell */}
-      <aside className="w-full md:w-64 bg-white border-r border-gray-200 p-6 flex flex-col justify-between shrink-0">
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded border-2 border-gray-900 flex items-center justify-center font-bold text-gray-900 text-xs">
-              A
-            </span>
-            <span className="font-bold text-gray-900 text-base">Admin EventHub</span>
-          </div>
-
-          <nav className="flex flex-col gap-1 text-sm font-medium">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-3 px-3 py-2 bg-gray-100 text-gray-900 rounded-md font-semibold"
-            >
-              📊 <span>Dashboard</span>
-            </Link>
-            <Link
-              href="/event"
-              className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition"
-            >
-              📅 <span>Kelola Event</span>
-            </Link>
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition"
-            >
-              🏷️ <span>Kategori</span>
-            </Link>
-            <Link
-              href="/profil"
-              className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition"
-            >
-              👥 <span>Pengguna</span>
-            </Link>
-          </nav>
-        </div>
-
-        <div className="pt-6 border-t border-gray-200 flex flex-col gap-2">
-          <Link
-            href="/"
-            className="text-xs text-gray-500 hover:text-gray-900 flex items-center gap-1"
-          >
-            &larr; Kembali ke Beranda
-          </Link>
-        </div>
-      </aside>
+    <div className="flex-1 flex flex-col md:flex-row bg-gray-50 min-h-screen">
+      {/* Admin Sidebar Component */}
+      <AdminSidebar />
 
       {/* Main Admin Area */}
       <main className="flex-1 p-6 md:p-10 flex flex-col gap-8">
@@ -70,11 +26,13 @@ export default function AdminDashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Dashboard Admin</h1>
-            <p className="text-sm text-gray-500 mt-1">Ringkasan aktivitas dan pengelolaan event kampus secara berkala</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Ringkasan aktivitas dan pengelolaan event kampus secara berkala
+            </p>
           </div>
           <button
             type="button"
-            className="px-4 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-md hover:bg-gray-800 transition self-start sm:self-auto"
+            className="px-4 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-md hover:bg-gray-800 transition self-start sm:self-auto cursor-pointer"
           >
             + Buat Event Baru
           </button>
@@ -136,7 +94,7 @@ export default function AdminDashboardPage() {
                       </Link>
                       <button
                         type="button"
-                        className="text-xs font-semibold text-red-600 hover:underline"
+                        className="text-xs font-semibold text-red-600 hover:underline cursor-pointer"
                       >
                         Hapus
                       </button>
