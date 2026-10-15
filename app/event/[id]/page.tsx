@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,7 +12,7 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-export default function EventDetailPage({ params }: Props) {
+function EventDetailContent({ params }: Props) {
   const router = useRouter();
   const { id } = use(params);
   const { user, isLoggedIn } = useAuth();
@@ -374,5 +374,19 @@ export default function EventDetailPage({ params }: Props) {
         </div>
       )}
     </div>
+  );
+}
+
+export default function EventDetailPage({ params }: Props) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 flex items-center justify-center p-12 text-sm text-gray-500">
+          Memuat detail event...
+        </div>
+      }
+    >
+      <EventDetailContent params={params} />
+    </Suspense>
   );
 }

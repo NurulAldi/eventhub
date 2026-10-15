@@ -97,7 +97,7 @@ export default function Footer() {
 
         {/* Bottom Copyright Bar */}
         <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
-          <span>&copy; {new Date().getFullYear()} EventHub Kampus. Semua Hak Dilindungi.</span>
+          <span>&copy; 2026 EventHub Kampus. Semua Hak Dilindungi.</span>
           <div className="flex items-center gap-4">
             <a href="#" className="hover:underline">Ketentuan Layanan</a>
             <span>&bull;</span>
