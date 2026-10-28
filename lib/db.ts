@@ -77,6 +77,8 @@ export function getPool(): Pool {
     connectionString.includes("sslmode=require") ||
     connectionString.includes("neon.tech") ||
     connectionString.includes("supabase.co") ||
+    connectionString.includes("supabase.com") ||
+    connectionString.includes("pooler.supabase.com") ||
     process.env.DB_SSL === "true";
 
   const pool = new Pool({
@@ -147,9 +149,14 @@ export async function testConnection(): Promise<{
       database: res.rows[0]?.current_database,
     };
   } catch (err: unknown) {
+    let errorMsg = err instanceof Error ? err.message : String(err);
+    if (errorMsg.includes("ENOTFOUND") && (errorMsg.includes("supabase.co") || getDatabaseUrl().includes("supabase.co"))) {
+      errorMsg += "\n[SOLUSI]: Direct connection Supabase (db.*.supabase.co) hanya menyediakan DNS IPv6. " +
+        "Karena jaringan/ISP Anda belum mendukung IPv6, ubah host pada DATABASE_URL ke Supavisor Connection Pooler yang mendukung IPv4 (misal: aws-0-eu-west-1.pooler.supabase.com:6543) dengan user postgres.[PROJECT_REF].";
+    }
     return {
       ok: false,
-      error: err instanceof Error ? err.message : String(err),
+      error: errorMsg,
     };
   }
 }

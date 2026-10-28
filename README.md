@@ -442,7 +442,17 @@ npm run build
   * Pastikan nilai timeout pada `lib/db.ts` memadai untuk koneksi lintas negara (default saat ini: 15.000 ms).
   * Pastikan `DB_SSL=true` diatur di `.env.local`.
 
-#### 3. Error: `getaddrinfo ENOTFOUND` atau `ECONNREFUSED 127.0.0.1:5432`
+#### 3. Error: `getaddrinfo ENOTFOUND db.xxxx.supabase.co`
+* **Penyebab:** Host *Direct Connection* Supabase (`db.[project-ref].supabase.co`) hanya memiliki DNS record IPv6 (`AAAA`). Banyak penyedia internet (ISP) di Indonesia (seperti Indihome, Telkomsel, Biznet) atau perangkat laptop/Wi-Fi yang belum mengaktifkan routing IPv6, sehingga query DNS gagal menemukan IP (ENOTFOUND).
+* **Solusi:** Gunakan **Supavisor Connection Pooler** Supabase yang mendukung jaringan IPv4 secara penuh.
+  Ubah `DATABASE_URL` pada `.env.local` menjadi:
+  ```env
+  DATABASE_URL="postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres"
+  DB_SSL=true
+  ```
+  *(Untuk project ini: `aws-0-eu-west-1.pooler.supabase.com` port `6543` dengan user `postgres.pffhsymesisecmnnofhd`).*
+
+#### 4. Error: `ECONNREFUSED 127.0.0.1:5432`
 * **Penyebab:** Database server lokal atau kontainer Docker belum dinyalakan.
 * **Solusi:** Jalankan `docker compose up -d` atau pastikan service PostgreSQL lokal Anda dalam keadaan *Running*.
 
