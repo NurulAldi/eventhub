@@ -1,12 +1,13 @@
 "use client";
 
-import { use, useState, Suspense } from "react";
+import { use, useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getEventById, events } from "@/lib/mock-data";
+import { apiGetEventById, apiGetEvents } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import EventCard from "@/components/EventCard";
+import { Event } from "@/types";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -17,14 +18,129 @@ function EventDetailContent({ params }: Props) {
   const { id } = use(params);
   const { user, isLoggedIn } = useAuth();
 
-  // Find event by ID, or fallback to the first event
-  const event = getEventById(id) || events[0];
+  // State
+  const [event, setEvent] = useState<Event | null>(null);
+  const [relatedEvents, setRelatedEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [notFound, setNotFound] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Interactive States
   const [isSaved, setIsSaved] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [ticketCode, setTicketCode] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadData() {
+      setIsLoading(true);
+      setError(null);
+      setNotFound(false);
+
+      try {
+        const fetchedEvent = await apiGetEventById(id);
+        if (!isMounted) return;
+        setEvent(fetchedEvent);
+
+        // Ambil event terkait
+        try {
+          const all = await apiGetEvents({ category: fetchedEvent.category });
+          if (isMounted) {
+            setRelatedEvents(all.filter((e) => e.id !== fetchedEvent.id).slice(0, 3));
+          }
+        } catch {
+          // Non-critical fallback for related events
+          const fallbackEvents = await apiGetEvents();
+          if (isMounted) {
+            setRelatedEvents(fallbackEvents.filter((e) => e.id !== fetchedEvent.id).slice(0, 3));
+          }
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error("Error loading event:", err);
+        const errMsg = err instanceof Error ? err.message : "";
+        if (errMsg.includes("tidak ditemukan") || errMsg.includes("404")) {
+          setNotFound(true);
+        } else {
+          setError(errMsg || "Terjadi kesalahan saat memuat event dari database.");
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-12 flex flex-col gap-6 animate-pulse">
+        <div className="h-4 bg-gray-200 rounded w-1/4" />
+        <div className="w-full h-80 bg-gray-200 rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4">
+          <div className="lg:col-span-2 space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-3/4" />
+            <div className="h-4 bg-gray-200 rounded w-1/2" />
+            <div className="h-32 bg-gray-100 rounded" />
+          </div>
+          <div className="h-64 bg-gray-200 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound || !event) {
+    return (
+      <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-20 flex flex-col items-center justify-center text-center gap-4">
+        <div className="w-20 h-20 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-3xl">
+          🔍
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Event Tidak Ditemukan</h1>
+        <p className="text-sm text-gray-500 max-w-md">
+          Event dengan ID &quot;{id}&quot; tidak ditemukan di dalam database atau mungkin telah dihapus oleh penyelenggara.
+        </p>
+        <div className="flex gap-3 mt-4">
+          <Link
+            href="/event"
+            className="px-5 py-2.5 bg-gray-900 text-white text-xs font-semibold rounded-md hover:bg-gray-800 transition"
+          >
+            Kembali ke Eksplorasi Event
+          </Link>
+          <Link
+            href="/"
+            className="px-5 py-2.5 border border-gray-300 text-gray-700 text-xs font-semibold rounded-md hover:bg-gray-50 transition"
+          >
+            Ke Beranda
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-20 flex flex-col items-center justify-center text-center gap-4">
+        <div className="w-16 h-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-2xl font-bold">
+          !
+        </div>
+        <h1 className="text-xl font-bold text-gray-900">Gagal Memuat Detail Event</h1>
+        <p className="text-sm text-red-600 max-w-md">{error}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-2 px-5 py-2.5 bg-gray-900 text-white text-xs font-semibold rounded-md hover:bg-gray-800 transition cursor-pointer"
+        >
+          Muat Ulang Halaman
+        </button>
+      </div>
+    );
+  }
 
   const formattedDate = new Date(event.date).toLocaleDateString("id-ID", {
     weekday: "long",
@@ -37,9 +153,6 @@ function EventDetailContent({ params }: Props) {
     event.price === 0
       ? "Gratis"
       : `Rp ${event.price.toLocaleString("id-ID")}`;
-
-  // Other related events in the same category or other events
-  const relatedEvents = events.filter((e) => e.id !== event.id).slice(0, 3);
 
   const handleOpenRegistration = () => {
     if (!isLoggedIn) {
@@ -228,7 +341,7 @@ function EventDetailContent({ params }: Props) {
                 <div>
                   <span className="block text-[11px] text-gray-400">Kuota Peserta</span>
                   <span className="font-semibold text-gray-800">
-                    {event.registeredCount || 155} / {event.quota || 200} Mahasiswa
+                    {event.registeredCount || 0} / {event.quota || 100} Mahasiswa
                   </span>
                 </div>
               </div>
@@ -263,20 +376,22 @@ function EventDetailContent({ params }: Props) {
       </div>
 
       {/* Bottom Section: Event Terkait Lainnya */}
-      <div className="pt-8 border-t border-gray-200 flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Event Terkait Lainnya</h2>
-          <Link href="/event" className="text-xs font-semibold text-gray-600 hover:text-gray-900">
-            Jelajahi Semua &rarr;
-          </Link>
-        </div>
+      {relatedEvents.length > 0 && (
+        <div className="pt-8 border-t border-gray-200 flex flex-col gap-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-900">Event Terkait Lainnya</h2>
+            <Link href="/event" className="text-xs font-semibold text-gray-600 hover:text-gray-900">
+              Jelajahi Semua &rarr;
+            </Link>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {relatedEvents.map((evt) => (
-            <EventCard key={evt.id} event={evt} />
-          ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {relatedEvents.map((evt) => (
+              <EventCard key={evt.id} event={evt} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Modal Simulasi Pendaftaran / Pembelian Tiket */}
       {showModal && (

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import EventCard from "@/components/EventCard";
-import { events } from "@/lib/mock-data";
+import { apiGetEvents } from "@/lib/api";
+import { Event } from "@/types";
 
 function EventListContent() {
   const searchParams = useSearchParams();
@@ -17,6 +18,12 @@ function EventListContent() {
   const [sortBy, setSortBy] = useState<"terbaru" | "populer" | "harga-rendah">("terbaru");
   const [searchTerm, setSearchTerm] = useState<string>(initialSearch);
 
+  // Data States
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState<number>(0);
+
   const categories = [
     "Semua",
     "Seminar",
@@ -27,6 +34,40 @@ function EventListContent() {
     "Olahraga",
   ];
 
+  useEffect(() => {
+    let isMounted = true;
+
+    apiGetEvents({
+      category: selectedCategory,
+      price: selectedPriceFilter,
+      location: selectedLocation,
+      sortBy: sortBy,
+      search: searchTerm,
+    })
+      .then((data) => {
+        if (isMounted) {
+          setEvents(data);
+          setError(null);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.error("Gagal memuat event:", err);
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Gagal memuat event dari database."
+          );
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCategory, selectedPriceFilter, selectedLocation, sortBy, searchTerm, refreshKey]);
+
   const handleResetFilters = () => {
     setSelectedCategory("Semua");
     setSelectedPriceFilter("semua");
@@ -34,50 +75,6 @@ function EventListContent() {
     setSortBy("terbaru");
     setSearchTerm("");
   };
-
-  // Filter and sort events based on active filters
-  const filteredEvents = events
-    .filter((evt) => {
-      // Category Filter
-      if (selectedCategory !== "Semua" && evt.category.toLowerCase() !== selectedCategory.toLowerCase()) {
-        return false;
-      }
-
-      // Price Filter
-      if (selectedPriceFilter === "gratis" && evt.price > 0) return false;
-      if (selectedPriceFilter === "berbayar" && evt.price === 0) return false;
-
-      // Search Term Filter
-      if (
-        searchTerm.trim() &&
-        !evt.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !evt.description.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !evt.organizer.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !evt.location.toLowerCase().includes(searchTerm.toLowerCase())
-      ) {
-        return false;
-      }
-
-      // Location Filter
-      if (selectedLocation === "online" && !evt.location.toLowerCase().includes("daring") && !evt.location.toLowerCase().includes("zoom")) {
-        return false;
-      }
-      if (selectedLocation === "offline" && (evt.location.toLowerCase().includes("daring") || evt.location.toLowerCase().includes("zoom"))) {
-        return false;
-      }
-
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortBy === "populer") {
-        return (b.isPopular ? 1 : 0) - (a.isPopular ? 1 : 0);
-      }
-      if (sortBy === "harga-rendah") {
-        return a.price - b.price;
-      }
-      // "terbaru" - sort by date descending
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
 
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8">
@@ -115,6 +112,28 @@ function EventListContent() {
           )}
         </div>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setIsLoading(true);
+              setRefreshKey((k) => k + 1);
+            }}
+            className="text-xs font-bold underline hover:text-red-900 cursor-pointer ml-4"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      )}
 
       {/* Main 2-Column Layout - Matching daftar-event.html */}
       <div className="flex flex-col lg:flex-row items-start gap-8">
@@ -220,7 +239,7 @@ function EventListContent() {
           {/* Top Sort & Count Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-gray-300 rounded-lg p-4 shadow-xs">
             <div className="text-xs sm:text-sm text-gray-600">
-              Menampilkan <strong className="text-gray-900">{filteredEvents.length}</strong> event kampus yang ditemukan
+              Menampilkan <strong className="text-gray-900">{events.length}</strong> event kampus yang ditemukan
             </div>
 
             <div className="flex items-center gap-2">
@@ -288,10 +307,22 @@ function EventListContent() {
             </div>
           )}
 
-          {/* Events Grid */}
-          {filteredEvents.length > 0 ? (
+          {/* Events Grid / Loading / Empty */}
+          {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredEvents.map((evt) => (
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <div key={n} className="bg-white border border-gray-200 rounded-lg h-72 animate-pulse p-4 flex flex-col justify-between">
+                  <div className="bg-gray-200 h-40 rounded-md w-full" />
+                  <div className="space-y-2 mt-4">
+                    <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : events.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {events.map((evt) => (
                 <EventCard key={evt.id} event={evt} />
               ))}
             </div>

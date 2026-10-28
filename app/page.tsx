@@ -1,14 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EventCard from "@/components/EventCard";
-import { events } from "@/lib/mock-data";
+import { apiGetEvents } from "@/lib/api";
+import { Event } from "@/types";
 
 export default function HomePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    apiGetEvents()
+      .then((data) => {
+        if (isMounted) {
+          setEvents(data);
+          setError(null);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.error("Gagal mengambil event:", err);
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Terjadi kesalahan saat memuat data event dari database."
+          );
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [reloadTrigger]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,13 +57,21 @@ export default function HomePage() {
   const popularEvents = events.filter((e) => e.isPopular).slice(0, 3);
   const deadlineEvents = events.slice(3, 6);
 
+  // Dynamic category count helper
+  const getCategoryCount = (categoryName: string) => {
+    const count = events.filter(
+      (e) => e.category.toLowerCase() === categoryName.toLowerCase()
+    ).length;
+    return `${count} Event`;
+  };
+
   const categories = [
-    { name: "Seminar", icon: "🎓", count: "12 Event" },
-    { name: "Workshop", icon: "💻", count: "8 Event" },
-    { name: "Lomba", icon: "🏆", count: "15 Event" },
-    { name: "Beasiswa", icon: "📚", count: "6 Info" },
-    { name: "Konser & Musik", icon: "🎵", count: "4 Event" },
-    { name: "Olahraga", icon: "⚽", count: "7 Event" },
+    { name: "Seminar", icon: "🎓", count: getCategoryCount("Seminar") },
+    { name: "Workshop", icon: "💻", count: getCategoryCount("Workshop") },
+    { name: "Lomba", icon: "🏆", count: getCategoryCount("Lomba") },
+    { name: "Beasiswa", icon: "📚", count: getCategoryCount("Beasiswa") },
+    { name: "Konser & Musik", icon: "🎵", count: getCategoryCount("Konser & Musik") },
+    { name: "Olahraga", icon: "⚽", count: getCategoryCount("Olahraga") },
   ];
 
   return (
@@ -90,6 +131,28 @@ export default function HomePage() {
 
       {/* Main Content Sections - Matching beranda.html */}
       <main className="max-w-7xl w-full mx-auto px-6 lg:px-16 py-14 flex flex-col gap-14">
+        {/* Error Alert */}
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsLoading(true);
+                setReloadTrigger((prev) => prev + 1);
+              }}
+              className="text-xs font-bold underline hover:text-red-900 cursor-pointer ml-4"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        )}
+
         {/* Section 1: Event Terbaru */}
         <section className="flex flex-col gap-6">
           <div className="flex items-end justify-between border-b border-gray-200 pb-3">
@@ -108,11 +171,29 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recentEvents.map((evt) => (
-              <EventCard key={evt.id} event={evt} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="bg-white border border-gray-200 rounded-lg h-72 animate-pulse p-4 flex flex-col justify-between">
+                  <div className="bg-gray-200 h-40 rounded-md w-full" />
+                  <div className="space-y-2 mt-4">
+                    <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : recentEvents.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentEvents.map((evt) => (
+                <EventCard key={evt.id} event={evt} />
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center bg-white border border-gray-200 rounded-lg text-sm text-gray-500">
+              Belum ada event terbaru yang tersedia saat ini.
+            </div>
+          )}
         </section>
 
         {/* Section 2: Kategori Pilihan Grid */}
@@ -155,11 +236,29 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {popularEvents.map((evt) => (
-              <EventCard key={evt.id} event={evt} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="bg-white border border-gray-200 rounded-lg h-72 animate-pulse p-4 flex flex-col justify-between">
+                  <div className="bg-gray-200 h-40 rounded-md w-full" />
+                  <div className="space-y-2 mt-4">
+                    <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : popularEvents.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {popularEvents.map((evt) => (
+                <EventCard key={evt.id} event={evt} />
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center bg-white border border-gray-200 rounded-lg text-sm text-gray-500">
+              Belum ada event populer yang ditandai saat ini.
+            </div>
+          )}
         </section>
 
         {/* Section 4: Deadline Terdekat */}
@@ -180,11 +279,29 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {deadlineEvents.map((evt) => (
-              <EventCard key={evt.id} event={evt} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="bg-white border border-gray-200 rounded-lg h-72 animate-pulse p-4 flex flex-col justify-between">
+                  <div className="bg-gray-200 h-40 rounded-md w-full" />
+                  <div className="space-y-2 mt-4">
+                    <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : deadlineEvents.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {deadlineEvents.map((evt) => (
+                <EventCard key={evt.id} event={evt} />
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center bg-white border border-gray-200 rounded-lg text-sm text-gray-500">
+              Belum ada event dengan deadline terdekat saat ini.
+            </div>
+          )}
         </section>
 
         {/* Section 5: Organisasi Banner CTA */}

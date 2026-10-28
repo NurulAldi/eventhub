@@ -1,0 +1,26 @@
+# Docker Compose untuk Database Server PostgreSQL EventHub
+# Menjalankan PostgreSQL Server mandiri terpisah dari aplikasi Next.js
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: eventhub-postgres-server
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      POSTGRES_DB: ${POSTGRES_DB:-eventhub}
+    volumes:
+      - eventhub_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-eventhub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  eventhub_pgdata:
+    driver: local

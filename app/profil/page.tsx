@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { userProfile, events } from "@/lib/mock-data";
+import { userProfile } from "@/lib/mock-data";
+import { apiGetEvents } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { RegisteredEvent } from "@/types";
+import { RegisteredEvent, Event } from "@/types";
 
 export default function ProfilePage() {
   const { user: authUser } = useAuth();
@@ -25,6 +26,19 @@ export default function ProfilePage() {
   // State Tabs
   const [activeTab, setActiveTab] = useState<"registered" | "saved" | "reminders">("registered");
   const [selectedTicket, setSelectedTicket] = useState<RegisteredEvent | null>(null);
+  const [savedEvents, setSavedEvents] = useState<Event[]>([]);
+
+  useEffect(() => {
+    async function loadSavedEvents() {
+      try {
+        const eventsData = await apiGetEvents();
+        setSavedEvents(eventsData.slice(0, 3));
+      } catch (err) {
+        console.error("Gagal memuat event tersimpan:", err);
+      }
+    }
+    loadSavedEvents();
+  }, []);
 
   // Reminder toggles state
   const [reminders, setReminders] = useState([
@@ -54,8 +68,6 @@ export default function ProfilePage() {
     );
   };
 
-  const savedEvents = events.slice(0, 3);
-
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8 bg-gray-50">
       {/* Profile Header Card - Matching profil.html */}
@@ -69,143 +81,123 @@ export default function ProfilePage() {
               className="object-cover"
             />
           </div>
+
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900">
                 {currentUser.name}
               </h1>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 uppercase">
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                 Mahasiswa Aktif
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-gray-600 font-medium">
-              {currentUser.email}
+            <p className="text-xs sm:text-sm text-gray-500">
+              {currentUser.email} &bull; NIM: {currentUser.nim}
             </p>
-            <p className="text-xs text-gray-500">
-              {currentUser.faculty} &bull; {currentUser.major} &bull; NIM: {currentUser.nim}
+            <p className="text-xs text-gray-600 font-medium">
+              {currentUser.major}, {currentUser.faculty}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => alert(`Informasi Mahasiswa:\nNama: ${currentUser.name}\nNIM: ${currentUser.nim}\nJurusan: ${currentUser.major}`)}
-            className="px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-xs font-semibold rounded-md text-gray-700 transition cursor-pointer"
-          >
-            Edit Profil
-          </button>
-        </div>
+        <Link
+          href="/dashboard"
+          className="px-4 py-2 bg-gray-900 text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-gray-800 transition cursor-pointer self-start sm:self-auto shadow-xs"
+        >
+          Masuk ke Dashboard Admin &rarr;
+        </Link>
       </div>
 
-      {/* Tabs Navigation - Matching profil.html */}
-      <div className="flex items-center gap-2 border-b border-gray-200 overflow-x-auto pb-1 scrollbar-none">
-        <button
-          type="button"
-          onClick={() => setActiveTab("registered")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition whitespace-nowrap cursor-pointer ${
-            activeTab === "registered"
-              ? "border-gray-900 text-gray-900"
-              : "border-transparent text-gray-500 hover:text-gray-900"
-          }`}
-        >
-          <span>Event Terdaftar</span>
-          <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">
-            {currentUser.registeredEvents.length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("saved")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition whitespace-nowrap cursor-pointer ${
-            activeTab === "saved"
-              ? "border-gray-900 text-gray-900"
-              : "border-transparent text-gray-500 hover:text-gray-900"
-          }`}
-        >
-          <span>Event Tersimpan</span>
-          <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">
-            {savedEvents.length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("reminders")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition whitespace-nowrap cursor-pointer ${
-            activeTab === "reminders"
-              ? "border-gray-900 text-gray-900"
-              : "border-transparent text-gray-500 hover:text-gray-900"
-          }`}
-        >
-          <span>Reminder Saya</span>
-          <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">
-            {reminders.filter((r) => r.enabled).length}
-          </span>
-        </button>
-      </div>
-
-      {/* Main Content Layout: 2 Columns */}
+      {/* Main 2-Column Content Layout */}
       <div className="flex flex-col lg:flex-row items-start gap-8">
-        {/* Left Column: Tab Contents */}
-        <div className="flex-1 w-full flex flex-col gap-5">
+        {/* Left Column: Interactive Tabs Container */}
+        <div className="flex-1 w-full bg-white border border-gray-300 rounded-xl shadow-xs overflow-hidden">
+          {/* Tab Headers */}
+          <div className="flex border-b border-gray-200 text-xs sm:text-sm font-bold bg-gray-50/50">
+            <button
+              type="button"
+              onClick={() => setActiveTab("registered")}
+              className={`flex-1 py-3.5 px-4 text-center border-b-2 transition cursor-pointer ${
+                activeTab === "registered"
+                  ? "border-gray-900 text-gray-900 bg-white"
+                  : "border-transparent text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              Event Diikuti ({currentUser.registeredEvents.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("saved")}
+              className={`flex-1 py-3.5 px-4 text-center border-b-2 transition cursor-pointer ${
+                activeTab === "saved"
+                  ? "border-gray-900 text-gray-900 bg-white"
+                  : "border-transparent text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              Disimpan ({savedEvents.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("reminders")}
+              className={`flex-1 py-3.5 px-4 text-center border-b-2 transition cursor-pointer ${
+                activeTab === "reminders"
+                  ? "border-gray-900 text-gray-900 bg-white"
+                  : "border-transparent text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              Pengingat Jadwal ({reminders.filter((r) => r.enabled).length})
+            </button>
+          </div>
+
+          {/* Tab 1: Event Diikuti (E-Tickets) */}
           {activeTab === "registered" && (
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base sm:text-lg font-bold text-gray-900">
-                  Tiket Event yang Anda Ikuti
-                </h2>
-                <span className="text-xs text-gray-500">
-                  {currentUser.registeredEvents.length} Event Aktif
+            <div className="p-6 flex flex-col gap-4">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  TIKET PENDAFTARAN RESMI
                 </span>
+                <span className="text-xs text-gray-500">Klik &quot;Lihat E-Ticket&quot; untuk menampilkan barcode QR</span>
               </div>
 
-              {currentUser.registeredEvents.map((evt) => (
+              {currentUser.registeredEvents.map((ticket) => (
                 <div
-                  key={evt.ticketId}
-                  className="bg-white border border-gray-300 rounded-lg p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs hover:border-gray-400 transition"
+                  key={ticket.ticketId}
+                  className="p-4 sm:p-5 border border-gray-300 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50/40 hover:border-gray-400 transition"
                 >
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-800 uppercase">
-                        {evt.category}
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-800">
+                        {ticket.category}
                       </span>
-                      <span className="text-xs font-mono font-bold text-gray-900 bg-gray-50 px-2 py-0.5 rounded border border-gray-200">
-                        #{evt.ticketId}
-                      </span>
-                      <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        Tiket Terkonfirmasi
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                        Tiket Aktif #{ticket.ticketId}
                       </span>
                     </div>
 
-                    <Link
-                      href={`/event/${evt.eventId}`}
-                      className="text-base font-bold text-gray-900 hover:text-blue-600 transition"
-                    >
-                      {evt.eventTitle}
-                    </Link>
+                    <h3 className="text-base font-bold text-gray-900 leading-snug">
+                      {ticket.eventTitle}
+                    </h3>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                      <span>📅 {evt.date} &bull; {evt.time}</span>
-                      <span>📍 {evt.location}</span>
+                    <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-gray-500 mt-1">
+                      <span>📅 {ticket.date}</span>
+                      <span>⏰ {ticket.time}</span>
+                      <span>📍 {ticket.location}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                  <div className="flex sm:flex-col gap-2 w-full sm:w-auto shrink-0">
                     <button
                       type="button"
-                      onClick={() => setSelectedTicket(evt)}
-                      className="px-3.5 py-2 bg-gray-900 text-white text-xs font-bold rounded-md hover:bg-gray-800 transition cursor-pointer flex items-center gap-1.5"
+                      onClick={() => setSelectedTicket(ticket)}
+                      className="flex-1 sm:flex-none px-4 py-2 bg-gray-900 text-white font-bold text-xs rounded-md hover:bg-gray-800 transition cursor-pointer text-center"
                     >
-                      <span>Lihat QR Tiket</span>
-                      <span>&rarr;</span>
+                      Lihat E-Ticket QR
                     </button>
                     <Link
-                      href={`/event/${evt.eventId}`}
-                      className="px-3 py-2 border border-gray-300 text-xs font-semibold text-gray-700 rounded-md hover:bg-gray-50 transition"
+                      href={`/event/${ticket.eventId}`}
+                      className="flex-1 sm:flex-none px-4 py-2 border border-gray-300 bg-white text-gray-700 font-semibold text-xs rounded-md hover:bg-gray-50 transition text-center"
                     >
-                      Detail
+                      Detail Event
                     </Link>
                   </div>
                 </div>
@@ -213,45 +205,38 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {/* Tab 2: Event Disimpan (Wishlist) */}
           {activeTab === "saved" && (
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base sm:text-lg font-bold text-gray-900">
-                  Event yang Anda Simpan
-                </h2>
-                <span className="text-xs text-gray-500">{savedEvents.length} Event Disimpan</span>
-              </div>
+            <div className="p-6 flex flex-col gap-4">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider pb-2 border-b border-gray-100">
+                EVENT YANG DISIMPAN KE WISHLIST
+              </span>
 
               {savedEvents.map((evt) => (
                 <div
                   key={evt.id}
-                  className="bg-white border border-gray-300 rounded-lg p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs"
+                  className="p-4 border border-gray-300 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white hover:border-gray-400 transition"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-200">
-                      <Image
-                        src={evt.image}
-                        alt={evt.title}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase">
+                  <div className="flex flex-col gap-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
                         {evt.category}
                       </span>
-                      <h3 className="text-sm sm:text-base font-bold text-gray-900 line-clamp-1">
-                        {evt.title}
-                      </h3>
-                      <span className="text-xs text-gray-500">
-                        📅 {evt.date} &bull; {evt.organizer}
+                      <span className="text-xs font-bold text-emerald-700">
+                        {evt.price === 0 ? "Gratis" : `Rp ${evt.price.toLocaleString("id-ID")}`}
                       </span>
                     </div>
+                    <h3 className="text-sm sm:text-base font-bold text-gray-900">
+                      {evt.title}
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      📅 {evt.date} &bull; 📍 {evt.location}
+                    </p>
                   </div>
 
                   <Link
                     href={`/event/${evt.id}`}
-                    className="px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-md hover:bg-gray-800 text-center transition shrink-0"
+                    className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white font-semibold text-xs rounded-md hover:bg-gray-800 transition text-center shrink-0"
                   >
                     Daftar Sekarang &rarr;
                   </Link>
@@ -260,39 +245,46 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {/* Tab 3: Pengingat Jadwal (Reminders) */}
           {activeTab === "reminders" && (
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base sm:text-lg font-bold text-gray-900">
-                  Pengingat Jadwal Kegiatan
-                </h2>
-                <span className="text-xs text-gray-500">Notifikasi Kalender & Email</span>
+            <div className="p-6 flex flex-col gap-4">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  PENGINGAT DEADLINE & JADWAL KEGIATAN
+                </span>
+                <span className="text-xs text-gray-500">Aktifkan notifikasi pengingat via email/browser</span>
               </div>
 
-              {reminders.map((r) => (
-                <div
-                  key={r.id}
-                  className="bg-white border border-gray-300 rounded-lg p-4 flex items-center justify-between gap-4 shadow-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">🔔</span>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-gray-900">{r.title}</span>
-                      <span className="text-xs text-gray-500">{r.time}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => toggleReminder(r.id)}
-                    className={`w-11 h-6 flex items-center rounded-full p-1 transition cursor-pointer ${
-                      r.enabled ? "bg-gray-900 justify-end" : "bg-gray-300 justify-start"
-                    }`}
+              <div className="flex flex-col gap-3">
+                {reminders.map((rem) => (
+                  <div
+                    key={rem.id}
+                    className="p-4 border border-gray-300 rounded-lg flex items-center justify-between gap-4 bg-white"
                   >
-                    <span className="w-4 h-4 rounded-full bg-white shadow-xs" />
-                  </button>
-                </div>
-              ))}
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">🔔</span>
+                      <div className="flex flex-col">
+                        <span className="text-xs sm:text-sm font-bold text-gray-900">
+                          {rem.title}
+                        </span>
+                        <span className="text-xs text-gray-500">Waktu: {rem.time}</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleReminder(rem.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
+                        rem.enabled
+                          ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                          : "bg-gray-200 text-gray-600 border border-gray-300"
+                      }`}
+                    >
+                      {rem.enabled ? "Aktif" : "Nonaktif"}
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

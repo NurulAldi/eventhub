@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { events } from "@/lib/mock-data";
+import { apiGetEvents } from "@/lib/api";
 import { Event } from "@/types";
 
 export default function CalendarPage() {
@@ -10,6 +10,29 @@ export default function CalendarPage() {
   const [currentYear, setCurrentYear] = useState(2026);
   const [currentMonth, setCurrentMonth] = useState(9); // 9 = Oktober 2026
   const [selectedDateStr, setSelectedDateStr] = useState<string>("2026-10-28");
+
+  // Dynamic events from database API
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadCalendarEvents() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await apiGetEvents();
+        setEvents(data);
+      } catch (err) {
+        console.error("Gagal memuat event untuk kalender:", err);
+        setError("Gagal memuat event dari database.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadCalendarEvents();
+  }, []);
 
   const monthNames = [
     "Januari",
@@ -88,6 +111,19 @@ export default function CalendarPage() {
           Pantau seluruh jadwal kegiatan, workshop, lomba, dan seminar berdasarkan tanggal pelaksanaan
         </p>
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="text-xs font-bold underline cursor-pointer"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      )}
 
       {/* Main 2-Column Grid matching kalender-event.html */}
       <div className="flex flex-col lg:flex-row items-start gap-8">
@@ -233,7 +269,11 @@ export default function CalendarPage() {
           </div>
 
           {/* List of events on this date */}
-          {selectedDayEvents.length > 0 ? (
+          {isLoading ? (
+            <div className="p-8 text-center text-xs text-gray-400 animate-pulse">
+              Memuat event kalender...
+            </div>
+          ) : selectedDayEvents.length > 0 ? (
             <div className="flex flex-col gap-4">
               {selectedDayEvents.map((evt) => (
                 <div
