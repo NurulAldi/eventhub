@@ -11,7 +11,7 @@ export interface EventQueryParams {
   price?: "semua" | "gratis" | "berbayar" | string;
   location?: "semua" | "online" | "offline" | string;
   status?: string;
-  sortBy?: "terbaru" | "populer" | "harga-rendah" | string;
+  sortBy?: "terbaru" | "populer" | "deadline-terdekat" | "harga-rendah" | string;
 }
 
 export interface CreateEventPayload {
@@ -31,6 +31,15 @@ export interface CreateEventPayload {
   requirements?: string[];
   contactPic?: string;
   isPopular?: boolean;
+  organizerType?: string;
+  organizerContact?: string;
+  registrationDeadline?: string;
+  registrationUrl?: string;
+  purpose?: string;
+  targetParticipants?: string;
+  speakers?: string;
+  facilities?: string;
+  rejectionReason?: string;
 }
 
 /**
@@ -61,7 +70,7 @@ export async function apiGetEvents(params: EventQueryParams = {}): Promise<Event
   if (params.location && params.location !== "semua") {
     url.searchParams.set("location", params.location);
   }
-  if (params.status && params.status !== "Semua") {
+  if (params.status) {
     url.searchParams.set("status", params.status);
   }
   if (params.sortBy) {

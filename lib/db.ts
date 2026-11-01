@@ -191,10 +191,28 @@ export async function initSchema(): Promise<void> {
         requirements JSONB NOT NULL DEFAULT '[]'::jsonb,
         contact_pic VARCHAR(255),
         is_popular BOOLEAN NOT NULL DEFAULT FALSE,
+        organizer_type VARCHAR(64),
+        organizer_contact VARCHAR(255),
+        registration_deadline VARCHAR(64),
+        registration_url TEXT,
+        purpose TEXT,
+        target_participants TEXT,
+        speakers TEXT,
+        facilities TEXT,
+        rejection_reason TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_type VARCHAR(64);`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_contact VARCHAR(255);`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_deadline VARCHAR(64);`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_url TEXT;`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS purpose TEXT;`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS target_participants TEXT;`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS speakers TEXT;`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS facilities TEXT;`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS rejection_reason TEXT;`);
 
     // 2. Buat indeks performa
     await client.query(`CREATE INDEX IF NOT EXISTS idx_events_category ON events(category);`);

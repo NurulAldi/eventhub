@@ -12,7 +12,7 @@ export interface EventFilters {
   price?: "semua" | "gratis" | "berbayar" | string;
   location?: "semua" | "online" | "offline" | string;
   status?: string;
-  sortBy?: "terbaru" | "populer" | "harga-rendah" | string;
+  sortBy?: "terbaru" | "populer" | "deadline-terdekat" | "harga-rendah" | string;
 }
 
 export interface CreateEventDTO {
@@ -32,6 +32,15 @@ export interface CreateEventDTO {
   requirements?: string[];
   contactPic?: string;
   isPopular?: boolean;
+  organizerType?: string;
+  organizerContact?: string;
+  registrationDeadline?: string;
+  registrationUrl?: string;
+  purpose?: string;
+  targetParticipants?: string;
+  speakers?: string;
+  facilities?: string;
+  rejectionReason?: string;
 }
 
 export interface DatabaseEventRow {
@@ -51,6 +60,15 @@ export interface DatabaseEventRow {
   requirements: unknown;
   contact_pic: string | null;
   is_popular: boolean;
+  organizer_type?: string | null;
+  organizer_contact?: string | null;
+  registration_deadline?: string | null;
+  registration_url?: string | null;
+  purpose?: string | null;
+  target_participants?: string | null;
+  speakers?: string | null;
+  facilities?: string | null;
+  rejection_reason?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -87,6 +105,15 @@ export function mapRowToEvent(row: DatabaseEventRow): Event {
     requirements: parsedRequirements,
     contactPic: row.contact_pic || undefined,
     isPopular: Boolean(row.is_popular),
+    organizerType: row.organizer_type || undefined,
+    organizerContact: row.organizer_contact || undefined,
+    registrationDeadline: row.registration_deadline || undefined,
+    registrationUrl: row.registration_url || undefined,
+    purpose: row.purpose || undefined,
+    targetParticipants: row.target_participants || undefined,
+    speakers: row.speakers || undefined,
+    facilities: row.facilities || undefined,
+    rejectionReason: row.rejection_reason || undefined,
   };
 }
 
@@ -195,18 +222,26 @@ export async function getAllEvents(filters: EventFilters = {}): Promise<Event[]>
 
   // Clause WHERE
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const publicStatusClause = filters.status === undefined
+    ? "WHERE status IN ('active', 'published', 'completed', 'cancelled')"
+    : "";
+  const combinedWhereClause = whereClause
+    ? `${whereClause} AND status IN ('active', 'published', 'completed', 'cancelled')`
+    : publicStatusClause;
 
   // Sorting
   let orderClause = "ORDER BY date DESC, created_at DESC";
   if (filters.sortBy === "populer") {
     orderClause = "ORDER BY is_popular DESC, date DESC";
+  } else if (filters.sortBy === "deadline-terdekat") {
+    orderClause = "ORDER BY date ASC, created_at DESC";
   } else if (filters.sortBy === "harga-rendah") {
     orderClause = "ORDER BY price ASC, date DESC";
   } else if (filters.sortBy === "terbaru") {
     orderClause = "ORDER BY date DESC, created_at DESC";
   }
 
-  const sql = `SELECT * FROM events ${whereClause} ${orderClause};`;
+  const sql = `SELECT * FROM events ${combinedWhereClause} ${orderClause};`;
   const rows = await query<DatabaseEventRow>(sql, params);
 
   return rows.map(mapRowToEvent);
@@ -240,11 +275,14 @@ export async function createEvent(data: CreateEventDTO): Promise<Event> {
     INSERT INTO events (
       id, title, description, date, time, location,
       category, image, price, organizer, quota,
-      registered_count, status, requirements, contact_pic, is_popular
+      registered_count, status, requirements, contact_pic, is_popular,
+      organizer_type, organizer_contact, registration_deadline, registration_url,
+      purpose, target_participants, speakers, facilities, rejection_reason
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7, $8, $9, $10, $11,
-      $12, $13, $14::jsonb, $15, $16
+      $12, $13, $14::jsonb, $15, $16,
+      $17, $18, $19, $20, $21, $22, $23, $24, $25
     )
     RETURNING *;
   `;
@@ -266,6 +304,15 @@ export async function createEvent(data: CreateEventDTO): Promise<Event> {
     JSON.stringify(data.requirements || []),
     data.contactPic || null,
     Boolean(data.isPopular),
+    data.organizerType || null,
+    data.organizerContact || null,
+    data.registrationDeadline || null,
+    data.registrationUrl || null,
+    data.purpose || null,
+    data.targetParticipants || null,
+    data.speakers || null,
+    data.facilities || null,
+    data.rejectionReason || null,
   ];
 
   const row = await queryOne<DatabaseEventRow>(sql, params);
@@ -367,6 +414,24 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
   if (data.isPopular !== undefined) {
     updates.push(`is_popular = $${paramIndex++}`);
     params.push(Boolean(data.isPopular));
+  }
+
+  const optionalFields: Array<[keyof CreateEventDTO, string]> = [
+    ["organizerType", "organizer_type"],
+    ["organizerContact", "organizer_contact"],
+    ["registrationDeadline", "registration_deadline"],
+    ["registrationUrl", "registration_url"],
+    ["purpose", "purpose"],
+    ["targetParticipants", "target_participants"],
+    ["speakers", "speakers"],
+    ["facilities", "facilities"],
+    ["rejectionReason", "rejection_reason"],
+  ];
+  for (const [field, column] of optionalFields) {
+    if (data[field] !== undefined) {
+      updates.push(`${column} = $${paramIndex++}`);
+      params.push(data[field] || null);
+    }
   }
 
   if (updates.length === 0) {

@@ -10,12 +10,15 @@ function EventListContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category") || "Semua";
   const initialSearch = searchParams.get("search") || "";
+  const initialSort = searchParams.get("sortBy") || "terbaru";
 
   // Filter States
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [selectedPriceFilter, setSelectedPriceFilter] = useState<"semua" | "gratis" | "berbayar">("semua");
   const [selectedLocation, setSelectedLocation] = useState<string>("semua");
-  const [sortBy, setSortBy] = useState<"terbaru" | "populer" | "harga-rendah">("terbaru");
+  const [sortBy, setSortBy] = useState<"terbaru" | "populer" | "deadline-terdekat" | "harga-rendah">(
+    initialSort as "terbaru" | "populer" | "deadline-terdekat" | "harga-rendah"
+  );
   const [searchTerm, setSearchTerm] = useState<string>(initialSearch);
 
   // Data States
@@ -247,11 +250,12 @@ function EventListContent() {
               <select
                 aria-label="Urutkan Event"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as "terbaru" | "populer" | "harga-rendah")}
+                onChange={(e) => setSortBy(e.target.value as "terbaru" | "populer" | "deadline-terdekat" | "harga-rendah")}
                 className="text-xs font-semibold bg-gray-50 border border-gray-300 rounded-md px-3 py-1.5 text-gray-800 outline-none cursor-pointer focus:border-gray-900"
               >
                 <option value="terbaru">Terbaru Ditambahkan</option>
                 <option value="populer">Paling Populer</option>
+                <option value="deadline-terdekat">Deadline Terdekat</option>
                 <option value="harga-rendah">Biaya Terendah (Gratis)</option>
               </select>
             </div>
@@ -380,6 +384,12 @@ function EventListContent() {
   );
 }
 
+function EventListWithQueryKey() {
+  const searchParams = useSearchParams();
+
+  return <EventListContent key={searchParams.toString()} />;
+}
+
 export default function EventListPage() {
   return (
     <Suspense
@@ -389,7 +399,7 @@ export default function EventListPage() {
         </div>
       }
     >
-      <EventListContent />
+      <EventListWithQueryKey />
     </Suspense>
   );
 }

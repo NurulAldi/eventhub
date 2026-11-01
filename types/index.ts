@@ -10,7 +10,16 @@ export type EventCategory =
   | "Konser & Musik"
   | "Olahraga";
 
-export type EventStatus = "active" | "draft" | "completed" | "cancelled";
+export type EventStatus =
+  | "active"
+  | "draft"
+  | "pending_review"
+  | "needs_revision"
+  | "approved"
+  | "rejected"
+  | "published"
+  | "completed"
+  | "cancelled";
 
 export interface Event {
   id: string;
@@ -29,6 +38,15 @@ export interface Event {
   requirements?: string[];
   contactPic?: string;
   isPopular?: boolean;
+  organizerType?: string;
+  organizerContact?: string;
+  registrationDeadline?: string;
+  registrationUrl?: string;
+  purpose?: string;
+  targetParticipants?: string;
+  speakers?: string;
+  facilities?: string;
+  rejectionReason?: string;
 }
 
 export interface RegisteredEvent {

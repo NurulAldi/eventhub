@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { userProfile } from "@/lib/mock-data";
-import { apiGetEvents } from "@/lib/api";
+import { apiGetEventById, apiGetEvents } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { RegisteredEvent, Event } from "@/types";
 
@@ -27,17 +27,53 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<"registered" | "saved" | "reminders">("registered");
   const [selectedTicket, setSelectedTicket] = useState<RegisteredEvent | null>(null);
   const [savedEvents, setSavedEvents] = useState<Event[]>([]);
+  const [submittedEvent, setSubmittedEvent] = useState<Event | null>(null);
 
   useEffect(() => {
-    async function loadSavedEvents() {
+    let isMounted = true;
+    let submissionId: string | null = null;
+
+    try {
+      const saved = localStorage.getItem("eventhub_last_submission");
+      if (saved) {
+        const savedEvent = JSON.parse(saved) as Event;
+        submissionId = savedEvent.id;
+      }
+    } catch {
+      console.error("Data pengajuan event di penyimpanan lokal tidak valid.");
+    }
+
+    async function loadProfileEvents() {
       try {
-        const eventsData = await apiGetEvents();
-        setSavedEvents(eventsData.slice(0, 3));
+        const [eventsData, latestSubmission] = await Promise.all([
+          apiGetEvents(),
+          submissionId ? apiGetEventById(submissionId) : Promise.resolve(null),
+        ]);
+        if (isMounted) {
+          setSavedEvents(eventsData.slice(0, 3));
+          if (latestSubmission) {
+            setSubmittedEvent(latestSubmission);
+            localStorage.setItem("eventhub_last_submission", JSON.stringify(latestSubmission));
+          }
+        }
       } catch (err) {
-        console.error("Gagal memuat event tersimpan:", err);
+        console.error("Gagal memuat data profil:", err);
       }
     }
-    loadSavedEvents();
+
+    const refreshProfileEvents = () => {
+      void loadProfileEvents();
+    };
+
+    loadProfileEvents();
+    window.addEventListener("focus", refreshProfileEvents);
+    document.addEventListener("visibilitychange", refreshProfileEvents);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("focus", refreshProfileEvents);
+      document.removeEventListener("visibilitychange", refreshProfileEvents);
+    };
   }, []);
 
   // Reminder toggles state
@@ -67,6 +103,25 @@ export default function ProfilePage() {
       prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r))
     );
   };
+
+  const submissionStatus = submittedEvent?.status || "pending_review";
+  const submissionStatusLabels: Record<string, string> = {
+    pending_review: "Menunggu Review",
+    needs_revision: "Perlu Perbaikan",
+    rejected: "Ditolak",
+    active: "Aktif",
+    completed: "Selesai",
+    cancelled: "Dibatalkan",
+  };
+  const submissionStatusColors: Record<string, string> = {
+    pending_review: "bg-amber-100 text-amber-800",
+    needs_revision: "bg-orange-100 text-orange-800",
+    rejected: "bg-red-100 text-red-800",
+    active: "bg-emerald-100 text-emerald-800",
+    completed: "bg-slate-100 text-slate-700",
+    cancelled: "bg-rose-100 text-rose-800",
+  };
+  const isSubmissionPublic = ["active", "completed", "cancelled"].includes(submissionStatus);
 
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8 bg-gray-50">
@@ -109,6 +164,25 @@ export default function ProfilePage() {
       </div>
 
       {/* Main 2-Column Content Layout */}
+      {submittedEvent && (
+        <section className="bg-white border border-gray-300 rounded-xl p-6 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Pengajuan Event Terakhir</span>
+              <h2 className="mt-1 text-base font-bold text-gray-900">{submittedEvent.title}</h2>
+              <p className="mt-1 text-xs text-gray-500">
+                {isSubmissionPublic
+                  ? "Status event telah diperbarui oleh admin."
+                  : "Event belum tampil di katalog sebelum disetujui admin."}
+              </p>
+            </div>
+            <span className={`w-fit px-3 py-1 rounded-full text-xs font-bold ${submissionStatusColors[submissionStatus] || "bg-gray-100 text-gray-700"}`}>
+              {submissionStatusLabels[submissionStatus] || submissionStatus}
+            </span>
+          </div>
+        </section>
+      )}
+
       <div className="flex flex-col lg:flex-row items-start gap-8">
         {/* Left Column: Interactive Tabs Container */}
         <div className="flex-1 w-full bg-white border border-gray-300 rounded-xl shadow-xs overflow-hidden">

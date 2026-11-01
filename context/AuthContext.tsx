@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
 
 export type UserRole = "guest" | "user" | "admin";
 
@@ -38,36 +38,83 @@ const defaultAdmin: UserProfile = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function readStoredRole(): UserRole {
+  const saved = localStorage.getItem("eventhub_auth_role");
+  if (saved === "admin" || saved === "guest" || saved === "user") {
+    return saved;
+  }
+  return "user";
+}
+
+interface AuthStore {
+  getSnapshot: () => UserRole;
+  getServerSnapshot: () => UserRole;
+  subscribe: (listener: () => void) => () => void;
+  hydrate: () => void;
+  setRole: (role: UserRole) => void;
+}
+
+function createAuthStore(): AuthStore {
+  let role: UserRole = "user";
+  let isReady = false;
+  const listeners = new Set<() => void>();
+  const notify = () => listeners.forEach((listener) => listener());
+
+  const loadStoredRole = () => {
+    role = readStoredRole();
+    isReady = true;
+    notify();
+  };
+
+  return {
+    getSnapshot: () => (isReady ? role : "user"),
+    getServerSnapshot: () => "user",
+    subscribe: (listener) => {
+      listeners.add(listener);
+      window.addEventListener("storage", loadStoredRole);
+      window.addEventListener("eventhub-auth-change", loadStoredRole);
+      return () => {
+        listeners.delete(listener);
+        window.removeEventListener("storage", loadStoredRole);
+        window.removeEventListener("eventhub-auth-change", loadStoredRole);
+      };
+    },
+    hydrate: loadStoredRole,
+    setRole: (nextRole) => {
+      localStorage.setItem("eventhub_auth_role", nextRole);
+      role = nextRole;
+      isReady = true;
+      notify();
+    },
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("eventhub_auth_role");
-      if (saved === "admin") return defaultAdmin;
-      if (saved === "guest") return null;
-      if (saved === "user") return defaultUser;
-    }
-    return defaultUser;
-  });
+  const store = useMemo(() => createAuthStore(), []);
+  const role = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getServerSnapshot
+  );
+  useEffect(() => {
+    store.hydrate();
+  }, [store]);
+  const user = role === "user"
+    ? defaultUser
+    : role === "admin"
+      ? defaultAdmin
+      : null;
 
   const loginAsUser = () => {
-    setUser(defaultUser);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("eventhub_auth_role", "user");
-    }
+    store.setRole("user");
   };
 
   const loginAsAdmin = () => {
-    setUser(defaultAdmin);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("eventhub_auth_role", "admin");
-    }
+    store.setRole("admin");
   };
 
   const logout = () => {
-    setUser(null);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("eventhub_auth_role", "guest");
-    }
+    store.setRole("guest");
   };
 
   const setUserRole = (role: UserRole) => {

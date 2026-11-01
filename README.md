@@ -242,8 +242,8 @@ Backend API Next.js Route Handlers tersedia pada basis rute `/api/events`.
   * `search` *(string)*: Pencarian kata kunci pada judul, deskripsi, atau penyelenggara.
   * `price` *(string)*: `gratis` (harga = 0) atau `berbayar` (harga > 0).
   * `location` *(string)*: `online` (daring) atau `offline` (luring).
-  * `status` *(string)*: `active`, `draft`, `completed`, atau `cancelled`.
-  * `sortBy` *(string)*: `terbaru` (tanggal terbaru), `populer` (populer & peserta terbanyak), `harga-rendah` (harga termurah).
+  * `status` *(string)*: `draft`, `pending_review`, `needs_revision`, `approved`, `rejected`, `published`, `active`, `completed`, atau `cancelled`.
+  * `sortBy` *(string)*: `terbaru` (tanggal terbaru), `populer` (populer & peserta terbanyak), `deadline-terdekat` (batas event terdekat), `harga-rendah` (harga termurah).
 * **Respons Berhasil:** `HTTP 200 OK`
   ```json
   [

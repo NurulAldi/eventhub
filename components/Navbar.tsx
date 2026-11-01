@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
@@ -10,6 +10,12 @@ export default function Navbar() {
   const { user, isLoggedIn, setUserRole } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIsHydrated(true), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // If on admin dashboard, don't show the standard public navbar
   const isDashboard = pathname.startsWith("/dashboard");
@@ -45,15 +51,15 @@ export default function Navbar() {
 
           {/* Quick Role Switcher for Testing */}
           <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
-              className="text-xs bg-gray-100 hover:bg-gray-200 border border-gray-300 px-2.5 py-1.5 rounded-md font-medium text-gray-700 flex items-center gap-1"
-            >
-              Role: <strong className="capitalize">{user?.role || "Tamu"}</strong>
-              <span>▼</span>
-            </button>
-            {showRoleSwitcher && (
+              <button
+                type="button"
+                onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
+                className="text-xs bg-gray-100 hover:bg-gray-200 border border-gray-300 px-2.5 py-1.5 rounded-md font-medium text-gray-700 flex items-center gap-1"
+              >
+                Role: <strong className="capitalize">{isHydrated ? user?.role || "Tamu" : "user"}</strong>
+                <span>▼</span>
+              </button>
+              {showRoleSwitcher && (
               <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 text-xs">
                 <div className="px-3 py-1.5 font-semibold text-gray-400 border-b border-gray-100">
                   Simulasi Auth
@@ -89,16 +95,16 @@ export default function Navbar() {
                   Admin EventHub
                 </button>
               </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
       </header>
     );
   }
 
   return (
     <header className="h-20 bg-white border-b border-gray-200 px-6 lg:px-16 flex items-center justify-between sticky top-0 z-40">
-      {/* Brand & Search */}
+      {/* Brand */}
       <div className="flex items-center gap-8">
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
           <span className="w-8 h-8 rounded border-2 border-gray-900 flex items-center justify-center font-extrabold text-gray-900 text-sm">
@@ -106,18 +112,6 @@ export default function Navbar() {
           </span>
           <span className="font-bold text-lg text-gray-900 tracking-tight">EventHub Kampus</span>
         </Link>
-
-        {/* Search Bar - Figma Style */}
-        <div className="hidden md:flex items-center gap-2 bg-gray-100 border border-gray-300 rounded-md px-3.5 py-1.5 w-60 text-xs text-gray-500 focus-within:border-gray-900 transition">
-          <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Cari event..."
-            className="bg-transparent border-none outline-none w-full text-xs text-gray-800 placeholder-gray-400"
-          />
-        </div>
       </div>
 
       {/* Center Navigation Links */}
@@ -136,7 +130,7 @@ export default function Navbar() {
             </Link>
           );
         })}
-        {isLoggedIn && (
+        {isHydrated && isLoggedIn && (
           <Link
             href="/profil"
             className={`transition hover:text-gray-900 ${
@@ -159,7 +153,7 @@ export default function Navbar() {
             title="Klik untuk mengganti status simulasi login"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-            <span>Simulasi: <strong className="capitalize">{user ? user.role : "Guest"}</strong></span>
+            <span>Simulasi: <strong className="capitalize">{isHydrated ? user ? user.role : "Guest" : "user"}</strong></span>
             <span className="text-[10px] text-gray-400">▼</span>
           </button>
 
@@ -203,7 +197,7 @@ export default function Navbar() {
         </div>
 
         {/* Render Guest or Logged In Buttons */}
-        {!isLoggedIn ? (
+        {!isHydrated || !isLoggedIn ? (
           <>
             <Link
               href="/login"

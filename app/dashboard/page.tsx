@@ -32,7 +32,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     let isMounted = true;
 
-    apiGetEvents()
+    apiGetEvents({ status: "Semua" })
       .then((data) => {
         if (isMounted) {
           setEventList(data);
@@ -67,7 +67,8 @@ export default function AdminDashboardPage() {
     const matchesStatus =
       selectedStatus === "Semua" ||
       (selectedStatus === "Buka" && !isClosed) ||
-      (selectedStatus === "Tutup" && isClosed);
+      (selectedStatus === "Tutup" && isClosed) ||
+      selectedStatus === evt.status;
 
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -119,12 +120,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Action: Toggle Event Status (API)
-  const handleToggleStatus = async (id: string) => {
-    const target = eventList.find((e) => e.id === id);
-    if (!target) return;
-
-    const nextStatus = target.status === "completed" ? "active" : "completed";
+  const handleStatusChange = async (id: string, nextStatus: Event["status"]) => {
     try {
       const updated = await apiUpdateEvent(id, { status: nextStatus });
       setEventList((prev) =>
@@ -144,6 +140,7 @@ export default function AdminDashboardPage() {
         title: editingEvent.title,
         location: editingEvent.location,
         status: editingEvent.status,
+        rejectionReason: editingEvent.rejectionReason,
       });
 
       setEventList((prev) =>
@@ -160,6 +157,23 @@ export default function AdminDashboardPage() {
     (sum, evt) => sum + (evt.registeredCount || 0),
     0
   );
+  const activeEventsCount = eventList.filter((event) => event.status === "active").length;
+  const statusOptions: Array<{ value: NonNullable<Event["status"]>; label: string }> = [
+    { value: "pending_review", label: "Menunggu Review" },
+    { value: "needs_revision", label: "Perlu Perbaikan" },
+    { value: "rejected", label: "Ditolak" },
+    { value: "active", label: "Aktif" },
+    { value: "completed", label: "Selesai" },
+    { value: "cancelled", label: "Dibatalkan" },
+  ];
+  const statusColors: Record<string, string> = {
+    pending_review: "bg-amber-50 text-amber-800 border-amber-200",
+    needs_revision: "bg-orange-50 text-orange-800 border-orange-200",
+    rejected: "bg-red-50 text-red-800 border-red-200",
+    active: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    completed: "bg-slate-100 text-slate-700 border-slate-300",
+    cancelled: "bg-rose-50 text-rose-800 border-rose-200",
+  };
 
   return (
     <main className="flex-1 p-6 md:p-12 flex flex-col gap-8 bg-gray-50">
@@ -216,7 +230,7 @@ export default function AdminDashboardPage() {
             Event Aktif
           </span>
           <div className="text-3xl font-extrabold text-gray-900">
-            {isLoading ? "..." : eventList.filter((e) => e.status !== "completed" && e.status !== "cancelled").length}
+            {isLoading ? "..." : activeEventsCount}
           </div>
           <span className="text-[11px] text-emerald-600 font-medium">Pendaftaran terbuka</span>
         </div>
@@ -294,6 +308,10 @@ export default function AdminDashboardPage() {
               <option value="Semua">Semua Status</option>
               <option value="Buka">Buka (Aktif)</option>
               <option value="Tutup">Tutup (Selesai)</option>
+              <option value="pending_review">Menunggu Review</option>
+              <option value="needs_revision">Perlu Perbaikan</option>
+              <option value="approved">Disetujui</option>
+              <option value="rejected">Ditolak</option>
             </select>
           </div>
         </div>
@@ -320,7 +338,6 @@ export default function AdminDashboardPage() {
               <tbody className="divide-y divide-gray-200">
                 {filteredEvents.length > 0 ? (
                   filteredEvents.map((evt) => {
-                    const isClosed = evt.status === "completed" || evt.status === "cancelled";
                     return (
                       <tr key={evt.id} className="hover:bg-gray-50/80 transition">
                         <td className="py-3 px-4 font-semibold text-gray-900 max-w-xs truncate">
@@ -343,18 +360,18 @@ export default function AdminDashboardPage() {
                           {evt.registeredCount || 0} / {evt.quota || 100}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStatus(evt.id)}
-                            title="Klik untuk mengubah status"
-                            className={`px-2.5 py-1 rounded-full text-xs font-semibold cursor-pointer transition ${
-                              isClosed
-                                ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
-                                : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                          <select
+                            aria-label={`Status ${evt.title}`}
+                            value={evt.status || "draft"}
+                            onChange={(e) => handleStatusChange(evt.id, e.target.value as Event["status"])}
+                            className={`px-2 py-1 rounded-md text-xs font-semibold cursor-pointer border ${
+                              statusColors[evt.status || "draft"]
                             }`}
                           >
-                            {isClosed ? "Tutup" : "Buka"}
-                          </button>
+                            {statusOptions.map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
                         </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-2">
@@ -553,10 +570,27 @@ export default function AdminDashboardPage() {
                   onChange={(e) => setEditingEvent({ ...editingEvent, status: e.target.value as Event["status"] })}
                   className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md cursor-pointer"
                 >
+                  <option value="pending_review">Menunggu Review</option>
+                  <option value="needs_revision">Perlu Perbaikan</option>
+                  <option value="rejected">Ditolak</option>
                   <option value="active">Buka (Aktif)</option>
-                  <option value="completed">Tutup (Selesai)</option>
+                  <option value="completed">Selesai</option>
+                  <option value="cancelled">Dibatalkan</option>
                 </select>
               </div>
+
+              {(editingEvent.status === "rejected" || editingEvent.status === "needs_revision") && (
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-gray-700">Catatan admin</label>
+                  <textarea
+                    rows={3}
+                    value={editingEvent.rejectionReason || ""}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, rejectionReason: e.target.value })}
+                    placeholder="Jelaskan data yang perlu diperbaiki atau alasan penolakan."
+                    className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">

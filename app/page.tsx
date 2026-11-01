@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import EventCard from "@/components/EventCard";
 import { apiGetEvents } from "@/lib/api";
 import { Event } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 export default function HomePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,10 +54,22 @@ export default function HomePage() {
     }
   };
 
+  const handleCreateEvent = () => {
+    if (!user) {
+      router.push("/login");
+    } else if (user.role === "user") {
+      router.push("/pengajuan-event");
+    } else {
+      router.push("/dashboard");
+    }
+  };
+
   // Filter events for different sections
   const recentEvents = events.slice(0, 3);
   const popularEvents = events.filter((e) => e.isPopular).slice(0, 3);
-  const deadlineEvents = events.slice(3, 6);
+  const deadlineEvents = [...events]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 3);
 
   // Dynamic category count helper
   const getCategoryCount = (categoryName: string) => {
@@ -153,7 +167,29 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Section 1: Event Terbaru */}
+        {/* Section 1: Buat Event */}
+        <section className="bg-gray-900 text-white rounded-xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col gap-2 max-w-xl text-center md:text-left">
+            <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">
+              Khusus BEM, Himpunan, & Komunitas Kampus
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold">
+              Ajukan Event Kampusmu Secara Resmi
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-300">
+              Semua pengajuan akan divalidasi dan ditinjau admin sebelum dipublikasikan.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleCreateEvent}
+            className="px-6 py-3 bg-white text-gray-900 font-bold text-sm rounded-md hover:bg-gray-100 transition whitespace-nowrap cursor-pointer shadow-md"
+          >
+            Buat Event Sekarang &rarr;
+          </button>
+        </section>
+
+        {/* Section 2: Event Terbaru */}
         <section className="flex flex-col gap-6">
           <div className="flex items-end justify-between border-b border-gray-200 pb-3">
             <div>
@@ -163,7 +199,7 @@ export default function HomePage() {
               </p>
             </div>
             <Link
-              href="/event"
+              href="/event?sortBy=terbaru"
               className="text-xs sm:text-sm font-semibold text-gray-700 hover:text-gray-900 flex items-center gap-1 transition"
             >
               <span>Lihat Semua</span>
@@ -196,7 +232,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Section 2: Kategori Pilihan Grid */}
+        {/* Section 3: Kategori Pilihan Grid */}
         <section className="flex flex-col gap-5 bg-white border border-gray-200 rounded-xl p-6 sm:p-8 shadow-xs">
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">Jelajahi Berdasarkan Kategori</h2>
@@ -218,7 +254,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Section 3: Event Populer */}
+        {/* Section 4: Event Populer */}
         <section className="flex flex-col gap-6">
           <div className="flex items-end justify-between border-b border-gray-200 pb-3">
             <div>
@@ -228,7 +264,7 @@ export default function HomePage() {
               </p>
             </div>
             <Link
-              href="/event"
+              href="/event?sortBy=populer"
               className="text-xs sm:text-sm font-semibold text-gray-700 hover:text-gray-900 flex items-center gap-1 transition"
             >
               <span>Lihat Semua</span>
@@ -261,7 +297,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Section 4: Deadline Terdekat */}
+        {/* Section 5: Deadline Terdekat */}
         <section className="flex flex-col gap-6">
           <div className="flex items-end justify-between border-b border-gray-200 pb-3">
             <div>
@@ -271,7 +307,7 @@ export default function HomePage() {
               </p>
             </div>
             <Link
-              href="/event"
+              href="/event?sortBy=deadline-terdekat"
               className="text-xs sm:text-sm font-semibold text-gray-700 hover:text-gray-900 flex items-center gap-1 transition"
             >
               <span>Lihat Semua</span>
@@ -304,26 +340,6 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Section 5: Organisasi Banner CTA */}
-        <section className="bg-gray-900 text-white rounded-xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col gap-2 max-w-xl text-center md:text-left">
-            <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">
-              Khusus BEM, Himpunan, & Komunitas Kampus
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold">
-              Publikasikan Event Kampusmu Secara Gratis
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-300">
-              Jangkau ribuan mahasiswa dari berbagai perguruan tinggi di seluruh Indonesia dalam satu platform agregasi terintegrasi.
-            </p>
-          </div>
-          <Link
-            href="/dashboard"
-            className="px-6 py-3 bg-white text-gray-900 font-bold text-sm rounded-md hover:bg-gray-100 transition whitespace-nowrap cursor-pointer shadow-md"
-          >
-            Buat Event Sekarang &rarr;
-          </Link>
-        </section>
       </main>
     </div>
   );
