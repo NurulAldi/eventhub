@@ -7,6 +7,7 @@ import EventCard from "@/components/EventCard";
 import { apiGetEvents } from "@/lib/api";
 import { Event } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { getPopularityLabel, getRegistrationPercentage } from "@/lib/event-popularity";
 
 export default function HomePage() {
   const router = useRouter();
@@ -66,9 +67,17 @@ export default function HomePage() {
 
   // Filter events for different sections
   const recentEvents = events.slice(0, 3);
-  const popularEvents = events.filter((e) => e.isPopular).slice(0, 3);
+  const popularEvents = events
+    .filter((event) => getPopularityLabel(event))
+    .sort((a, b) => getRegistrationPercentage(b) - getRegistrationPercentage(a))
+    .slice(0, 3);
   const deadlineEvents = [...events]
-    .sort((a, b) => a.date.localeCompare(b.date))
+    .sort((a, b) => {
+      const aIsClosed = a.status === "completed" || a.status === "cancelled";
+      const bIsClosed = b.status === "completed" || b.status === "cancelled";
+      if (aIsClosed !== bIsClosed) return aIsClosed ? 1 : -1;
+      return a.date.localeCompare(b.date);
+    })
     .slice(0, 3);
 
   // Dynamic category count helper
@@ -292,7 +301,7 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="p-8 text-center bg-white border border-gray-200 rounded-lg text-sm text-gray-500">
-              Belum ada event populer yang ditandai saat ini.
+              Belum ada event dengan tingkat pendaftaran tinggi saat ini.
             </div>
           )}
         </section>

@@ -26,8 +26,10 @@ export interface Event {
   title: string;
   description: string;
   date: string; // Format e.g.: "2026-10-28" or "28 Oktober 2026"
+  durationDays?: number;
   time?: string; // Format e.g.: "09:00 - 13:00 WIB"
   location: string;
+  eventMode?: "online" | "offline";
   category: EventCategory | string;
   image: string;
   price: number; // 0 for free events

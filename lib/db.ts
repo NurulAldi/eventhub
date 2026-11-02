@@ -179,8 +179,10 @@ export async function initSchema(): Promise<void> {
         title VARCHAR(255) NOT NULL,
         description TEXT NOT NULL,
         date VARCHAR(64) NOT NULL,
+        duration_days INTEGER NOT NULL DEFAULT 1 CHECK (duration_days >= 1),
         time VARCHAR(64),
         location VARCHAR(255) NOT NULL,
+        event_mode VARCHAR(16) NOT NULL DEFAULT 'offline',
         category VARCHAR(64) NOT NULL,
         image TEXT NOT NULL,
         price INTEGER NOT NULL DEFAULT 0 CHECK (price >= 0),
@@ -205,6 +207,8 @@ export async function initSchema(): Promise<void> {
       );
     `);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_type VARCHAR(64);`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS duration_days INTEGER NOT NULL DEFAULT 1;`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_mode VARCHAR(16) NOT NULL DEFAULT 'offline';`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_contact VARCHAR(255);`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_deadline VARCHAR(64);`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_url TEXT;`);

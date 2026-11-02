@@ -20,8 +20,10 @@ export interface CreateEventDTO {
   title: string;
   description: string;
   date: string;
+  durationDays?: number;
   time?: string;
   location: string;
+  eventMode?: "online" | "offline";
   category: EventCategory | string;
   image?: string;
   price?: number;
@@ -48,8 +50,10 @@ export interface DatabaseEventRow {
   title: string;
   description: string;
   date: string;
+  duration_days?: number | null;
   time: string | null;
   location: string;
+  event_mode?: "online" | "offline" | null;
   category: string;
   image: string;
   price: number;
@@ -93,8 +97,10 @@ export function mapRowToEvent(row: DatabaseEventRow): Event {
     title: row.title,
     description: row.description,
     date: row.date,
+    durationDays: row.duration_days !== null && row.duration_days !== undefined ? Number(row.duration_days) : 1,
     time: row.time || undefined,
     location: row.location,
+    eventMode: row.event_mode || undefined,
     category: row.category as EventCategory,
     image: row.image,
     price: Number(row.price) || 0,
@@ -167,16 +173,51 @@ export function validateEventInput(data: Partial<CreateEventDTO>, isUpdate = fal
     errors.push("Kuota event harus berupa angka lebih besar atau sama dengan 0.");
   }
 
+  if (data.durationDays !== undefined && (!Number.isInteger(data.durationDays) || data.durationDays < 1)) {
+    errors.push("Durasi event harus berupa jumlah hari minimal 1.");
+  }
+
   return {
     valid: errors.length === 0,
     errors,
   };
 }
 
+async function syncEventStatuses(): Promise<void> {
+  await query(`
+    UPDATE events
+    SET
+      status = CASE
+        WHEN registration_deadline ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+          AND registered_count = 0
+          AND CURRENT_DATE > (registration_deadline::date + 1)
+          THEN 'cancelled'
+        WHEN date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+          AND CURRENT_DATE > (date::date + GREATEST(duration_days, 1) - 1)
+          THEN 'completed'
+        ELSE status
+      END,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE status = 'active'
+      AND (
+        (
+          registration_deadline ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+          AND registered_count = 0
+          AND CURRENT_DATE > (registration_deadline::date + 1)
+        )
+        OR (
+          date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+          AND CURRENT_DATE > (date::date + GREATEST(duration_days, 1) - 1)
+        )
+      );
+  `);
+}
+
 /**
  * Mengambil daftar event berdasarkan filter dan sorting
  */
 export async function getAllEvents(filters: EventFilters = {}): Promise<Event[]> {
+  await syncEventStatuses();
   const conditions: string[] = [];
   const params: unknown[] = [];
   let paramIndex = 1;
@@ -209,9 +250,9 @@ export async function getAllEvents(filters: EventFilters = {}): Promise<Event[]>
 
   // Filter Lokasi (online vs offline)
   if (filters.location === "online") {
-    conditions.push(`(location ILIKE '%daring%' OR location ILIKE '%zoom%')`);
+    conditions.push(`event_mode = 'online'`);
   } else if (filters.location === "offline") {
-    conditions.push(`(location NOT ILIKE '%daring%' AND location NOT ILIKE '%zoom%')`);
+    conditions.push(`event_mode = 'offline'`);
   }
 
   // Filter Status
@@ -230,15 +271,16 @@ export async function getAllEvents(filters: EventFilters = {}): Promise<Event[]>
     : publicStatusClause;
 
   // Sorting
-  let orderClause = "ORDER BY date DESC, created_at DESC";
+  const openStatusFirst = "CASE WHEN status IN ('completed', 'cancelled') THEN 1 ELSE 0 END ASC";
+  let orderClause = `ORDER BY ${openStatusFirst}, date DESC, created_at DESC`;
   if (filters.sortBy === "populer") {
-    orderClause = "ORDER BY is_popular DESC, date DESC";
+    orderClause = `ORDER BY ${openStatusFirst}, CASE WHEN quota > 0 THEN registered_count::numeric / quota ELSE 0 END DESC, registered_count DESC, date DESC`;
   } else if (filters.sortBy === "deadline-terdekat") {
-    orderClause = "ORDER BY date ASC, created_at DESC";
+    orderClause = `ORDER BY ${openStatusFirst}, date ASC, created_at DESC`;
   } else if (filters.sortBy === "harga-rendah") {
-    orderClause = "ORDER BY price ASC, date DESC";
+    orderClause = `ORDER BY ${openStatusFirst}, price ASC, date DESC`;
   } else if (filters.sortBy === "terbaru") {
-    orderClause = "ORDER BY date DESC, created_at DESC";
+    orderClause = `ORDER BY ${openStatusFirst}, date DESC, created_at DESC`;
   }
 
   const sql = `SELECT * FROM events ${combinedWhereClause} ${orderClause};`;
@@ -253,6 +295,7 @@ export async function getAllEvents(filters: EventFilters = {}): Promise<Event[]>
 export async function getEventById(id: string): Promise<Event | null> {
   if (!id || typeof id !== "string") return null;
 
+  await syncEventStatuses();
   const sql = `SELECT * FROM events WHERE id = $1 LIMIT 1;`;
   const row = await queryOne<DatabaseEventRow>(sql, [id]);
 
@@ -273,16 +316,17 @@ export async function createEvent(data: CreateEventDTO): Promise<Event> {
 
   const sql = `
     INSERT INTO events (
-      id, title, description, date, time, location,
+      id, title, description, date, duration_days, time, location,
+      event_mode,
       category, image, price, organizer, quota,
       registered_count, status, requirements, contact_pic, is_popular,
       organizer_type, organizer_contact, registration_deadline, registration_url,
       purpose, target_participants, speakers, facilities, rejection_reason
     ) VALUES (
-      $1, $2, $3, $4, $5, $6,
-      $7, $8, $9, $10, $11,
-      $12, $13, $14::jsonb, $15, $16,
-      $17, $18, $19, $20, $21, $22, $23, $24, $25
+      $1, $2, $3, $4, $5, $6, $7,
+      $8, $9, $10, $11, $12, $13,
+      $14, $15, $16::jsonb, $17, $18,
+      $19, $20, $21, $22, $23, $24, $25, $26, $27
     )
     RETURNING *;
   `;
@@ -292,8 +336,10 @@ export async function createEvent(data: CreateEventDTO): Promise<Event> {
     data.title.trim(),
     data.description.trim(),
     data.date.trim(),
+    data.durationDays !== undefined ? Math.max(1, Math.floor(Number(data.durationDays))) : 1,
     data.time ? data.time.trim() : "09:00 - 13:00 WIB",
     data.location.trim(),
+    data.eventMode || "offline",
     data.category.trim(),
     data.image ? data.image.trim() : defaultImage,
     Number(data.price) || 0,
@@ -356,6 +402,11 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
     params.push(data.date.trim());
   }
 
+  if (data.durationDays !== undefined) {
+    updates.push(`duration_days = $${paramIndex++}`);
+    params.push(Math.max(1, Math.floor(Number(data.durationDays))));
+  }
+
   if (data.time !== undefined) {
     updates.push(`time = $${paramIndex++}`);
     params.push(data.time ? data.time.trim() : null);
@@ -364,6 +415,11 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
   if (data.location !== undefined) {
     updates.push(`location = $${paramIndex++}`);
     params.push(data.location.trim());
+  }
+
+  if (data.eventMode !== undefined) {
+    updates.push(`event_mode = $${paramIndex++}`);
+    params.push(data.eventMode);
   }
 
   if (data.category !== undefined) {

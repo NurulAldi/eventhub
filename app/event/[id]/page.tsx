@@ -8,6 +8,8 @@ import { apiGetEventById, apiGetEvents } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import EventCard from "@/components/EventCard";
 import { Event } from "@/types";
+import { isEventInWishlist, subscribeToWishlist, toggleWishlist } from "@/lib/wishlist";
+import { getPopularityLabel } from "@/lib/event-popularity";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -43,6 +45,7 @@ function EventDetailContent({ params }: Props) {
         const fetchedEvent = await apiGetEventById(id);
         if (!isMounted) return;
         setEvent(fetchedEvent);
+        setIsSaved(isEventInWishlist(fetchedEvent.id));
 
         // Ambil event terkait
         try {
@@ -77,6 +80,15 @@ function EventDetailContent({ params }: Props) {
       isMounted = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToWishlist(() => {
+      if (event) {
+        setIsSaved(isEventInWishlist(event.id));
+      }
+    });
+    return unsubscribe;
+  }, [event]);
 
   if (isLoading) {
     return (
@@ -153,8 +165,11 @@ function EventDetailContent({ params }: Props) {
     event.price === 0
       ? "Gratis"
       : `Rp ${event.price.toLocaleString("id-ID")}`;
+  const isClosed = event.status === "completed" || event.status === "cancelled";
+  const popularityLabel = getPopularityLabel(event);
 
   const handleOpenRegistration = () => {
+    if (isClosed) return;
     if (!isLoggedIn) {
       alert("Silakan masuk/login terlebih dahulu untuk mendaftar event.");
       router.push("/login");
@@ -218,9 +233,18 @@ function EventDetailContent({ params }: Props) {
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 border border-gray-300">
                 {event.category}
               </span>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                Pendaftaran Dibuka
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+              isClosed
+                ? "bg-gray-200 text-gray-700"
+                : "bg-emerald-100 text-emerald-800"
+              }`}>
+              {isClosed ? "Ditutup" : "Pendaftaran Dibuka"}
               </span>
+              {popularityLabel && (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                {popularityLabel}
+              </span>
+              )}
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
@@ -350,27 +374,29 @@ function EventDetailContent({ params }: Props) {
             <div className="h-px bg-gray-200" />
 
             {/* Action Buttons */}
-            <div className="flex flex-col gap-2.5">
-              <button
-                type="button"
-                onClick={handleOpenRegistration}
-                className="w-full py-3 bg-gray-900 text-white font-bold text-sm rounded-md hover:bg-gray-800 transition cursor-pointer text-center shadow-xs"
-              >
-                {event.price === 0 ? "Daftar Event Sekarang" : "Beli Tiket Event"}
-              </button>
+            {!isClosed && (
+              <div className="flex flex-col gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleOpenRegistration}
+                  className="w-full py-3 bg-gray-900 text-white font-bold text-sm rounded-md hover:bg-gray-800 transition cursor-pointer text-center shadow-xs"
+                >
+                  {event.price === 0 ? "Daftar Event Sekarang" : "Beli Tiket Event"}
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setIsSaved(!isSaved)}
-                className={`w-full py-2.5 border text-xs font-semibold rounded-md transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                  isSaved
-                    ? "bg-gray-100 border-gray-400 text-gray-900"
-                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                <span>{isSaved ? "★ Disimpan di Wishlist" : "☆ Simpan Event"}</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => toggleWishlist(event.id)}
+                  className={`w-full py-2.5 border text-xs font-semibold rounded-md transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    isSaved
+                      ? "bg-gray-100 border-gray-400 text-gray-900"
+                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <span>{isSaved ? "★ Disimpan di Wishlist" : "☆ Simpan Event"}</span>
+                </button>
+              </div>
+            )}
           </aside>
         </div>
       </div>

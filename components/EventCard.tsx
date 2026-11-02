@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Event } from "@/types";
+import { getPopularityLabel } from "@/lib/event-popularity";
 
 interface EventCardProps {
   event: Event;
@@ -8,6 +9,7 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event, showPrice = true }: EventCardProps) {
+  const popularityLabel = getPopularityLabel(event);
   // Format price display
   const priceDisplay =
     event.price === 0
@@ -34,6 +36,11 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
+          {(event.status === "completed" || event.status === "cancelled") && (
+            <span className="absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-md bg-gray-700 text-white shadow-xs">
+              Ditutup
+            </span>
+          )}
           {showPrice && (
             <span
               className={`absolute top-3 right-3 text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xs ${
@@ -53,9 +60,9 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
             <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
               {event.category}
             </span>
-            {event.isPopular && (
+            {popularityLabel && (
               <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                🔥 Populer
+                {popularityLabel}
               </span>
             )}
           </div>

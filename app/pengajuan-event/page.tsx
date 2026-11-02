@@ -25,11 +25,13 @@ export default function EventSubmissionPage() {
     institution: "",
     title: "",
     category: "Seminar",
+    eventMode: "offline" as "online" | "offline",
     description: "",
     purpose: "",
-    targetParticipants: "",
+    targetParticipants: "Mahasiswa umum",
     speakers: "",
     date: "",
+    durationDays: "1",
     time: "",
     endTime: "",
     registrationDeadline: "",
@@ -45,7 +47,7 @@ export default function EventSubmissionPage() {
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const update = (field: keyof typeof form, value: string) => {
+  const update = <K extends keyof typeof form>(field: K, value: typeof form[K]) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
@@ -63,6 +65,8 @@ export default function EventSubmissionPage() {
       ["targetParticipants", "Target peserta wajib dipilih."],
       ["description", "Deskripsi event wajib diisi."],
       ["date", "Tanggal pelaksanaan wajib diisi."],
+      ["durationDays", "Durasi event wajib diisi."],
+      ["eventMode", "Mode event wajib dipilih."],
       ["registrationDeadline", "Deadline pendaftaran wajib diisi."],
       ["time", "Waktu mulai wajib diisi."],
       ["endTime", "Waktu selesai wajib diisi."],
@@ -102,6 +106,11 @@ export default function EventSubmissionPage() {
       showValidationError("Waktu selesai harus setelah waktu mulai.");
       return;
     }
+    if (!Number.isInteger(Number(form.durationDays)) || Number(form.durationDays) < 1) {
+      nextFieldErrors.durationDays = "Durasi event minimal 1 hari.";
+      showValidationError(nextFieldErrors.durationDays);
+      return;
+    }
     if (new Date(`${form.date}T23:59:59`) < new Date()) {
       nextFieldErrors.date = "Tanggal event tidak boleh berada di masa lalu.";
       showValidationError(nextFieldErrors.date);
@@ -121,8 +130,10 @@ export default function EventSubmissionPage() {
         title: form.title,
         description: form.description,
         date: form.date,
+        durationDays: Number(form.durationDays),
         time: `${form.time} - ${form.endTime}`,
         location: form.location,
+        eventMode: form.eventMode,
         category: form.category,
         price: Number(form.price),
         organizer: form.organizer,
@@ -191,15 +202,17 @@ export default function EventSubmissionPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <label className="sm:col-span-2 flex flex-col gap-1">{requiredLabel("Judul event")}<input required minLength={3} value={form.title} onChange={(e) => update("title", e.target.value)} className={getFieldClass("title")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Kategori")}<select required value={form.category} onChange={(e) => update("category", e.target.value)} className={fieldClass}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
+            <label className="flex flex-col gap-1">{requiredLabel("Mode event")}<select required value={form.eventMode} onChange={(e) => update("eventMode", e.target.value as "online" | "offline")} className={getFieldClass("eventMode")}><option value="offline">Offline</option><option value="online">Online</option></select></label>
             <label className="flex flex-col gap-1">{requiredLabel("Target peserta")}<select required value={form.targetParticipants} onChange={(e) => update("targetParticipants", e.target.value)} className={getFieldClass("targetParticipants")}>{participantTargets.map((target) => <option key={target}>{target}</option>)}</select></label>
             <label className="sm:col-span-2 flex flex-col gap-1">{requiredLabel("Deskripsi lengkap")}<textarea required minLength={30} rows={4} value={form.description} onChange={(e) => update("description", e.target.value)} className={getFieldClass("description")} /></label>
             <label className="flex flex-col gap-1"><span className="text-xs font-bold text-gray-700">Tujuan event</span><textarea rows={3} value={form.purpose} onChange={(e) => update("purpose", e.target.value)} className={fieldClass} /></label>
             <label className="flex flex-col gap-1"><span className="text-xs font-bold text-gray-700">Narasumber/juri</span><textarea rows={3} value={form.speakers} onChange={(e) => update("speakers", e.target.value)} className={fieldClass} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Tanggal pelaksanaan")}<input required type="date" value={form.date} onChange={(e) => update("date", e.target.value)} className={getFieldClass("date")} /></label>
+            <label className="flex flex-col gap-1">{requiredLabel("Durasi pelaksanaan (hari)")}<input required type="number" min="1" step="1" value={form.durationDays} onChange={(e) => update("durationDays", e.target.value)} className={getFieldClass("durationDays")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Deadline pendaftaran")}<input required type="date" value={form.registrationDeadline} onChange={(e) => update("registrationDeadline", e.target.value)} className={getFieldClass("registrationDeadline")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Waktu mulai")}<input required type="time" value={form.time} onChange={(e) => update("time", e.target.value)} className={getFieldClass("time")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Waktu selesai")}<input required type="time" value={form.endTime} onChange={(e) => update("endTime", e.target.value)} className={getFieldClass("endTime")} /></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Lokasi/link online")}<input required value={form.location} onChange={(e) => update("location", e.target.value)} className={getFieldClass("location")} /></label>
+            <label className="flex flex-col gap-1">{requiredLabel(form.eventMode === "online" ? "Link meeting online" : "Lokasi event")}<input required value={form.location} onChange={(e) => update("location", e.target.value)} placeholder={form.eventMode === "online" ? "https://..." : "Gedung atau ruangan"} className={getFieldClass("location")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Link pendaftaran")}<input required type="url" value={form.registrationUrl} onChange={(e) => update("registrationUrl", e.target.value)} className={getFieldClass("registrationUrl")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Kapasitas peserta")}<input required type="number" min="1" value={form.quota} onChange={(e) => update("quota", e.target.value)} className={fieldClass} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Biaya pendaftaran")}<input required type="number" min="0" value={form.price} onChange={(e) => update("price", e.target.value)} className={fieldClass} /></label>

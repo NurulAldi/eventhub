@@ -19,8 +19,10 @@ export interface CreateEventPayload {
   title: string;
   description: string;
   date: string;
+  durationDays?: number;
   time?: string;
   location: string;
+  eventMode?: "online" | "offline";
   category: EventCategory | string;
   image?: string;
   price?: number;

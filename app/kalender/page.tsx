@@ -6,7 +6,7 @@ import { apiGetEvents } from "@/lib/api";
 import { Event } from "@/types";
 
 export default function CalendarPage() {
-  // Calendar month state (0-indexed month: 9 = Oktober, 10 = November)
+  // Keep the initial render deterministic, then sync the calendar to the browser date.
   const [currentYear, setCurrentYear] = useState(2026);
   const [currentMonth, setCurrentMonth] = useState(9); // 9 = Oktober 2026
   const [selectedDateStr, setSelectedDateStr] = useState<string>("2026-10-28");
@@ -17,6 +17,18 @@ export default function CalendarPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const today = new Date();
+    const todayStr = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0"),
+    ].join("-");
+    const syncTimer = window.setTimeout(() => {
+      setCurrentYear(today.getFullYear());
+      setCurrentMonth(today.getMonth());
+      setSelectedDateStr(todayStr);
+    }, 0);
+
     async function loadCalendarEvents() {
       setIsLoading(true);
       setError(null);
@@ -32,6 +44,8 @@ export default function CalendarPage() {
     }
 
     loadCalendarEvents();
+
+    return () => window.clearTimeout(syncTimer);
   }, []);
 
   const monthNames = [
@@ -94,7 +108,8 @@ export default function CalendarPage() {
   const selectedDayEvents = getEventsForDate(selectedDateStr);
 
   // Formatted date label for selected date
-  const selectedDateFormatted = new Date(selectedDateStr).toLocaleDateString("id-ID", {
+  const [selectedYear, selectedMonth, selectedDay] = selectedDateStr.split("-").map(Number);
+  const selectedDateFormatted = new Date(selectedYear, selectedMonth - 1, selectedDay).toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -162,13 +177,18 @@ export default function CalendarPage() {
             <button
               type="button"
               onClick={() => {
-                setCurrentYear(2026);
-                setCurrentMonth(9);
-                setSelectedDateStr("2026-10-28");
+                const today = new Date();
+                setCurrentYear(today.getFullYear());
+                setCurrentMonth(today.getMonth());
+                setSelectedDateStr([
+                  today.getFullYear(),
+                  String(today.getMonth() + 1).padStart(2, "0"),
+                  String(today.getDate()).padStart(2, "0"),
+                ].join("-"));
               }}
               className="text-xs font-semibold px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md transition cursor-pointer"
             >
-              Oktober 2026 (Demo)
+              Hari Ini
             </button>
           </div>
 
@@ -321,7 +341,14 @@ export default function CalendarPage() {
               </p>
               <button
                 type="button"
-                onClick={() => setSelectedDateStr("2026-10-28")}
+                onClick={() => {
+                  const today = new Date();
+                  setSelectedDateStr([
+                    today.getFullYear(),
+                    String(today.getMonth() + 1).padStart(2, "0"),
+                    String(today.getDate()).padStart(2, "0"),
+                  ].join("-"));
+                }}
                 className="text-xs font-semibold text-gray-900 hover:underline cursor-pointer"
               >
                 Lihat Agenda 28 Oktober (Seminar AI) &rarr;

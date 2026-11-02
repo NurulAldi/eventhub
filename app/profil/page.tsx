@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { userProfile } from "@/lib/mock-data";
-import { apiGetEventById, apiGetEvents } from "@/lib/api";
+import { apiGetEventById } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { RegisteredEvent, Event } from "@/types";
+import { getWishlistIds, subscribeToWishlist, toggleWishlist } from "@/lib/wishlist";
 
 export default function ProfilePage() {
   const { user: authUser } = useAuth();
@@ -45,15 +46,40 @@ export default function ProfilePage() {
 
     async function loadProfileEvents() {
       try {
-        const [eventsData, latestSubmission] = await Promise.all([
-          apiGetEvents(),
-          submissionId ? apiGetEventById(submissionId) : Promise.resolve(null),
-        ]);
+        const wishlistEvents = await Promise.all(
+          getWishlistIds().map(async (eventId) => {
+            try {
+              return await apiGetEventById(eventId);
+            } catch (err) {
+              if (err instanceof Error && err.message === "Event tidak ditemukan.") {
+                toggleWishlist(eventId);
+                return null;
+              }
+              throw err;
+            }
+          })
+        );
         if (isMounted) {
-          setSavedEvents(eventsData.slice(0, 3));
-          if (latestSubmission) {
-            setSubmittedEvent(latestSubmission);
-            localStorage.setItem("eventhub_last_submission", JSON.stringify(latestSubmission));
+          setSavedEvents(wishlistEvents.filter((event): event is Event => event !== null));
+        }
+
+        if (submissionId) {
+          try {
+            const latestSubmission = await apiGetEventById(submissionId);
+            if (isMounted) {
+              setSubmittedEvent(latestSubmission);
+              localStorage.setItem("eventhub_last_submission", JSON.stringify(latestSubmission));
+            }
+          } catch (err) {
+            if (err instanceof Error && err.message === "Event tidak ditemukan.") {
+              submissionId = null;
+              localStorage.removeItem("eventhub_last_submission");
+              if (isMounted) {
+                setSubmittedEvent(null);
+              }
+              return;
+            }
+            throw err;
           }
         }
       } catch (err) {
@@ -66,11 +92,15 @@ export default function ProfilePage() {
     };
 
     loadProfileEvents();
+    const unsubscribeWishlist = subscribeToWishlist(() => {
+      void loadProfileEvents();
+    });
     window.addEventListener("focus", refreshProfileEvents);
     document.addEventListener("visibilitychange", refreshProfileEvents);
 
     return () => {
       isMounted = false;
+      unsubscribeWishlist();
       window.removeEventListener("focus", refreshProfileEvents);
       document.removeEventListener("visibilitychange", refreshProfileEvents);
     };
@@ -308,12 +338,21 @@ export default function ProfilePage() {
                     </p>
                   </div>
 
+                  <div className="flex w-full sm:w-auto gap-2 shrink-0">
                   <Link
                     href={`/event/${evt.id}`}
-                    className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white font-semibold text-xs rounded-md hover:bg-gray-800 transition text-center shrink-0"
+                    className="flex-1 sm:flex-none px-4 py-2 bg-gray-900 text-white font-semibold text-xs rounded-md hover:bg-gray-800 transition text-center"
                   >
-                    Daftar Sekarang &rarr;
+                    Lihat Detail &rarr;
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => toggleWishlist(evt.id)}
+                    className="px-3 py-2 border border-gray-300 text-gray-700 font-semibold text-xs rounded-md hover:bg-gray-50 transition"
+                  >
+                    Hapus
+                  </button>
+                  </div>
                 </div>
               ))}
             </div>
