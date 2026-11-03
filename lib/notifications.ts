@@ -3,7 +3,7 @@ import { getWishlistIds } from "@/lib/wishlist";
 import { getSubmittedEvents, saveSubmittedEvent } from "@/lib/submissions";
 
 export type NotificationRole = "user" | "admin";
-export type ReminderTrigger = "7d" | "3d" | "1d" | "1h";
+export type ReminderTrigger = "7d" | "3d" | "1d";
 
 export interface AppNotification {
   id: string;
@@ -45,7 +45,14 @@ export function addNotification(notification: Omit<AppNotification, "createdAt" 
 export function getReminderPreferences(): Record<string, ReminderTrigger> {
   try {
     const value = JSON.parse(localStorage.getItem(reminderPreferencesKey) || "{}");
-    return value && typeof value === "object" ? value as Record<string, ReminderTrigger> : {};
+    if (!value || typeof value !== "object") return {};
+    const validTriggers: Record<string, ReminderTrigger> = {};
+    Object.entries(value).forEach(([eventId, trigger]) => {
+      if (trigger === "7d" || trigger === "3d" || trigger === "1d") {
+        validTriggers[eventId] = trigger;
+      }
+    });
+    return validTriggers;
   } catch {
     return {};
   }
@@ -128,15 +135,15 @@ export function generateNotifications(events: Event[], role: NotificationRole) {
       });
     }
     const trigger = preferences[event.id];
-    if (!trigger || !event.registrationDeadline) return;
-    const remaining = daysUntil(event.registrationDeadline);
-    const triggerDays = trigger === "7d" ? 7 : trigger === "3d" ? 3 : trigger === "1d" ? 1 : 0;
-    if (trigger === "1h" || remaining <= triggerDays) {
+    if (!trigger) return;
+    const remaining = daysUntil(event.date);
+    const triggerDays = trigger === "7d" ? 7 : trigger === "3d" ? 3 : 1;
+    if (remaining <= triggerDays && remaining >= 0) {
       addNotification({
-        id: `deadline-${event.id}-${trigger}-${event.registrationDeadline}`,
+        id: `reminder-${event.id}-${trigger}-${event.date}`,
         role,
-        title: "Deadline event hampir berakhir",
-        message: `Pendaftaran ${event.title} akan ditutup pada ${event.registrationDeadline}. Sisa waktu: ${Math.max(remaining, 0)} hari.`,
+        title: "Pengingat event",
+        message: `Event ${event.title} akan dimulai pada ${event.date}. Sisa waktu: ${remaining} hari.`,
         href: `/event/${event.id}`,
       });
     }

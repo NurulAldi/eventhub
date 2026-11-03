@@ -21,6 +21,8 @@ export default function NotificationsPage() {
   const role = user?.role === "admin" ? "admin" : user?.role === "user" ? "user" : null;
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadedRole, setLoadedRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (!role) {
@@ -33,9 +35,19 @@ export default function NotificationsPage() {
     async function load() {
       const events = await apiGetEvents({ status: "Semua" });
       generateNotifications(events, authenticatedRole);
-      if (mounted) refresh();
+      if (mounted) {
+        refresh();
+        setIsLoading(false);
+        setLoadedRole(authenticatedRole);
+      }
     }
-    void load().catch((error) => console.error("Gagal memuat notifikasi:", error));
+    void load().catch((error) => {
+      console.error("Gagal memuat notifikasi:", error);
+      if (mounted) {
+        setIsLoading(false);
+        setLoadedRole(authenticatedRole);
+      }
+    });
     const unsubscribe = subscribeToNotifications(refresh);
     const initialTimeTimer = window.setTimeout(() => setCurrentTime(Date.now()), 0);
     const timer = window.setInterval(() => setCurrentTime(Date.now()), 60_000);
@@ -48,6 +60,22 @@ export default function NotificationsPage() {
   }, [role, router]);
 
   if (!role) return null;
+
+  if (isLoading || loadedRole !== role) {
+    return (
+      <main className="flex-1 max-w-4xl w-full mx-auto px-6 lg:px-16 py-10">
+        <div className="animate-pulse">
+          <div className="h-8 w-40 rounded bg-gray-200" />
+          <div className="mt-2 h-4 w-80 max-w-full rounded bg-gray-100" />
+        </div>
+        <div className="mt-8 flex flex-col gap-3 animate-pulse">
+          {[1, 2, 3].map((item) => (
+            <div key={item} className="h-28 rounded-xl border border-gray-200 bg-gray-100" />
+          ))}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex-1 max-w-4xl w-full mx-auto px-6 lg:px-16 py-10">

@@ -26,6 +26,8 @@ function EventListContent() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const eventsPerPage = 6;
 
   const categories = [
     "Semua",
@@ -72,12 +74,19 @@ function EventListContent() {
   }, [selectedCategory, selectedPriceFilter, selectedLocation, sortBy, searchTerm, refreshKey]);
 
   const handleResetFilters = () => {
+    setCurrentPage(1);
     setSelectedCategory("Semua");
     setSelectedPriceFilter("semua");
     setSelectedLocation("semua");
     setSortBy("terbaru");
     setSearchTerm("");
   };
+
+  const totalPages = Math.ceil(events.length / eventsPerPage);
+  const visibleEvents = events.slice(
+    (currentPage - 1) * eventsPerPage,
+    currentPage * eventsPerPage
+  );
 
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8">
@@ -100,14 +109,14 @@ function EventListContent() {
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
             placeholder="Cari event, kampus..."
             className="w-full bg-transparent outline-none text-xs"
           />
           {searchTerm && (
             <button
               type="button"
-              onClick={() => setSearchTerm("")}
+              onClick={() => { setSearchTerm(""); setCurrentPage(1); }}
               className="text-gray-400 hover:text-gray-600 text-xs cursor-pointer"
             >
               ✕
@@ -171,7 +180,7 @@ function EventListContent() {
                     type="radio"
                     name="category"
                     checked={selectedCategory.toLowerCase() === cat.toLowerCase()}
-                    onChange={() => setSelectedCategory(cat)}
+                    onChange={() => { setSelectedCategory(cat); setCurrentPage(1); }}
                     className="accent-gray-900 w-3.5 h-3.5"
                   />
                   <span>{cat}</span>
@@ -199,7 +208,7 @@ function EventListContent() {
                     type="radio"
                     name="priceFilter"
                     checked={selectedPriceFilter === opt.value}
-                    onChange={() => setSelectedPriceFilter(opt.value as "semua" | "gratis" | "berbayar")}
+                    onChange={() => { setSelectedPriceFilter(opt.value as "semua" | "gratis" | "berbayar"); setCurrentPage(1); }}
                     className="accent-gray-900 w-3.5 h-3.5"
                   />
                   <span>{opt.label}</span>
@@ -227,7 +236,7 @@ function EventListContent() {
                     type="radio"
                     name="locationFilter"
                     checked={selectedLocation === loc.value}
-                    onChange={() => setSelectedLocation(loc.value)}
+                    onChange={() => { setSelectedLocation(loc.value); setCurrentPage(1); }}
                     className="accent-gray-900 w-3.5 h-3.5"
                   />
                   <span>{loc.label}</span>
@@ -250,7 +259,7 @@ function EventListContent() {
               <select
                 aria-label="Urutkan Event"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as "terbaru" | "populer" | "deadline-terdekat" | "harga-rendah")}
+                onChange={(e) => { setSortBy(e.target.value as "terbaru" | "populer" | "deadline-terdekat" | "harga-rendah"); setCurrentPage(1); }}
                 className="text-xs font-semibold bg-gray-50 border border-gray-300 rounded-md px-3 py-1.5 text-gray-800 outline-none cursor-pointer focus:border-gray-900"
               >
                 <option value="terbaru">Terbaru Ditambahkan</option>
@@ -270,7 +279,7 @@ function EventListContent() {
                   {selectedCategory}
                   <button
                     type="button"
-                    onClick={() => setSelectedCategory("Semua")}
+                    onClick={() => { setSelectedCategory("Semua"); setCurrentPage(1); }}
                     className="hover:text-gray-300 cursor-pointer"
                   >
                     ✕
@@ -282,7 +291,7 @@ function EventListContent() {
                   Biaya: {selectedPriceFilter}
                   <button
                     type="button"
-                    onClick={() => setSelectedPriceFilter("semua")}
+                    onClick={() => { setSelectedPriceFilter("semua"); setCurrentPage(1); }}
                     className="hover:text-gray-500 cursor-pointer"
                   >
                     ✕
@@ -294,7 +303,7 @@ function EventListContent() {
                   Keyword: &quot;{searchTerm}&quot;
                   <button
                     type="button"
-                    onClick={() => setSearchTerm("")}
+                    onClick={() => { setSearchTerm(""); setCurrentPage(1); }}
                     className="hover:text-gray-500 cursor-pointer"
                   >
                     ✕
@@ -326,7 +335,7 @@ function EventListContent() {
             </div>
           ) : events.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.map((evt) => (
+              {visibleEvents.map((evt) => (
                 <EventCard key={evt.id} event={evt} />
               ))}
             </div>
@@ -348,36 +357,44 @@ function EventListContent() {
           )}
 
           {/* Pagination */}
+          {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-6">
             <button
               type="button"
-              className="px-3 py-1.5 text-xs border border-gray-300 bg-white rounded-md text-gray-400 cursor-not-allowed"
-              disabled
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              className={`px-3 py-1.5 text-xs border border-gray-300 bg-white rounded-md ${
+                currentPage === 1 ? "text-gray-400 cursor-not-allowed" : "text-gray-700 hover:bg-gray-50 cursor-pointer"
+              }`}
+              disabled={currentPage === 1}
             >
               Sebelumnya
             </button>
-            <span className="px-3 py-1.5 text-xs font-semibold bg-gray-900 text-white rounded-md">
-              1
-            </span>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+              <button
+                key={page}
+                type="button"
+                onClick={() => setCurrentPage(page)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md ${
+                  currentPage === page
+                    ? "bg-gray-900 text-white"
+                    : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
             <button
               type="button"
-              className="px-3 py-1.5 text-xs border border-gray-300 bg-white rounded-md text-gray-700 hover:bg-gray-50 cursor-pointer"
-            >
-              2
-            </button>
-            <button
-              type="button"
-              className="px-3 py-1.5 text-xs border border-gray-300 bg-white rounded-md text-gray-700 hover:bg-gray-50 cursor-pointer"
-            >
-              3
-            </button>
-            <button
-              type="button"
-              className="px-3 py-1.5 text-xs border border-gray-300 bg-white rounded-md text-gray-700 hover:bg-gray-50 cursor-pointer"
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              className={`px-3 py-1.5 text-xs border border-gray-300 bg-white rounded-md ${
+                currentPage === totalPages ? "text-gray-400 cursor-not-allowed" : "text-gray-700 hover:bg-gray-50 cursor-pointer"
+              }`}
+              disabled={currentPage === totalPages}
             >
               Berikutnya
             </button>
           </div>
+          )}
         </section>
       </div>
     </div>

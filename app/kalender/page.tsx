@@ -23,17 +23,17 @@ export default function CalendarPage() {
       String(today.getMonth() + 1).padStart(2, "0"),
       String(today.getDate()).padStart(2, "0"),
     ].join("-");
-    const syncTimer = window.setTimeout(() => {
-      setCurrentYear(today.getFullYear());
-      setCurrentMonth(today.getMonth());
-      setSelectedDateStr(todayStr);
-    }, 0);
-
     async function loadCalendarEvents() {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await apiGetEvents();
+        const [data] = await Promise.all([
+          apiGetEvents(),
+          new Promise<void>((resolve) => window.setTimeout(resolve, 0)),
+        ]);
+        setCurrentYear(today.getFullYear());
+        setCurrentMonth(today.getMonth());
+        setSelectedDateStr(todayStr);
         setEvents(data);
       } catch (err) {
         console.error("Gagal memuat event untuk kalender:", err);
@@ -44,8 +44,6 @@ export default function CalendarPage() {
     }
 
     loadCalendarEvents();
-
-    return () => window.clearTimeout(syncTimer);
   }, []);
 
   const monthNames = [
@@ -115,6 +113,21 @@ export default function CalendarPage() {
     month: "long",
     year: "numeric",
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8">
+        <div className="animate-pulse">
+          <div className="h-8 w-64 rounded bg-gray-200" />
+          <div className="mt-2 h-4 w-96 max-w-full rounded bg-gray-100" />
+        </div>
+        <div className="flex flex-col lg:flex-row items-start gap-8 animate-pulse">
+          <div className="flex-1 w-full h-[620px] rounded-xl bg-gray-100 border border-gray-200" />
+          <div className="w-full lg:w-96 h-80 rounded-xl bg-gray-100 border border-gray-200" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8">

@@ -2,11 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { apiGetEvents, apiCreateEvent, apiUpdateEvent, apiDeleteEvent } from "@/lib/api";
 import { adminStats } from "@/lib/mock-data";
 import { Event } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [eventList, setEventList] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +34,13 @@ export default function AdminDashboardPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    if (user?.role !== "admin") {
+      router.replace("/");
+    }
+  }, [router, user?.role]);
+
+  useEffect(() => {
+    if (user?.role !== "admin") return;
     let isMounted = true;
 
     apiGetEvents({ status: "Semua" })
@@ -51,7 +62,9 @@ export default function AdminDashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, [refreshKey]);
+  }, [refreshKey, user?.role]);
+
+  if (user?.role !== "admin") return null;
 
   // Filter events based on search & category
   const filteredEvents = eventList.filter((evt) => {

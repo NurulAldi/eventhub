@@ -179,6 +179,13 @@ function EventDetailContent({ params }: Props) {
     event.price === 0
       ? "Gratis"
       : `Rp ${event.price.toLocaleString("id-ID")}`;
+  const registrationDeadlineFormatted = event.registrationDeadline
+    ? new Date(`${event.registrationDeadline}T00:00:00`).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "Belum ditentukan";
   const isClosed = ["completed", "cancelled", "rejected"].includes(event.status || "");
   const popularityLabel = getPopularityLabel(event);
 
@@ -390,6 +397,17 @@ function EventDetailContent({ params }: Props) {
                 <div>
                   <span className="block text-[11px] text-gray-400">Biaya Registrasi</span>
                   <span className="text-base font-extrabold text-gray-900">{priceDisplay}</span>
+                </div>
+              </div>
+
+              {/* Deadline Pendaftaran */}
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-sm shrink-0">
+                  ⏳
+                </div>
+                <div>
+                  <span className="block text-[11px] text-gray-400">Deadline Pendaftaran</span>
+                  <span className="font-semibold text-gray-800">{registrationDeadlineFormatted}</span>
                 </div>
               </div>
 

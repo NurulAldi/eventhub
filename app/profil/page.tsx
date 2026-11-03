@@ -9,7 +9,6 @@ import { useAuth } from "@/context/AuthContext";
 import { RegisteredEvent, Event } from "@/types";
 import { getWishlistIds, subscribeToWishlist, toggleWishlist } from "@/lib/wishlist";
 import {
-  addNotification,
   getReminderPreferences,
   ReminderTrigger,
   setReminderPreference,
@@ -43,6 +42,7 @@ export default function ProfilePage() {
   const [reminders, setReminders] = useState<Record<string, ReminderTrigger>>({});
   const [registeredEvents, setRegisteredEvents] = useState(currentUser.registeredEvents);
   const [registeredEventStatuses, setRegisteredEventStatuses] = useState<Record<string, Event["status"]>>({});
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -127,6 +127,8 @@ export default function ProfilePage() {
         }
       } catch (err) {
         console.error("Gagal memuat data profil:", err);
+      } finally {
+        if (isMounted) setIsProfileLoading(false);
       }
     }
 
@@ -156,15 +158,6 @@ export default function ProfilePage() {
   const toggleReminder = (event: Event, trigger: ReminderTrigger | null) => {
     setReminderPreference(event.id, trigger);
     setReminders(getReminderPreferences());
-    if (trigger) {
-      addNotification({
-        id: `reminder-created-${event.id}-${trigger}`,
-        role: "user",
-        title: "Reminder berhasil dibuat",
-        message: `Reminder berhasil dibuat untuk ${event.title}.`,
-        href: `/event/${event.id}`,
-      });
-    }
   };
 
   const submissionStatus = submittedEvent?.status || "pending_review";
@@ -185,6 +178,22 @@ export default function ProfilePage() {
     cancelled: "bg-rose-100 text-rose-800",
   };
   const isSubmissionPublic = ["active", "completed", "cancelled"].includes(submissionStatus);
+
+  if (isProfileLoading) {
+    return (
+      <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8 bg-gray-50">
+        <div className="bg-white border border-gray-300 rounded-xl p-6 sm:p-8 animate-pulse">
+          <div className="h-6 w-48 rounded bg-gray-200" />
+          <div className="mt-3 h-4 w-72 rounded bg-gray-100" />
+        </div>
+        <div className="bg-white border border-gray-300 rounded-xl p-6 animate-pulse">
+          <div className="h-5 w-56 rounded bg-gray-200" />
+          <div className="mt-5 h-24 rounded bg-gray-100" />
+          <div className="mt-4 h-24 rounded bg-gray-100" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8 bg-gray-50">
@@ -218,12 +227,14 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <Link
-          href="/dashboard"
-          className="px-4 py-2 bg-gray-900 text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-gray-800 transition cursor-pointer self-start sm:self-auto shadow-xs"
-        >
-          Masuk ke Dashboard Admin &rarr;
-        </Link>
+        {authUser?.role === "admin" && (
+          <Link
+            href="/dashboard"
+            className="px-4 py-2 bg-gray-900 text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-gray-800 transition cursor-pointer self-start sm:self-auto shadow-xs"
+          >
+            Masuk ke Dashboard Admin &rarr;
+          </Link>
+        )}
       </div>
 
       {/* Main 2-Column Content Layout */}
@@ -423,10 +434,9 @@ export default function ProfilePage() {
                       aria-label={`Pilih trigger pengingat ${evt.title}`}
                     >
                       <option value="">Tanpa Pengingat</option>
-                      <option value="7d">7 hari sebelum deadline</option>
-                      <option value="3d">3 hari sebelum deadline</option>
-                      <option value="1d">1 hari sebelum deadline</option>
-                      <option value="1h">1 jam sebelum event</option>
+                      <option value="7d">7 hari sebelum event</option>
+                      <option value="3d">3 hari sebelum event</option>
+                      <option value="1d">1 hari sebelum event</option>
                     </select>
                     <Link
                       href={`/event/${evt.id}`}
