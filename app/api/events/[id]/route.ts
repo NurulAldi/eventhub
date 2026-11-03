@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getEventById, updateEvent, deleteEvent } from "@/lib/services/event-service";
+import { getEventById, updateEvent, registerEvent, deleteEvent } from "@/lib/services/event-service";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -86,11 +86,40 @@ export async function PATCH(
     const isValidationError =
       errorMessage.includes("wajib") ||
       errorMessage.includes("harus") ||
-      errorMessage.includes("karakter");
+      errorMessage.includes("karakter") ||
+      errorMessage.includes("tidak dapat diedit");
 
     return NextResponse.json(
       { error: errorMessage },
       { status: isValidationError ? 400 : 500 }
+    );
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: RouteContext
+) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    if (!id || body?.action !== "register") {
+      return NextResponse.json({ error: "Permintaan pendaftaran tidak valid." }, { status: 400 });
+    }
+
+    const registered = await registerEvent(id);
+    if (!registered) {
+      return NextResponse.json(
+        { error: "Pendaftaran gagal. Event sudah penuh, tidak aktif, atau tidak ditemukan." },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(registered, { status: 200 });
+  } catch (error) {
+    console.error("[API_REGISTER_EVENT_ERROR]:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Gagal mendaftarkan peserta." },
+      { status: 500 }
     );
   }
 }

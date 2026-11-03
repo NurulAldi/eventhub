@@ -35,6 +35,7 @@ export interface CreateEventDTO {
   contactPic?: string;
   isPopular?: boolean;
   organizerType?: string;
+  institution?: string;
   organizerContact?: string;
   registrationDeadline?: string;
   registrationUrl?: string;
@@ -65,6 +66,7 @@ export interface DatabaseEventRow {
   contact_pic: string | null;
   is_popular: boolean;
   organizer_type?: string | null;
+  institution?: string | null;
   organizer_contact?: string | null;
   registration_deadline?: string | null;
   registration_url?: string | null;
@@ -73,6 +75,7 @@ export interface DatabaseEventRow {
   speakers?: string | null;
   facilities?: string | null;
   rejection_reason?: string | null;
+  activated_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -108,10 +111,12 @@ export function mapRowToEvent(row: DatabaseEventRow): Event {
     quota: row.quota !== null && row.quota !== undefined ? Number(row.quota) : undefined,
     registeredCount: row.registered_count !== null && row.registered_count !== undefined ? Number(row.registered_count) : 0,
     status: (row.status as EventStatus) || "active",
+    updatedAt: row.updated_at || undefined,
     requirements: parsedRequirements,
     contactPic: row.contact_pic || undefined,
     isPopular: Boolean(row.is_popular),
     organizerType: row.organizer_type || undefined,
+    institution: row.institution || undefined,
     organizerContact: row.organizer_contact || undefined,
     registrationDeadline: row.registration_deadline || undefined,
     registrationUrl: row.registration_url || undefined,
@@ -272,7 +277,7 @@ export async function getAllEvents(filters: EventFilters = {}): Promise<Event[]>
 
   // Sorting
   const openStatusFirst = "CASE WHEN status IN ('completed', 'cancelled') THEN 1 ELSE 0 END ASC";
-  let orderClause = `ORDER BY ${openStatusFirst}, date DESC, created_at DESC`;
+  let orderClause = `ORDER BY ${openStatusFirst}, COALESCE(activated_at, updated_at, created_at) DESC NULLS LAST, date DESC`;
   if (filters.sortBy === "populer") {
     orderClause = `ORDER BY ${openStatusFirst}, CASE WHEN quota > 0 THEN registered_count::numeric / quota ELSE 0 END DESC, registered_count DESC, date DESC`;
   } else if (filters.sortBy === "deadline-terdekat") {
@@ -280,7 +285,7 @@ export async function getAllEvents(filters: EventFilters = {}): Promise<Event[]>
   } else if (filters.sortBy === "harga-rendah") {
     orderClause = `ORDER BY ${openStatusFirst}, price ASC, date DESC`;
   } else if (filters.sortBy === "terbaru") {
-    orderClause = `ORDER BY ${openStatusFirst}, date DESC, created_at DESC`;
+    orderClause = `ORDER BY ${openStatusFirst}, COALESCE(activated_at, updated_at, created_at) DESC NULLS LAST, date DESC`;
   }
 
   const sql = `SELECT * FROM events ${combinedWhereClause} ${orderClause};`;
@@ -320,13 +325,13 @@ export async function createEvent(data: CreateEventDTO): Promise<Event> {
       event_mode,
       category, image, price, organizer, quota,
       registered_count, status, requirements, contact_pic, is_popular,
-      organizer_type, organizer_contact, registration_deadline, registration_url,
+      organizer_type, institution, organizer_contact, registration_deadline, registration_url,
       purpose, target_participants, speakers, facilities, rejection_reason
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7,
       $8, $9, $10, $11, $12, $13,
       $14, $15, $16::jsonb, $17, $18,
-      $19, $20, $21, $22, $23, $24, $25, $26, $27
+      $19, $20, $21, $22, $23, $24, $25, $26, $27, $28
     )
     RETURNING *;
   `;
@@ -351,6 +356,7 @@ export async function createEvent(data: CreateEventDTO): Promise<Event> {
     data.contactPic || null,
     Boolean(data.isPopular),
     data.organizerType || null,
+    data.institution || null,
     data.organizerContact || null,
     data.registrationDeadline || null,
     data.registrationUrl || null,
@@ -377,6 +383,9 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
 
   const existing = await getEventById(id);
   if (!existing) return null;
+  if (existing.status === "rejected") {
+    throw new Error("Pengajuan event yang ditolak tidak dapat diedit.");
+  }
 
   const validation = validateEventInput(data, true);
   if (!validation.valid) {
@@ -455,6 +464,9 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
   if (data.status !== undefined) {
     updates.push(`status = $${paramIndex++}`);
     params.push(data.status);
+    if (data.status === "active" && existing.status !== "active") {
+      updates.push(`activated_at = CURRENT_TIMESTAMP`);
+    }
   }
 
   if (data.requirements !== undefined) {
@@ -474,6 +486,7 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
 
   const optionalFields: Array<[keyof CreateEventDTO, string]> = [
     ["organizerType", "organizer_type"],
+    ["institution", "institution"],
     ["organizerContact", "organizer_contact"],
     ["registrationDeadline", "registration_deadline"],
     ["registrationUrl", "registration_url"],
@@ -506,6 +519,26 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
 
   const updatedRow = await queryOne<DatabaseEventRow>(sql, params);
   return updatedRow ? mapRowToEvent(updatedRow) : null;
+}
+
+/**
+ * Mendaftarkan satu peserta dan menaikkan kuota secara atomik.
+ */
+export async function registerEvent(id: string): Promise<Event | null> {
+  if (!id) throw new Error("ID event diperlukan untuk pendaftaran.");
+
+  await syncEventStatuses();
+  const sql = `
+    UPDATE events
+    SET registered_count = registered_count + 1,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+      AND status = 'active'
+      AND registered_count < quota
+    RETURNING *;
+  `;
+  const row = await queryOne<DatabaseEventRow>(sql, [id]);
+  return row ? mapRowToEvent(row) : null;
 }
 
 /**

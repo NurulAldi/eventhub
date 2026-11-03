@@ -37,10 +37,12 @@ export interface Event {
   quota?: number;
   registeredCount?: number;
   status?: EventStatus;
+  updatedAt?: string;
   requirements?: string[];
   contactPic?: string;
   isPopular?: boolean;
   organizerType?: string;
+  institution?: string;
   organizerContact?: string;
   registrationDeadline?: string;
   registrationUrl?: string;

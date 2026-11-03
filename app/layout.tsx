@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
+import NotificationBootstrap from "@/components/NotificationBootstrap";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-full flex flex-col bg-gray-50 text-gray-900">
         <AuthProvider>
+          <NotificationBootstrap />
           <Suspense fallback={<div className="h-20 bg-white border-b border-gray-200" />}>
             <Navbar />
           </Suspense>

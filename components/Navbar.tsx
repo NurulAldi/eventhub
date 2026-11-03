@@ -4,6 +4,42 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { getUnreadCount, subscribeToNotifications } from "@/lib/notifications";
+
+function NotificationBell({ role, isHydrated }: { role: "user" | "admin"; isHydrated: boolean }) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    const refresh = () => setUnreadCount(getUnreadCount(role));
+    refresh();
+    return subscribeToNotifications(refresh);
+  }, [isHydrated, role]);
+
+  return (
+    <Link href="/notifikasi" aria-label="Notifikasi" className="relative p-2 text-gray-600 hover:text-gray-900">
+      <svg
+        aria-hidden="true"
+        className="h-5 w-5 text-black"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M15 17H9m9-2V11a6 6 0 10-12 0v4l-2 2h16l-2-2zm-6 7a2.5 2.5 0 01-2.45-2h4.9A2.5 2.5 0 0112 22z"
+        />
+      </svg>
+      {isHydrated && unreadCount > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 min-w-4 h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -42,6 +78,7 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
+          <NotificationBell role="admin" isHydrated={isHydrated} />
           <Link
             href="/"
             className="text-xs font-semibold text-gray-600 hover:text-gray-900 transition flex items-center gap-1"
@@ -144,6 +181,9 @@ export default function Navbar() {
 
       {/* Right Auth Area */}
       <div className="flex items-center gap-3">
+        {isHydrated && isLoggedIn && (
+          <NotificationBell role={user?.role === "admin" ? "admin" : "user"} isHydrated={isHydrated} />
+        )}
         {/* Quick Simulation Mode Switcher */}
         <div className="relative hidden sm:block">
           <button

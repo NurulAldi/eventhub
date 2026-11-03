@@ -1,9 +1,11 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiCreateEvent } from "@/lib/api";
+import { apiCreateEvent, apiGetEventById, apiUpdateEvent } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { EventStatus } from "@/types";
+import { saveSubmittedEvent } from "@/lib/submissions";
 
 const categories = ["Seminar", "Workshop", "Lomba", "Beasiswa", "Konser & Musik", "Olahraga"];
 const organizerTypes = ["Individu", "Organisasi mahasiswa", "Unit kampus", "Perusahaan", "Komunitas"];
@@ -46,6 +48,51 @@ export default function EventSubmissionPage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const eventId = new URLSearchParams(window.location.search).get("edit");
+      if (!eventId) return;
+      void apiGetEventById(eventId).then((event) => {
+        if (event.status === "rejected") {
+          setError("Pengajuan event yang ditolak tidak dapat diedit.");
+          return;
+        }
+        setEditingEventId(eventId);
+        const [startTime = "", endTime = ""] = (event.time || "").split(" - ");
+        setForm((current) => ({
+          ...current,
+          organizer: event.organizer,
+          organizerType: event.organizerType || current.organizerType,
+          institution: event.institution || "",
+          organizerContact: event.organizerContact || "",
+          title: event.title,
+          category: event.category,
+          eventMode: event.eventMode || "offline",
+          description: event.description,
+          purpose: event.purpose || "",
+          targetParticipants: event.targetParticipants || "Mahasiswa umum",
+          speakers: event.speakers || "",
+          date: event.date,
+          durationDays: String(event.durationDays || 1),
+          time: startTime,
+          endTime,
+          registrationDeadline: event.registrationDeadline || "",
+          location: event.location,
+          registrationUrl: event.registrationUrl || "",
+          quota: String(event.quota || 100),
+          price: String(event.price || 0),
+          facilities: event.facilities || "",
+          requirements: (event.requirements || []).join("\n"),
+          contactPic: event.contactPic || "",
+        }));
+      }).catch((loadError) => {
+        setError(loadError instanceof Error ? loadError.message : "Gagal memuat pengajuan event.");
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const update = <K extends keyof typeof form>(field: K, value: typeof form[K]) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -60,7 +107,6 @@ export default function EventSubmissionPage() {
     const requiredFields: Array<[keyof typeof form, string]> = [
       ["organizer", "Nama penyelenggara wajib diisi."],
       ["organizerContact", "Nomor WhatsApp wajib diisi."],
-      ["institution", "Institusi/organisasi wajib diisi."],
       ["title", "Judul event wajib diisi."],
       ["targetParticipants", "Target peserta wajib dipilih."],
       ["description", "Deskripsi event wajib diisi."],
@@ -74,6 +120,9 @@ export default function EventSubmissionPage() {
       ["registrationUrl", "Link pendaftaran wajib diisi."],
       ["contactPic", "Kontak panitia wajib diisi."],
     ];
+    if (form.organizerType !== "Individu") {
+      requiredFields.splice(2, 0, ["institution", "Institusi/organisasi wajib diisi."]);
+    }
     for (const [field, message] of requiredFields) {
       if (!form[field].trim()) nextFieldErrors[field] = message;
     }
@@ -126,7 +175,7 @@ export default function EventSubmissionPage() {
 
     setIsSubmitting(true);
     try {
-      const submittedEvent = await apiCreateEvent({
+      const payload: Parameters<typeof apiCreateEvent>[0] = {
         title: form.title,
         description: form.description,
         date: form.date,
@@ -138,8 +187,9 @@ export default function EventSubmissionPage() {
         price: Number(form.price),
         organizer: form.organizer,
         quota: Number(form.quota),
-        status: "pending_review",
+        status: "pending_review" as EventStatus,
         organizerType: form.organizerType,
+        institution: form.organizerType === "Individu" ? "" : form.institution.trim(),
         organizerContact: form.organizerContact,
         registrationDeadline: form.registrationDeadline,
         registrationUrl: form.registrationUrl,
@@ -149,8 +199,11 @@ export default function EventSubmissionPage() {
         facilities: form.facilities,
         requirements: form.requirements.split("\n").map((item) => item.trim()).filter(Boolean),
         contactPic: form.contactPic,
-      });
-      localStorage.setItem("eventhub_last_submission", JSON.stringify(submittedEvent));
+      };
+      const submittedEvent = editingEventId
+        ? await apiUpdateEvent(editingEventId, payload)
+        : await apiCreateEvent(payload);
+      saveSubmittedEvent(submittedEvent);
       router.push("/profil?submission=success");
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Pengajuan event gagal dikirim.");
@@ -179,8 +232,14 @@ export default function EventSubmissionPage() {
   return (
     <main className="flex-1 max-w-5xl w-full mx-auto px-6 lg:px-16 py-10">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Pengajuan Event</h1>
-        <p className="mt-2 text-sm text-gray-500">Lengkapi informasi berikut. Pengajuan akan berstatus Menunggu Review sampai disetujui admin.</p>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
+          {editingEventId ? "Perbaiki Pengajuan Event" : "Pengajuan Event"}
+        </h1>
+        <p className="mt-2 text-sm text-gray-500">
+          {editingEventId
+            ? "Perbarui informasi yang diminta admin. Setelah dikirim, pengajuan kembali ke status Menunggu Review."
+            : "Lengkapi informasi berikut. Pengajuan akan berstatus Menunggu Review sampai disetujui admin."}
+        </p>
       </div>
       {error && (
         <div role="alert" className="fixed top-24 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
@@ -192,9 +251,11 @@ export default function EventSubmissionPage() {
           <h2 className="font-bold text-gray-900 border-b border-gray-200 pb-2">Identitas Penyelenggara</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             <label className="flex flex-col gap-1">{requiredLabel("Nama penyelenggara")}<input required value={form.organizer} onChange={(e) => update("organizer", e.target.value)} className={getFieldClass("organizer")} /></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Jenis penyelenggara")}<select required value={form.organizerType} onChange={(e) => update("organizerType", e.target.value)} className={fieldClass}>{organizerTypes.map((type) => <option key={type}>{type}</option>)}</select></label>
+            <label className="flex flex-col gap-1">{requiredLabel("Jenis penyelenggara")}<select required value={form.organizerType} onChange={(e) => { const value = e.target.value; update("organizerType", value); if (value === "Individu") update("institution", ""); }} className={fieldClass}>{organizerTypes.map((type) => <option key={type}>{type}</option>)}</select></label>
             <label className="flex flex-col gap-1">{requiredLabel("Nomor WhatsApp")}<input required value={form.organizerContact} onChange={(e) => update("organizerContact", e.target.value)} className={getFieldClass("organizerContact")} /></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Institusi/organisasi")}<input required value={form.institution} onChange={(e) => update("institution", e.target.value)} className={getFieldClass("institution")} /></label>
+            {form.organizerType !== "Individu" && (
+              <label className="flex flex-col gap-1">{requiredLabel("Institusi/organisasi")}<input required value={form.institution} onChange={(e) => update("institution", e.target.value)} className={getFieldClass("institution")} /></label>
+            )}
           </div>
         </section>
         <section className="flex flex-col gap-4">

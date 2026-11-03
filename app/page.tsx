@@ -21,7 +21,7 @@ export default function HomePage() {
   useEffect(() => {
     let isMounted = true;
 
-    apiGetEvents()
+    apiGetEvents({ sortBy: "terbaru" })
       .then((data) => {
         if (isMounted) {
           setEvents(data);
@@ -177,7 +177,7 @@ export default function HomePage() {
         )}
 
         {/* Section 1: Buat Event */}
-        <section className="bg-gray-900 text-white rounded-xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
+        <section className="order-1 bg-gray-900 text-white rounded-xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col gap-2 max-w-xl text-center md:text-left">
             <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">
               Khusus BEM, Himpunan, & Komunitas Kampus
@@ -199,7 +199,7 @@ export default function HomePage() {
         </section>
 
         {/* Section 2: Event Terbaru */}
-        <section className="flex flex-col gap-6">
+        <section className="order-4 flex flex-col gap-6">
           <div className="flex items-end justify-between border-b border-gray-200 pb-3">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Event Terbaru</h2>
@@ -242,7 +242,7 @@ export default function HomePage() {
         </section>
 
         {/* Section 3: Kategori Pilihan Grid */}
-        <section className="flex flex-col gap-5 bg-white border border-gray-200 rounded-xl p-6 sm:p-8 shadow-xs">
+        <section className="order-5 flex flex-col gap-5 bg-white border border-gray-200 rounded-xl p-6 sm:p-8 shadow-xs">
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">Jelajahi Berdasarkan Kategori</h2>
             <p className="text-xs text-gray-500 mt-1">Pilih jenis kegiatan yang sesuai dengan minat dan tujuan akademikmu</p>
@@ -264,7 +264,7 @@ export default function HomePage() {
         </section>
 
         {/* Section 4: Event Populer */}
-        <section className="flex flex-col gap-6">
+        <section className="order-2 flex flex-col gap-6">
           <div className="flex items-end justify-between border-b border-gray-200 pb-3">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Event Populer</h2>
@@ -307,7 +307,7 @@ export default function HomePage() {
         </section>
 
         {/* Section 5: Deadline Terdekat */}
-        <section className="flex flex-col gap-6">
+        <section className="order-3 flex flex-col gap-6">
           <div className="flex items-end justify-between border-b border-gray-200 pb-3">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Deadline Terdekat</h2>

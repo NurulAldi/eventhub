@@ -4,10 +4,18 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { userProfile } from "@/lib/mock-data";
-import { apiGetEventById } from "@/lib/api";
+import { apiGetEventById, apiGetEvents } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { RegisteredEvent, Event } from "@/types";
 import { getWishlistIds, subscribeToWishlist, toggleWishlist } from "@/lib/wishlist";
+import {
+  addNotification,
+  getReminderPreferences,
+  ReminderTrigger,
+  setReminderPreference,
+} from "@/lib/notifications";
+import { getRegisteredTickets, removeRegisteredTickets, subscribeToTickets } from "@/lib/tickets";
+import { getSubmittedEvents } from "@/lib/submissions";
 
 export default function ProfilePage() {
   const { user: authUser } = useAuth();
@@ -23,29 +31,62 @@ export default function ProfilePage() {
     phone: userProfile.phone,
     registeredEvents: userProfile.registeredEvents,
   };
+  const submissionOrganizer = currentUser.name;
 
   // State Tabs
-  const [activeTab, setActiveTab] = useState<"registered" | "saved" | "reminders">("registered");
+  const [activeTab, setActiveTab] = useState<"registered" | "saved">("registered");
   const [selectedTicket, setSelectedTicket] = useState<RegisteredEvent | null>(null);
   const [savedEvents, setSavedEvents] = useState<Event[]>([]);
   const [submittedEvent, setSubmittedEvent] = useState<Event | null>(null);
+  const [submittedEvents, setSubmittedEvents] = useState<Event[]>([]);
+  const [showAllSubmissions, setShowAllSubmissions] = useState(false);
+  const [reminders, setReminders] = useState<Record<string, ReminderTrigger>>({});
+  const [registeredEvents, setRegisteredEvents] = useState(currentUser.registeredEvents);
+  const [registeredEventStatuses, setRegisteredEventStatuses] = useState<Record<string, Event["status"]>>({});
 
   useEffect(() => {
     let isMounted = true;
-    let submissionId: string | null = null;
-
-    try {
-      const saved = localStorage.getItem("eventhub_last_submission");
-      if (saved) {
-        const savedEvent = JSON.parse(saved) as Event;
-        submissionId = savedEvent.id;
-      }
-    } catch {
-      console.error("Data pengajuan event di penyimpanan lokal tidak valid.");
-    }
-
     async function loadProfileEvents() {
       try {
+        const storedSubmissions = getSubmittedEvents();
+        const allEvents = await apiGetEvents({ status: "Semua" });
+        const databaseSubmissions = allEvents.filter(
+          (event) => event.organizer.trim().toLowerCase() === submissionOrganizer.trim().toLowerCase()
+        );
+        const submissionMap = new Map(
+          [...storedSubmissions, ...databaseSubmissions].map((event) => [event.id, event])
+        );
+        const submissions = Array.from(submissionMap.values());
+        const submissionIds = submissions.map((submission) => submission.id);
+        const tickets = getRegisteredTickets();
+        const ticketEvents = await Promise.all(
+          tickets.map(async (ticket) => {
+            try {
+              return await apiGetEventById(ticket.eventId);
+            } catch (err) {
+              if (err instanceof Error && err.message === "Event tidak ditemukan.") return null;
+              throw err;
+            }
+          })
+        );
+        const validTicketEntries = ticketEvents
+          .map((event, index) => ({ event, ticket: tickets[index] }))
+          .filter((entry): entry is { event: Event; ticket: RegisteredEvent } => entry.event !== null);
+        const removedTicketIds = tickets
+          .filter((ticket, index) => ticketEvents[index] === null)
+          .map((ticket) => ticket.eventId);
+        if (removedTicketIds.length > 0) {
+          removeRegisteredTickets(removedTicketIds);
+        }
+        if (isMounted) {
+          setRegisteredEvents(validTicketEntries.map((entry) => entry.ticket));
+          setRegisteredEventStatuses(
+            Object.fromEntries(
+              validTicketEntries.map(({ ticket, event }) => [ticket.eventId, event.status])
+            )
+          );
+        }
+
         const wishlistEvents = await Promise.all(
           getWishlistIds().map(async (eventId) => {
             try {
@@ -60,26 +101,28 @@ export default function ProfilePage() {
           })
         );
         if (isMounted) {
-          setSavedEvents(wishlistEvents.filter((event): event is Event => event !== null));
+          const validWishlistEvents = wishlistEvents.filter((event): event is Event => event !== null);
+          setSavedEvents(validWishlistEvents);
+          setReminders(getReminderPreferences());
         }
 
-        if (submissionId) {
-          try {
-            const latestSubmission = await apiGetEventById(submissionId);
-            if (isMounted) {
-              setSubmittedEvent(latestSubmission);
-              localStorage.setItem("eventhub_last_submission", JSON.stringify(latestSubmission));
+        const latestSubmissions = await Promise.all(
+          submissionIds.map(async (submissionId) => {
+            try {
+              return await apiGetEventById(submissionId);
+            } catch (err) {
+              if (err instanceof Error && err.message === "Event tidak ditemukan.") return null;
+              throw err;
             }
-          } catch (err) {
-            if (err instanceof Error && err.message === "Event tidak ditemukan.") {
-              submissionId = null;
-              localStorage.removeItem("eventhub_last_submission");
-              if (isMounted) {
-                setSubmittedEvent(null);
-              }
-              return;
-            }
-            throw err;
+          })
+        );
+        const validSubmissions = latestSubmissions.filter((event): event is Event => event !== null);
+        if (isMounted) {
+          setSubmittedEvents(validSubmissions);
+          setSubmittedEvent(validSubmissions[0] || null);
+          if (validSubmissions.length > 0) {
+            localStorage.setItem("eventhub_submissions", JSON.stringify(validSubmissions));
+            localStorage.setItem("eventhub_last_submission", JSON.stringify(validSubmissions[0]));
           }
         }
       } catch (err) {
@@ -89,9 +132,12 @@ export default function ProfilePage() {
 
     const refreshProfileEvents = () => {
       void loadProfileEvents();
-    };
+    }
 
     loadProfileEvents();
+    const unsubscribeTickets = subscribeToTickets(() => {
+      void loadProfileEvents();
+    });
     const unsubscribeWishlist = subscribeToWishlist(() => {
       void loadProfileEvents();
     });
@@ -100,38 +146,25 @@ export default function ProfilePage() {
 
     return () => {
       isMounted = false;
+      unsubscribeTickets();
       unsubscribeWishlist();
       window.removeEventListener("focus", refreshProfileEvents);
       document.removeEventListener("visibilitychange", refreshProfileEvents);
     };
-  }, []);
+  }, [submissionOrganizer]);
 
-  // Reminder toggles state
-  const [reminders, setReminders] = useState([
-    {
-      id: 1,
-      title: "AI Revolution 2026 (Submit Form)",
-      time: "27 Okt 2026, 09:00 WIB",
-      enabled: true,
-    },
-    {
-      id: 2,
-      title: "National Tech Workshop (Registrasi Ulang)",
-      time: "04 Nov 2026, 08:30 WIB",
-      enabled: true,
-    },
-    {
-      id: 3,
-      title: "Campus Music Fest (Open Gate)",
-      time: "20 Nov 2026, 17:00 WIB",
-      enabled: false,
-    },
-  ]);
-
-  const toggleReminder = (id: number) => {
-    setReminders((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r))
-    );
+  const toggleReminder = (event: Event, trigger: ReminderTrigger | null) => {
+    setReminderPreference(event.id, trigger);
+    setReminders(getReminderPreferences());
+    if (trigger) {
+      addNotification({
+        id: `reminder-created-${event.id}-${trigger}`,
+        role: "user",
+        title: "Reminder berhasil dibuat",
+        message: `Reminder berhasil dibuat untuk ${event.title}.`,
+        href: `/event/${event.id}`,
+      });
+    }
   };
 
   const submissionStatus = submittedEvent?.status || "pending_review";
@@ -210,6 +243,51 @@ export default function ProfilePage() {
               {submissionStatusLabels[submissionStatus] || submissionStatus}
             </span>
           </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {["active", "rejected", "completed", "cancelled"].includes(submissionStatus) && (
+              <Link
+                href={`/event/${encodeURIComponent(submittedEvent.id)}`}
+                className="inline-flex w-fit px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-md hover:bg-gray-800 transition"
+              >
+                Lihat Detail Event
+              </Link>
+            )}
+            {["needs_revision", "pending_review"].includes(submissionStatus) && (
+              <Link
+                href={`/pengajuan-event?edit=${encodeURIComponent(submittedEvent.id)}`}
+                className="inline-flex w-fit px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-md hover:bg-gray-800 transition"
+              >
+                {submissionStatus === "needs_revision" ? "Edit Pengajuan Event" : "Ubah Pengajuan Event"}
+              </Link>
+            )}
+          </div>
+          {submittedEvents.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setShowAllSubmissions((current) => !current)}
+              className="mt-4 text-xs font-bold text-gray-700 underline"
+            >
+              {showAllSubmissions ? "Sembunyikan Pengajuan Lain" : `Tampilkan Semua Pengajuan (${submittedEvents.length})`}
+            </button>
+          )}
+          {showAllSubmissions && submittedEvents.slice(1).map((submission) => {
+            const status = submission.status || "pending_review";
+            const isPublic = ["active", "completed", "cancelled"].includes(status);
+            return (
+              <div key={submission.id} className="mt-4 border-t border-gray-200 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">{submission.title}</h3>
+                  <span className={`mt-1 inline-block px-2 py-1 rounded-full text-[11px] font-bold ${submissionStatusColors[status] || "bg-gray-100 text-gray-700"}`}>
+                    {submissionStatusLabels[status] || status}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {isPublic && <Link href={`/event/${encodeURIComponent(submission.id)}`} className="px-3 py-2 bg-gray-900 text-white text-xs font-bold rounded-md">Lihat Detail Event</Link>}
+                  {!isPublic && status !== "rejected" && <Link href={`/pengajuan-event?edit=${encodeURIComponent(submission.id)}`} className="px-3 py-2 bg-gray-900 text-white text-xs font-bold rounded-md">Edit Pengajuan</Link>}
+                </div>
+              </div>
+            );
+          })}
         </section>
       )}
 
@@ -227,7 +305,7 @@ export default function ProfilePage() {
                   : "border-transparent text-gray-500 hover:text-gray-900"
               }`}
             >
-              Event Diikuti ({currentUser.registeredEvents.length})
+              Event Diikuti ({registeredEvents.length})
             </button>
             <button
               type="button"
@@ -239,17 +317,6 @@ export default function ProfilePage() {
               }`}
             >
               Disimpan ({savedEvents.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("reminders")}
-              className={`flex-1 py-3.5 px-4 text-center border-b-2 transition cursor-pointer ${
-                activeTab === "reminders"
-                  ? "border-gray-900 text-gray-900 bg-white"
-                  : "border-transparent text-gray-500 hover:text-gray-900"
-              }`}
-            >
-              Pengingat Jadwal ({reminders.filter((r) => r.enabled).length})
             </button>
           </div>
 
@@ -263,7 +330,11 @@ export default function ProfilePage() {
                 <span className="text-xs text-gray-500">Klik &quot;Lihat E-Ticket&quot; untuk menampilkan barcode QR</span>
               </div>
 
-              {currentUser.registeredEvents.map((ticket) => (
+              {registeredEvents.map((ticket) => (
+                (() => {
+                  const eventStatus = registeredEventStatuses[ticket.eventId];
+                  const isClosed = eventStatus === "completed" || eventStatus === "cancelled";
+                  return (
                 <div
                   key={ticket.ticketId}
                   className="p-4 sm:p-5 border border-gray-300 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50/40 hover:border-gray-400 transition"
@@ -273,8 +344,10 @@ export default function ProfilePage() {
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-800">
                         {ticket.category}
                       </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                        Tiket Aktif #{ticket.ticketId}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        isClosed ? "bg-slate-100 text-slate-700" : "bg-emerald-100 text-emerald-800"
+                      }`}>
+                        {isClosed ? "Event Selesai" : `Tiket Aktif #${ticket.ticketId}`}
                       </span>
                     </div>
 
@@ -290,13 +363,15 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex sm:flex-col gap-2 w-full sm:w-auto shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedTicket(ticket)}
-                      className="flex-1 sm:flex-none px-4 py-2 bg-gray-900 text-white font-bold text-xs rounded-md hover:bg-gray-800 transition cursor-pointer text-center"
-                    >
-                      Lihat E-Ticket QR
-                    </button>
+                    {!isClosed && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTicket(ticket)}
+                        className="flex-1 sm:flex-none px-4 py-2 bg-gray-900 text-white font-bold text-xs rounded-md hover:bg-gray-800 transition cursor-pointer text-center"
+                      >
+                        Lihat E-Ticket QR
+                      </button>
+                    )}
                     <Link
                       href={`/event/${ticket.eventId}`}
                       className="flex-1 sm:flex-none px-4 py-2 border border-gray-300 bg-white text-gray-700 font-semibold text-xs rounded-md hover:bg-gray-50 transition text-center"
@@ -305,6 +380,8 @@ export default function ProfilePage() {
                     </Link>
                   </div>
                 </div>
+                  );
+                })()
               ))}
             </div>
           )}
@@ -338,66 +415,35 @@ export default function ProfilePage() {
                     </p>
                   </div>
 
-                  <div className="flex w-full sm:w-auto gap-2 shrink-0">
-                  <Link
-                    href={`/event/${evt.id}`}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-gray-900 text-white font-semibold text-xs rounded-md hover:bg-gray-800 transition text-center"
-                  >
-                    Lihat Detail &rarr;
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => toggleWishlist(evt.id)}
-                    className="px-3 py-2 border border-gray-300 text-gray-700 font-semibold text-xs rounded-md hover:bg-gray-50 transition"
-                  >
-                    Hapus
-                  </button>
+                  <div className="flex w-full sm:w-auto flex-wrap justify-end gap-2 shrink-0">
+                    <select
+                      value={reminders[evt.id] || ""}
+                      onChange={(event) => toggleReminder(evt, (event.target.value || null) as ReminderTrigger | null)}
+                      className="px-2 py-2 border border-gray-300 rounded-md text-xs text-gray-700"
+                      aria-label={`Pilih trigger pengingat ${evt.title}`}
+                    >
+                      <option value="">Tanpa Pengingat</option>
+                      <option value="7d">7 hari sebelum deadline</option>
+                      <option value="3d">3 hari sebelum deadline</option>
+                      <option value="1d">1 hari sebelum deadline</option>
+                      <option value="1h">1 jam sebelum event</option>
+                    </select>
+                    <Link
+                      href={`/event/${evt.id}`}
+                      className="px-4 py-2 bg-gray-900 text-white font-semibold text-xs rounded-md hover:bg-gray-800 transition text-center"
+                    >
+                      Lihat Detail &rarr;
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => toggleWishlist(evt.id)}
+                      className="px-3 py-2 border border-gray-300 text-gray-700 font-semibold text-xs rounded-md hover:bg-gray-50 transition"
+                    >
+                      Hapus
+                    </button>
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Tab 3: Pengingat Jadwal (Reminders) */}
-          {activeTab === "reminders" && (
-            <div className="p-6 flex flex-col gap-4">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  PENGINGAT DEADLINE & JADWAL KEGIATAN
-                </span>
-                <span className="text-xs text-gray-500">Aktifkan notifikasi pengingat via email/browser</span>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                {reminders.map((rem) => (
-                  <div
-                    key={rem.id}
-                    className="p-4 border border-gray-300 rounded-lg flex items-center justify-between gap-4 bg-white"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">🔔</span>
-                      <div className="flex flex-col">
-                        <span className="text-xs sm:text-sm font-bold text-gray-900">
-                          {rem.title}
-                        </span>
-                        <span className="text-xs text-gray-500">Waktu: {rem.time}</span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleReminder(rem.id)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
-                        rem.enabled
-                          ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                          : "bg-gray-200 text-gray-600 border border-gray-300"
-                      }`}
-                    >
-                      {rem.enabled ? "Aktif" : "Nonaktif"}
-                    </button>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
         </div>

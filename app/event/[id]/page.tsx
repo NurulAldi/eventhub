@@ -4,12 +4,13 @@ import { use, useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiGetEventById, apiGetEvents } from "@/lib/api";
+import { apiGetEventById, apiGetEvents, apiRegisterEvent } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import EventCard from "@/components/EventCard";
-import { Event } from "@/types";
+import { Event, RegisteredEvent } from "@/types";
 import { isEventInWishlist, subscribeToWishlist, toggleWishlist } from "@/lib/wishlist";
 import { getPopularityLabel } from "@/lib/event-popularity";
+import { addRegisteredTicket, getRegisteredTickets, isEventRegistered, subscribeToTickets } from "@/lib/tickets";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -32,6 +33,9 @@ function EventDetailContent({ params }: Props) {
   const [showModal, setShowModal] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [ticketCode, setTicketCode] = useState("");
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [registeredTicket, setRegisteredTicket] = useState<RegisteredEvent | null>(null);
+  const [showTicketModal, setShowTicketModal] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -46,6 +50,8 @@ function EventDetailContent({ params }: Props) {
         if (!isMounted) return;
         setEvent(fetchedEvent);
         setIsSaved(isEventInWishlist(fetchedEvent.id));
+        setIsRegistered(isEventRegistered(fetchedEvent.id));
+        setRegisteredTicket(getRegisteredTickets().find((ticket) => ticket.eventId === fetchedEvent.id) || null);
 
         // Ambil event terkait
         try {
@@ -80,6 +86,14 @@ function EventDetailContent({ params }: Props) {
       isMounted = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!event) return;
+    return subscribeToTickets(() => {
+      setIsRegistered(isEventRegistered(event.id));
+      setRegisteredTicket(getRegisteredTickets().find((ticket) => ticket.eventId === event.id) || null);
+    });
+  }, [event]);
 
   useEffect(() => {
     const unsubscribe = subscribeToWishlist(() => {
@@ -165,13 +179,13 @@ function EventDetailContent({ params }: Props) {
     event.price === 0
       ? "Gratis"
       : `Rp ${event.price.toLocaleString("id-ID")}`;
-  const isClosed = event.status === "completed" || event.status === "cancelled";
+  const isClosed = ["completed", "cancelled", "rejected"].includes(event.status || "");
   const popularityLabel = getPopularityLabel(event);
 
   const handleOpenRegistration = () => {
     if (isClosed) return;
+    if (isRegistered) return;
     if (!isLoggedIn) {
-      alert("Silakan masuk/login terlebih dahulu untuk mendaftar event.");
       router.push("/login");
       return;
     }
@@ -179,10 +193,32 @@ function EventDetailContent({ params }: Props) {
     setRegistrationSuccess(false);
   };
 
-  const handleConfirmRegistration = () => {
-    const generatedTicket = `EVT-${Math.floor(100000 + Math.random() * 900000)}`;
-    setTicketCode(generatedTicket);
-    setRegistrationSuccess(true);
+  const handleConfirmRegistration = async () => {
+    if (isRegistered) return;
+    try {
+      const updatedEvent = await apiRegisterEvent(event.id);
+      const generatedTicket = `EVT-${Math.floor(100000 + Math.random() * 900000)}`;
+      const registeredTicket: RegisteredEvent = {
+        ticketId: generatedTicket,
+        eventId: event.id,
+        eventTitle: event.title,
+        category: event.category,
+        date: formattedDate,
+        time: event.time || "Waktu belum ditentukan",
+        location: event.location,
+        registeredAt: new Date().toISOString().slice(0, 10),
+        ticketStatus: "active",
+        qrCodeMock: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${generatedTicket}`,
+      };
+      if (!addRegisteredTicket(registeredTicket)) return;
+      setEvent(updatedEvent);
+      setTicketCode(generatedTicket);
+      setRegisteredTicket(registeredTicket);
+      setIsRegistered(true);
+      setRegistrationSuccess(true);
+    } catch (registrationError) {
+      alert(registrationError instanceof Error ? registrationError.message : "Pendaftaran event gagal.");
+    }
   };
 
   return (
@@ -376,25 +412,37 @@ function EventDetailContent({ params }: Props) {
             {/* Action Buttons */}
             {!isClosed && (
               <div className="flex flex-col gap-2.5">
-                <button
-                  type="button"
-                  onClick={handleOpenRegistration}
-                  className="w-full py-3 bg-gray-900 text-white font-bold text-sm rounded-md hover:bg-gray-800 transition cursor-pointer text-center shadow-xs"
-                >
-                  {event.price === 0 ? "Daftar Event Sekarang" : "Beli Tiket Event"}
-                </button>
+                {isLoggedIn && isRegistered ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowTicketModal(true)}
+                    className="w-full py-3 bg-gray-900 text-white font-bold text-sm rounded-md hover:bg-gray-800 transition cursor-pointer text-center shadow-xs"
+                  >
+                    Lihat E-Ticket QR
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleOpenRegistration}
+                    className="w-full py-3 bg-gray-900 text-white font-bold text-sm rounded-md hover:bg-gray-800 transition cursor-pointer text-center shadow-xs"
+                  >
+                    {event.price === 0 ? "Daftar Event Sekarang" : "Beli Tiket Event"}
+                  </button>
+                )}
 
-                <button
-                  type="button"
-                  onClick={() => toggleWishlist(event.id)}
-                  className={`w-full py-2.5 border text-xs font-semibold rounded-md transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                    isSaved
-                      ? "bg-gray-100 border-gray-400 text-gray-900"
-                      : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  <span>{isSaved ? "★ Disimpan di Wishlist" : "☆ Simpan Event"}</span>
-                </button>
+                {isLoggedIn && (
+                  <button
+                    type="button"
+                    onClick={() => toggleWishlist(event.id)}
+                    className={`w-full py-2.5 border text-xs font-semibold rounded-md transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      isSaved
+                        ? "bg-gray-100 border-gray-400 text-gray-900"
+                        : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span>{isSaved ? "★ Disimpan di Wishlist" : "☆ Simpan Event"}</span>
+                  </button>
+                )}
               </div>
             )}
           </aside>
@@ -420,6 +468,35 @@ function EventDetailContent({ params }: Props) {
       )}
 
       {/* Modal Simulasi Pendaftaran / Pembelian Tiket */}
+      {showTicketModal && registeredTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white border border-gray-300 rounded-xl max-w-sm w-full p-6 shadow-2xl flex flex-col gap-5">
+            <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+              <h3 className="text-base font-bold text-gray-900">E-Ticket QR</h3>
+              <button
+                type="button"
+                onClick={() => setShowTicketModal(false)}
+                className="text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex flex-col items-center gap-3 text-center">
+              <p className="text-sm font-bold text-gray-900">{registeredTicket.eventTitle}</p>
+              <Image
+                src={registeredTicket.qrCodeMock || `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${registeredTicket.ticketId}`}
+                alt={`QR Code ${registeredTicket.ticketId}`}
+                width={150}
+                height={150}
+                className="border border-gray-200 rounded-md"
+              />
+              <span className="font-mono font-bold text-gray-900">#{registeredTicket.ticketId}</span>
+              <p className="text-xs text-gray-500">{registeredTicket.date} &bull; {registeredTicket.time}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white border border-gray-300 rounded-xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-150">

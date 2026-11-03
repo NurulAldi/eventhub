@@ -34,6 +34,7 @@ export interface CreateEventPayload {
   contactPic?: string;
   isPopular?: boolean;
   organizerType?: string;
+  institution?: string;
   organizerContact?: string;
   registrationDeadline?: string;
   registrationUrl?: string;
@@ -171,6 +172,22 @@ export async function apiUpdateEvent(id: string, payload: Partial<CreateEventPay
     throw new Error(errorData.error || `Gagal memperbarui event (HTTP ${response.status})`);
   }
 
+  return response.json();
+}
+
+export async function apiRegisterEvent(id: string): Promise<Event> {
+  const endpoint = typeof window !== "undefined"
+    ? `/api/events/${encodeURIComponent(id)}`
+    : `${getBaseUrl()}/api/events/${encodeURIComponent(id)}`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "register" }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal mendaftarkan peserta (HTTP ${response.status})`);
+  }
   return response.json();
 }
 
