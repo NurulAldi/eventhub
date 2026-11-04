@@ -104,8 +104,13 @@ export function markAllNotificationsRead(role: NotificationRole) {
 }
 
 function daysUntil(date: string) {
-  const target = new Date(`${date}T23:59:59`);
-  return Math.ceil((target.getTime() - Date.now()) / 86400000);
+  const [year, month, day] = date.split("-").map(Number);
+  if (![year, month, day].every(Number.isFinite)) return Number.NaN;
+
+  const targetDay = Date.UTC(year, month - 1, day);
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((targetDay - today) / 86400000);
 }
 
 export function generateNotifications(events: Event[], role: NotificationRole) {
