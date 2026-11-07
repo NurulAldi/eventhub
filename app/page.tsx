@@ -98,15 +98,15 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50">
+    <div className="flex-1 flex flex-col bg-slate-50">
       {/* Hero Section - Matching beranda.html */}
-      <section className="bg-gray-100 border-b border-gray-300 py-16 sm:py-20 px-6">
+      <section className="bg-gradient-to-br from-slate-50 via-white to-indigo-50 border-b border-slate-100 py-16 sm:py-20 px-6">
         <div className="max-w-4xl mx-auto flex flex-col items-center gap-6 text-center">
           <div className="max-w-2xl flex flex-col gap-3">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight leading-tight">
-              Temukan Event Kampus Terbaikmu
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+              Temukan <span className="text-indigo-600">Event Kampus</span> Terbaikmu
             </h1>
-            <p className="text-sm sm:text-base text-gray-600 leading-relaxed max-w-xl mx-auto">
+            <p className="text-sm sm:text-base text-slate-500 leading-relaxed max-w-xl mx-auto">
               Pusat informasi kompetisi, seminar, beasiswa, dan pengabdian masyarakat terlengkap untuk mahasiswa seluruh Indonesia.
             </p>
           </div>
@@ -114,10 +114,10 @@ export default function HomePage() {
           {/* Search Box - Figma Style */}
           <form
             onSubmit={handleSearch}
-            className="w-full max-w-2xl p-2 bg-white border border-gray-300 rounded-lg shadow-sm flex items-center gap-3 transition focus-within:border-gray-900"
+            className="w-full max-w-2xl p-2 bg-white border border-slate-200 rounded-xl shadow-sm flex items-center gap-3 transition focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100"
           >
             <div className="flex-1 flex items-center gap-2.5 px-3">
-              <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
@@ -125,12 +125,12 @@ export default function HomePage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Ketik nama event, kampus, atau penyelenggara..."
-                className="w-full text-xs sm:text-sm text-gray-900 placeholder-gray-400 bg-transparent outline-none"
+                className="w-full text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-transparent outline-none"
               />
             </div>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-gray-900 text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-gray-800 transition shrink-0 cursor-pointer"
+              className="px-5 py-2.5 bg-indigo-600 text-white font-semibold text-xs sm:text-sm rounded-lg hover:bg-indigo-700 active:scale-95 transition-transform shrink-0 cursor-pointer"
             >
               Cari Event
             </button>
@@ -138,12 +138,20 @@ export default function HomePage() {
 
           {/* Quick Category Badges */}
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-            <span className="text-xs text-gray-400 font-medium">Kategori Populer:</span>
+            <span className="text-xs text-slate-500 font-medium">Kategori Populer:</span>
             {categories.slice(0, 4).map((cat) => (
               <Link
                 key={cat.name}
                 href={`/event?category=${encodeURIComponent(cat.name)}`}
-                className="text-xs bg-white border border-gray-300 hover:border-gray-900 text-gray-700 px-3 py-1 rounded-full transition"
+                className={`text-xs px-3 py-1 rounded-full transition ${
+                  cat.name === "Seminar"
+                    ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                    : cat.name === "Lomba"
+                      ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                      : cat.name === "Beasiswa"
+                        ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                        : "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                }`}
               >
                 {cat.icon} {cat.name}
               </Link>
@@ -177,22 +185,22 @@ export default function HomePage() {
         )}
 
         {/* Section 1: Buat Event */}
-        <section className="order-1 bg-gray-900 text-white rounded-xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
+        <section className="order-1 bg-indigo-700 text-white rounded-xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col gap-2 max-w-xl text-center md:text-left">
-            <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">
+            <span className="text-xs uppercase tracking-wider text-indigo-200 font-semibold">
               Khusus BEM, Himpunan, & Komunitas Kampus
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold">
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Ajukan Event Kampusmu Secara Resmi
             </h2>
-            <p className="text-xs sm:text-sm text-gray-300">
+            <p className="text-xs sm:text-sm text-indigo-100">
               Semua pengajuan akan divalidasi dan ditinjau admin sebelum dipublikasikan.
             </p>
           </div>
           <button
             type="button"
             onClick={handleCreateEvent}
-            className="px-6 py-3 bg-white text-gray-900 font-bold text-sm rounded-md hover:bg-gray-100 transition whitespace-nowrap cursor-pointer shadow-md"
+            className="px-6 py-3 bg-white text-indigo-700 font-bold text-sm rounded-lg hover:bg-indigo-50 active:scale-95 transition-transform whitespace-nowrap cursor-pointer shadow-md"
           >
             Buat Event Sekarang &rarr;
           </button>
@@ -200,16 +208,16 @@ export default function HomePage() {
 
         {/* Section 2: Event Terbaru */}
         <section className="order-4 flex flex-col gap-6">
-          <div className="flex items-end justify-between border-b border-gray-200 pb-3">
+          <div className="flex items-end justify-between border-b border-slate-200 pb-3">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Event Terbaru</h2>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Event Terbaru</h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
                 Baru saja ditambahkan oleh berbagai universitas dan komunitas kampus
               </p>
             </div>
             <Link
               href="/event?sortBy=terbaru"
-              className="text-xs sm:text-sm font-semibold text-gray-700 hover:text-gray-900 flex items-center gap-1 transition"
+              className="text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition"
             >
               <span>Lihat Semua</span>
               <span>&rarr;</span>
@@ -219,11 +227,11 @@ export default function HomePage() {
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="bg-white border border-gray-200 rounded-lg h-72 animate-pulse p-4 flex flex-col justify-between">
-                  <div className="bg-gray-200 h-40 rounded-md w-full" />
+                <div key={n} className="bg-white border border-slate-100 rounded-xl h-72 animate-pulse p-4 flex flex-col justify-between">
+                  <div className="bg-slate-200 h-40 rounded-md w-full" />
                   <div className="space-y-2 mt-4">
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
-                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    <div className="h-4 bg-slate-200 rounded w-3/4" />
+                    <div className="h-3 bg-slate-100 rounded w-1/2" />
                   </div>
                 </div>
               ))}
@@ -235,17 +243,17 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center bg-white border border-gray-200 rounded-lg text-sm text-gray-500">
+            <div className="p-8 text-center bg-white border border-slate-100 rounded-xl text-sm text-slate-500">
               Belum ada event terbaru yang tersedia saat ini.
             </div>
           )}
         </section>
 
         {/* Section 3: Kategori Pilihan Grid */}
-        <section className="order-5 flex flex-col gap-5 bg-white border border-gray-200 rounded-xl p-6 sm:p-8 shadow-xs">
+        <section className="order-5 flex flex-col gap-5 bg-white border border-slate-100 rounded-xl p-6 sm:p-8 shadow-sm">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Jelajahi Berdasarkan Kategori</h2>
-            <p className="text-xs text-gray-500 mt-1">Pilih jenis kegiatan yang sesuai dengan minat dan tujuan akademikmu</p>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">Jelajahi Berdasarkan Kategori</h2>
+            <p className="text-xs text-slate-500 mt-1">Pilih jenis kegiatan yang sesuai dengan minat dan tujuan akademikmu</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -253,11 +261,11 @@ export default function HomePage() {
               <Link
                 key={cat.name}
                 href={`/event?category=${encodeURIComponent(cat.name)}`}
-                className="flex flex-col items-center justify-center p-4 rounded-lg border border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition text-center group"
+                className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition text-center group"
               >
                 <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">{cat.icon}</span>
-                <span className="text-xs font-bold text-gray-800">{cat.name}</span>
-                <span className="text-[10px] text-gray-400 mt-0.5">{cat.count}</span>
+                <span className="text-xs font-bold text-slate-800">{cat.name}</span>
+                <span className="text-[10px] text-slate-400 mt-0.5">{cat.count}</span>
               </Link>
             ))}
           </div>
@@ -265,16 +273,16 @@ export default function HomePage() {
 
         {/* Section 4: Event Populer */}
         <section className="order-2 flex flex-col gap-6">
-          <div className="flex items-end justify-between border-b border-gray-200 pb-3">
+          <div className="flex items-end justify-between border-b border-slate-200 pb-3">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Event Populer</h2>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Event Populer</h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
                 Paling banyak dilihat dan diminati mahasiswa saat ini
               </p>
             </div>
             <Link
               href="/event?sortBy=populer"
-              className="text-xs sm:text-sm font-semibold text-gray-700 hover:text-gray-900 flex items-center gap-1 transition"
+              className="text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition"
             >
               <span>Lihat Semua</span>
               <span>&rarr;</span>
@@ -284,11 +292,11 @@ export default function HomePage() {
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="bg-white border border-gray-200 rounded-lg h-72 animate-pulse p-4 flex flex-col justify-between">
-                  <div className="bg-gray-200 h-40 rounded-md w-full" />
+                <div key={n} className="bg-white border border-slate-100 rounded-xl h-72 animate-pulse p-4 flex flex-col justify-between">
+                  <div className="bg-slate-200 h-40 rounded-md w-full" />
                   <div className="space-y-2 mt-4">
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
-                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    <div className="h-4 bg-slate-200 rounded w-3/4" />
+                    <div className="h-3 bg-slate-100 rounded w-1/2" />
                   </div>
                 </div>
               ))}
@@ -300,7 +308,7 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center bg-white border border-gray-200 rounded-lg text-sm text-gray-500">
+            <div className="p-8 text-center bg-white border border-slate-100 rounded-xl text-sm text-slate-500">
               Belum ada event dengan tingkat pendaftaran tinggi saat ini.
             </div>
           )}
@@ -308,16 +316,16 @@ export default function HomePage() {
 
         {/* Section 5: Deadline Terdekat */}
         <section className="order-3 flex flex-col gap-6">
-          <div className="flex items-end justify-between border-b border-gray-200 pb-3">
+          <div className="flex items-end justify-between border-b border-slate-200 pb-3">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Deadline Terdekat</h2>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Deadline Terdekat</h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
                 Registrasi hampir ditutup, segera daftarkan dirimu sebelum kuota habis!
               </p>
             </div>
             <Link
               href="/event?sortBy=deadline-terdekat"
-              className="text-xs sm:text-sm font-semibold text-gray-700 hover:text-gray-900 flex items-center gap-1 transition"
+              className="text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition"
             >
               <span>Lihat Semua</span>
               <span>&rarr;</span>
@@ -327,11 +335,11 @@ export default function HomePage() {
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="bg-white border border-gray-200 rounded-lg h-72 animate-pulse p-4 flex flex-col justify-between">
-                  <div className="bg-gray-200 h-40 rounded-md w-full" />
+                <div key={n} className="bg-white border border-slate-100 rounded-xl h-72 animate-pulse p-4 flex flex-col justify-between">
+                  <div className="bg-slate-200 h-40 rounded-md w-full" />
                   <div className="space-y-2 mt-4">
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
-                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    <div className="h-4 bg-slate-200 rounded w-3/4" />
+                    <div className="h-3 bg-slate-100 rounded w-1/2" />
                   </div>
                 </div>
               ))}
@@ -343,7 +351,7 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center bg-white border border-gray-200 rounded-lg text-sm text-gray-500">
+            <div className="p-8 text-center bg-white border border-slate-100 rounded-xl text-sm text-slate-500">
               Belum ada event dengan deadline terdekat saat ini.
             </div>
           )}

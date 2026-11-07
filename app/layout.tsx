@@ -31,13 +31,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="id"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-gray-50 text-gray-900">
+      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
         <AuthProvider>
           <NotificationBootstrap />
-          <Suspense fallback={<div className="h-20 bg-white border-b border-gray-200" />}>
+          <Suspense fallback={<div className="h-20 bg-white border-b border-slate-100" />}>
             <Navbar />
           </Suspense>
-          <main className="flex-1 flex flex-col bg-gray-50">{children}</main>
+          <main className="flex-1 flex flex-col bg-slate-50">{children}</main>
           <Suspense fallback={null}>
             <Footer />
           </Suspense>

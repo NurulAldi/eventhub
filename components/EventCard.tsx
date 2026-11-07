@@ -10,6 +10,11 @@ interface EventCardProps {
 
 export default function EventCard({ event, showPrice = true }: EventCardProps) {
   const popularityLabel = getPopularityLabel(event);
+  const categoryBadgeClass = {
+    Seminar: "bg-blue-100 text-blue-700",
+    Lomba: "bg-orange-100 text-orange-700",
+    Beasiswa: "bg-emerald-100 text-emerald-700",
+  }[event.category] ?? "bg-indigo-100 text-indigo-700";
   // Format price display
   const priceDisplay =
     event.price === 0
@@ -25,10 +30,10 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
   });
 
   return (
-    <div className="group bg-white border border-gray-300 rounded-lg overflow-hidden flex flex-col justify-between hover:shadow-md hover:border-gray-400 transition-all duration-200">
+    <div className="group bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md hover:-translate-y-1 transition-all duration-300">
       <Link href={`/event/${event.id}`} className="block flex-1 flex flex-col">
         {/* Poster Image with next/image */}
-        <div className="relative w-full h-44 bg-gray-100 overflow-hidden">
+        <div className="relative w-full h-44 bg-slate-100 overflow-hidden">
           <Image
             src={event.image}
             alt={event.title}
@@ -37,7 +42,7 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
             className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
           {(event.status === "completed" || event.status === "cancelled") && (
-            <span className="absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-md bg-gray-700 text-white shadow-xs">
+            <span className="absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-md bg-slate-700 text-white shadow-xs">
               Ditutup
             </span>
           )}
@@ -46,7 +51,7 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
               className={`absolute top-3 right-3 text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xs ${
                 event.price === 0
                   ? "bg-emerald-600 text-white"
-                  : "bg-gray-900 text-white"
+                  : "bg-slate-900 text-white"
               }`}
             >
               {priceDisplay}
@@ -57,38 +62,38 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
         {/* Content Body */}
         <div className="p-4 flex-1 flex flex-col gap-2.5">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${categoryBadgeClass}`}>
               {event.category}
             </span>
             {popularityLabel && (
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
                 {popularityLabel}
               </span>
             )}
           </div>
 
-          <h3 className="text-base font-bold text-gray-900 group-hover:text-blue-600 transition line-clamp-2 leading-snug">
+          <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition line-clamp-2 leading-snug tracking-tight">
             {event.title}
           </h3>
 
-          <p className="text-xs text-gray-500 line-clamp-2 mt-auto">
+          <p className="text-xs text-slate-500 line-clamp-2 mt-auto">
             {event.description}
           </p>
         </div>
       </Link>
 
       {/* Card Footer */}
-      <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between text-xs bg-gray-50/50">
+      <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between text-xs bg-slate-50/50">
         <div className="flex flex-col">
-          <span className="font-medium text-gray-700">{formattedDate}</span>
-          <span className="text-gray-400 truncate max-w-[180px] sm:max-w-[200px]">
+          <span className="font-medium text-slate-700">{formattedDate}</span>
+          <span className="text-slate-400 truncate max-w-[180px] sm:max-w-[200px]">
             {event.organizer}
           </span>
         </div>
 
         <Link
           href={`/event/${event.id}`}
-          className="text-xs font-semibold text-gray-900 group-hover:text-blue-600 flex items-center gap-1 hover:underline"
+          className="text-xs font-semibold text-slate-900 group-hover:text-indigo-600 flex items-center gap-1 hover:underline transition-colors"
           aria-label={`Detail event ${event.title}`}
         >
           <span>Detail</span>
