@@ -228,44 +228,44 @@ export default function AdminDashboardPage() {
 
       {/* 4 Stat Cards Grid - Matching dashboard-admin.html */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
+        <div className="p-5 card-royal border rounded-lg shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow">
           <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
             Total Event
           </span>
-          <div className="text-3xl font-extrabold text-[#29374A]">
+          <div className="text-3xl font-extrabold card-heading-royal">
             {isLoading ? "..." : eventList.length}
           </div>
-          <span className="text-[11px] text-[#6F7580] font-medium">Terdaftar di PostgreSQL</span>
+          <span className="text-[11px] card-text-royal font-medium">Terdaftar di PostgreSQL</span>
         </div>
 
-        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
+        <div className="p-5 card-sage border rounded-lg shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow">
           <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
             Event Aktif
           </span>
-          <div className="text-3xl font-extrabold text-[#29374A]">
+          <div className="text-3xl font-extrabold card-heading-sage">
             {isLoading ? "..." : activeEventsCount}
           </div>
-          <span className="text-[11px] text-emerald-600 font-medium">Pendaftaran terbuka</span>
+          <span className="text-[11px] card-text-sage font-medium">Pendaftaran terbuka</span>
         </div>
 
-        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
+        <div className="p-5 card-sand border rounded-lg shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow">
           <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
             Total Pendaftar
           </span>
-          <div className="text-3xl font-extrabold text-[#29374A]">
+          <div className="text-3xl font-extrabold card-heading-sand">
             {isLoading ? "..." : totalRegistrations.toLocaleString("id-ID")}
           </div>
-          <span className="text-[11px] text-[#6F7580] font-medium">Tiket terakumulasi</span>
+          <span className="text-[11px] card-text-sand font-medium">Tiket terakumulasi</span>
         </div>
 
-        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
+        <div className="p-5 card-coral border rounded-lg shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow">
           <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
             Total Pengguna
           </span>
-          <div className="text-3xl font-extrabold text-[#29374A]">
+          <div className="text-3xl font-extrabold card-heading-coral">
             {adminStats.totalUsers.toLocaleString("id-ID")}
           </div>
-          <span className="text-[11px] text-emerald-600 font-medium">Mahasiswa & organizer</span>
+          <span className="text-[11px] card-text-coral font-medium">Mahasiswa & organizer</span>
         </div>
       </div>
 

@@ -267,22 +267,32 @@ export default function HomePage() {
         </section>
 
         {/* Section 3: Kategori Pilihan Grid */}
-        <section className="order-5 flex flex-col gap-5 bg-[#FFFCF6] border border-[#ECE5DA] rounded-xl p-6 sm:p-8 shadow-sm">
+        <section className="order-5 flex flex-col gap-5 card-sand border rounded-xl p-6 sm:p-8 shadow-sm">
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-[#29374A] tracking-tight">Jelajahi Berdasarkan Kategori</h2>
             <p className="text-xs text-[#6F7580] mt-1">Pilih jenis kegiatan yang sesuai dengan minat dan tujuan akademikmu</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-            {categories.map((cat) => (
+            {categories.map((cat, index) => (
               <Link
                 key={cat.name}
                 href={`/event?category=${encodeURIComponent(cat.name)}`}
-                className="flex flex-col items-center justify-center p-4 rounded-xl border border-[#ECE5DA] hover:border-[#C7D9F0] hover:bg-[#E5ECF5]/50 transition text-center group"
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border transition text-center group ${
+                  index % 3 === 0
+                    ? "card-royal hover:brightness-95"
+                    : index % 3 === 1
+                      ? "card-sage hover:brightness-95"
+                      : "card-coral hover:brightness-95"
+                }`}
               >
-                <CategoryIcon name={cat.icon} className="mb-1 h-7 w-7 text-[#315E9E] group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-[#29374A]">{cat.name}</span>
-                <span className="text-[10px] text-[#92959C] mt-0.5">{cat.count}</span>
+                <CategoryIcon name={cat.icon} className={`mb-1 h-7 w-7 group-hover:scale-110 transition-transform ${
+                  index % 3 === 0 ? "card-text-royal" : index % 3 === 1 ? "card-text-sage" : "card-text-coral"
+                }`} />
+                <span className={`text-xs font-bold ${
+                  index % 3 === 0 ? "card-heading-royal" : index % 3 === 1 ? "card-heading-sage" : "card-heading-coral"
+                }`}>{cat.name}</span>
+                <span className="text-[10px] text-[#6F7580] mt-0.5">{cat.count}</span>
               </Link>
             ))}
           </div>

@@ -156,7 +156,7 @@ export default function CalendarPage() {
       {/* Main 2-Column Grid matching kalender-event.html */}
       <div className="flex flex-col lg:flex-row items-start gap-8">
         {/* Left Column: Calendar Grid Box */}
-        <div className="flex-1 w-full bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-5 sm:p-6 shadow-xs flex flex-col gap-6">
+        <div className="flex-1 w-full card-royal border rounded-xl p-5 sm:p-6 shadow-sm flex flex-col gap-6">
           {/* Calendar Header Controls */}
           <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-4">
             <div className="flex items-center gap-3">
@@ -291,7 +291,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Right Column: Sidebar Event Pada Tanggal Terpilih */}
-        <aside className="w-full lg:w-96 bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 shadow-xs flex flex-col gap-5 shrink-0">
+        <aside className="w-full lg:w-96 card-sand border rounded-xl p-6 shadow-sm flex flex-col gap-5 shrink-0">
           <div className="border-b border-[#E4DCCF] pb-3 flex flex-col gap-1">
             <span className="text-[11px] font-bold text-[#92959C] uppercase tracking-wider">
               EVENT PADA TANGGAL INI

@@ -30,7 +30,7 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
   });
 
   return (
-    <div className="group bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-lg hover:shadow-[#244777]/10 hover:-translate-y-1 transition-all duration-300">
+    <div className="group card-royal border rounded-xl shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-lg hover:shadow-[#244777]/15 hover:-translate-y-1 transition-all duration-300">
       <Link href={`/event/${event.id}`} className="block flex-1 flex flex-col">
         {/* Poster Image with next/image */}
         <div className="relative w-full h-44 bg-[#EAE2D4] overflow-hidden">
@@ -72,28 +72,28 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
             )}
           </div>
 
-          <h3 className="text-base font-bold text-[#29374A] group-hover:text-[#315E9E] transition line-clamp-2 leading-snug tracking-tight">
+          <h3 className="text-base font-bold card-heading-royal group-hover:text-[#244777] transition line-clamp-2 leading-snug tracking-tight">
             {event.title}
           </h3>
 
-          <p className="text-xs text-[#6F7580] line-clamp-2 mt-auto">
+          <p className="text-xs card-text-royal line-clamp-2 mt-auto">
             {event.description}
           </p>
         </div>
       </Link>
 
       {/* Card Footer */}
-      <div className="px-4 py-3 border-t border-[#ECE5DA] flex items-center justify-between text-xs bg-[#F7F4EE]/60">
+      <div className="px-4 py-3 border-t border-[#CCD9EB] flex items-center justify-between text-xs bg-[#E5EDF8]/70">
         <div className="flex flex-col">
-          <span className="font-medium text-[#29374A]">{formattedDate}</span>
-          <span className="text-[#92959C] truncate max-w-[180px] sm:max-w-[200px]">
+          <span className="font-medium card-heading-royal">{formattedDate}</span>
+          <span className="card-text-royal opacity-75 truncate max-w-[180px] sm:max-w-[200px]">
             {event.organizer}
           </span>
         </div>
 
         <Link
           href={`/event/${event.id}`}
-          className="text-xs font-semibold text-[#29374A] group-hover:text-[#315E9E] flex items-center gap-1 hover:underline transition-colors"
+          className="text-xs font-semibold card-heading-royal group-hover:text-[#244777] flex items-center gap-1 hover:underline transition-colors"
           aria-label={`Detail event ${event.title}`}
         >
           <span>Detail</span>
