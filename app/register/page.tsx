@@ -60,14 +60,14 @@ export default function RegisterPage() {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center py-12 px-6 bg-[#F7F4EE]">
-      <div className="w-full max-w-[480px] p-8 sm:p-10 card-sand border rounded-xl shadow-sm flex flex-col gap-6">
+      <div className="w-full max-w-[480px] p-8 sm:p-10 bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl shadow-xs flex flex-col gap-6">
         {/* Header - Matching register.html */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-extrabold text-[#29374A] tracking-tight">
             Buat Akun Baru
           </h1>
           <p className="text-xs sm:text-sm text-[#6F7580]">
-            Daftar untuk mulai menemukan event kampus terbaik.
+            Daftar untuk mulai menemukan kegiatan dan informasi kampus terbaik.
           </p>
         </div>
 

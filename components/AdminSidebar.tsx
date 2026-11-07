@@ -1,17 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const menuItems = [
     { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
     { label: "Kelola Event", href: "/dashboard?tab=events", icon: "events" },
-    { label: "Kategori", href: "/dashboard?tab=categories", icon: "categories" },
+    { label: "Kelola Informasi", href: "/dashboard/informasi", icon: "categories" },
     { label: "Pengguna", href: "/dashboard?tab=users", icon: "users" },
-    { label: "Pengaturan", href: "/dashboard?tab=settings", icon: "settings" },
   ];
 
   const menuIconPaths: Record<string, string> = {
@@ -41,7 +41,11 @@ export default function AdminSidebar() {
         {/* Sidebar Nav Items */}
         <nav className="flex flex-col gap-1.5 text-xs sm:text-sm font-medium">
           {menuItems.map((item) => {
-            const isActive = pathname === item.href || (item.href === "/dashboard" && pathname === "/dashboard");
+            const tab = searchParams.get("tab");
+            const isActive =
+              item.href === "/dashboard"
+                ? pathname === "/dashboard" && !tab
+                : pathname === "/dashboard" && item.href.endsWith(`tab=${tab}`);
             return (
               <Link
                 key={item.label}

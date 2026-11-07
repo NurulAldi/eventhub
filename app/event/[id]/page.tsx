@@ -353,14 +353,14 @@ function EventDetailContent({ params }: Props) {
 
         {/* Right Column: Sidebar Informasi Penting & Action */}
         <div className="flex flex-col gap-6">
-          <aside className="card-royal border rounded-xl p-6 shadow-sm flex flex-col gap-5 sticky top-28">
-            <h2 className="text-base font-bold card-heading-royal">Informasi Penting</h2>
-            <div className="h-px bg-[#CCD9EB]" />
+          <aside className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 shadow-xs flex flex-col gap-5 sticky top-28">
+            <h2 className="text-base font-bold text-[#29374A]">Informasi Penting</h2>
+            <div className="h-px bg-[#E4DCCF]" />
 
             <div className="flex flex-col gap-4 text-xs sm:text-sm">
               {/* Kategori */}
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#CCD9EB] text-[#315E9E] flex items-center justify-center text-sm shrink-0">
+                <div className="w-8 h-8 rounded-md bg-[#F0E9DC] flex items-center justify-center text-sm shrink-0">
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 5h8l8 7-8 7H4V5Z" /><circle cx="8" cy="12" r="1" /></svg>
                 </div>
                 <div>
@@ -371,7 +371,7 @@ function EventDetailContent({ params }: Props) {
 
               {/* Tanggal & Waktu */}
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#CCD9EB] text-[#315E9E] flex items-center justify-center text-sm shrink-0">
+                <div className="w-8 h-8 rounded-md bg-[#F0E9DC] flex items-center justify-center text-sm shrink-0">
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16" /></svg>
                 </div>
                 <div>
@@ -383,7 +383,7 @@ function EventDetailContent({ params }: Props) {
 
               {/* Lokasi */}
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#CCD9EB] text-[#315E9E] flex items-center justify-center text-sm shrink-0">
+                <div className="w-8 h-8 rounded-md bg-[#F0E9DC] flex items-center justify-center text-sm shrink-0">
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2" /></svg>
                 </div>
                 <div>
@@ -394,7 +394,7 @@ function EventDetailContent({ params }: Props) {
 
               {/* Biaya */}
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#CCD9EB] text-[#315E9E] flex items-center justify-center text-sm shrink-0">
+                <div className="w-8 h-8 rounded-md bg-[#F0E9DC] flex items-center justify-center text-sm shrink-0">
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 7a2 2 0 0 0 0 4v2a2 2 0 0 0 0 4h16v-4a2 2 0 0 0 0-4V7H4Z" /><path d="M12 7v2m0 3v2m0 3v1" /></svg>
                 </div>
                 <div>
@@ -405,7 +405,7 @@ function EventDetailContent({ params }: Props) {
 
               {/* Deadline Pendaftaran */}
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#CCD9EB] text-[#315E9E] flex items-center justify-center text-sm shrink-0">
+                <div className="w-8 h-8 rounded-md bg-[#F0E9DC] flex items-center justify-center text-sm shrink-0">
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M6 4h12M6 20h12M8 4c0 4 4 4 4 8s-4 4-4 8m8-16c0 4-4 4-4 8s4 4 4 8" /></svg>
                 </div>
                 <div>
@@ -416,7 +416,7 @@ function EventDetailContent({ params }: Props) {
 
               {/* Kuota */}
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-[#CCD9EB] text-[#315E9E] flex items-center justify-center text-sm shrink-0">
+                <div className="w-8 h-8 rounded-md bg-[#F0E9DC] flex items-center justify-center text-sm shrink-0">
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3" /><path d="M3 19a6 6 0 0 1 12 0m3-8a3 3 0 0 0 0-6m3 14a6 6 0 0 0-3-5.2" /></svg>
                 </div>
                 <div>
@@ -428,7 +428,7 @@ function EventDetailContent({ params }: Props) {
               </div>
             </div>
 
-            <div className="h-px bg-[#CCD9EB]" />
+            <div className="h-px bg-[#E4DCCF]" />
 
             {/* Action Buttons */}
             {!isClosed && (

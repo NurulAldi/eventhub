@@ -25,10 +25,15 @@ export function isEventInWishlist(eventId: string): boolean {
   return readWishlistIds().includes(eventId);
 }
 
-export function toggleWishlist(eventId: string): boolean {
+export function toggleWishlist(eventId: string, notify = true): boolean {
   const ids = readWishlistIds();
   const isSaved = ids.includes(eventId);
-  writeWishlistIds(isSaved ? ids.filter((id) => id !== eventId) : [...ids, eventId]);
+  const nextIds = isSaved ? ids.filter((id) => id !== eventId) : [...ids, eventId];
+  if (notify) {
+    writeWishlistIds(nextIds);
+  } else {
+    localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(nextIds));
+  }
   return !isSaved;
 }
 

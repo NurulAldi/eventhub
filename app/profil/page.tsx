@@ -76,7 +76,7 @@ export default function ProfilePage() {
           .filter((ticket, index) => ticketEvents[index] === null)
           .map((ticket) => ticket.eventId);
         if (removedTicketIds.length > 0) {
-          removeRegisteredTickets(removedTicketIds);
+          removeRegisteredTickets(removedTicketIds, false);
         }
         if (isMounted) {
           setRegisteredEvents(validTicketEntries.map((entry) => entry.ticket));
@@ -93,7 +93,7 @@ export default function ProfilePage() {
               return await apiGetEventById(eventId);
             } catch (err) {
               if (err instanceof Error && err.message === "Event tidak ditemukan.") {
-                toggleWishlist(eventId);
+                toggleWishlist(eventId, false);
                 return null;
               }
               throw err;
@@ -198,7 +198,7 @@ export default function ProfilePage() {
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8 bg-[#F7F4EE]">
       {/* Profile Header Card - Matching profil.html */}
-      <div className="card-royal border rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-sm">
+      <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xs">
         <div className="flex items-center gap-5 sm:gap-6">
           <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-[#244777] bg-[#F0E9DC] shrink-0">
             <Image
@@ -211,7 +211,7 @@ export default function ProfilePage() {
 
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-extrabold card-heading-royal">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-[#29374A]">
                 {currentUser.name}
               </h1>
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
@@ -227,23 +227,30 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {authUser?.role === "admin" && (
+        {authUser?.role === "admin" ? (
           <Link
             href="/dashboard"
             className="px-4 py-2 bg-[#315E9E] text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-[#244777] transition cursor-pointer self-start sm:self-auto shadow-xs"
           >
             Masuk ke Dashboard Admin &rarr;
           </Link>
+        ) : (
+          <Link
+            href="/pengajuan-event"
+            className="px-4 py-2 bg-[#315E9E] text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-[#244777] transition cursor-pointer self-start sm:self-auto shadow-xs"
+          >
+            Buat Event &rarr;
+          </Link>
         )}
       </div>
 
       {/* Main 2-Column Content Layout */}
       {submittedEvent && (
-        <section className="card-coral border rounded-xl p-6 shadow-sm">
+        <section className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#92959C]">Pengajuan Event Terakhir</span>
-              <h2 className="mt-1 text-base font-bold card-heading-coral">{submittedEvent.title}</h2>
+              <h2 className="mt-1 text-base font-bold text-[#29374A]">{submittedEvent.title}</h2>
               <p className="mt-1 text-xs text-[#6F7580]">
                 {isSubmissionPublic
                   ? "Status event telah diperbarui oleh admin."

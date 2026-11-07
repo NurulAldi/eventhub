@@ -91,10 +91,10 @@ export default function NotificationsPage() {
       <div className="flex flex-col gap-3">
         {notifications.length === 0 && <div className="p-8 text-center bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl text-sm text-[#6F7580]">Belum ada notifikasi.</div>}
         {notifications.map((notification) => (
-          <div key={notification.id} className={`p-4 rounded-xl border shadow-sm ${notification.read ? "bg-[#FFFCF6] border-[#E4DCCF]" : "card-coral"}`}>
+          <div key={notification.id} className={`p-4 rounded-xl border ${notification.read ? "bg-[#FFFCF6] border-[#E4DCCF]" : "bg-blue-50 border-blue-200"}`}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className={`font-bold text-sm ${notification.read ? "text-[#29374A]" : "card-heading-coral"}`}>{notification.title}</h2>
+                <h2 className="font-bold text-sm text-[#29374A]">{notification.title}</h2>
                 <time dateTime={notification.createdAt} className="mt-1 block text-[11px] text-[#92959C]">
                   {formatNotificationTime(notification.createdAt, currentTime)}
                 </time>

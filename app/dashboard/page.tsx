@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { apiGetEvents, apiCreateEvent, apiUpdateEvent, apiDeleteEvent } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { apiGetEvents, apiUpdateEvent, apiDeleteEvent } from "@/lib/api";
 import { adminStats } from "@/lib/mock-data";
 import { Event } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 
-export default function AdminDashboardPage() {
+function AdminDashboardContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") || "overview";
   const { user } = useAuth();
   const [eventList, setEventList] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,23 +22,13 @@ export default function AdminDashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [selectedStatus, setSelectedStatus] = useState("Semua");
 
-  // Modal states
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-
-  // Form states for new event
-  const [newTitle, setNewTitle] = useState("");
-  const [newCategory, setNewCategory] = useState("Seminar");
-  const [newDate, setNewDate] = useState("2026-11-12");
-  const [newLocation, setNewLocation] = useState("Auditorium Kampus");
-  const [newPrice, setNewPrice] = useState("0");
-  const [newOrganizer, setNewOrganizer] = useState("BEM Universitas");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (user?.role !== "admin") {
       router.replace("/");
     }
+
   }, [router, user?.role]);
 
   useEffect(() => {
@@ -50,6 +42,7 @@ export default function AdminDashboardPage() {
           setError(null);
           setIsLoading(false);
         }
+
       })
       .catch((err) => {
         if (isMounted) {
@@ -99,40 +92,6 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Action: Add New Event (API)
-  const handleCreateEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-
-    setIsSubmitting(true);
-    try {
-      const created = await apiCreateEvent({
-        title: newTitle,
-        description: `Deskripsi kegiatan ${newTitle} yang diselenggarakan oleh ${newOrganizer} di ${newLocation}.`,
-        date: newDate,
-        time: "09:00 - 13:00 WIB",
-        location: newLocation,
-        category: newCategory,
-        image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=800&q=80",
-        price: Number(newPrice) || 0,
-        organizer: newOrganizer,
-        quota: 100,
-        registeredCount: 0,
-        status: "active",
-        isPopular: false,
-      });
-
-      setEventList([created, ...eventList]);
-      setIsAddModalOpen(false);
-      setNewTitle("");
-      alert(`Event "${newTitle}" berhasil dibuat dan disimpan ke database!`);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menyimpan event baru.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleStatusChange = async (id: string, nextStatus: Event["status"]) => {
     try {
       const updated = await apiUpdateEvent(id, { status: nextStatus });
@@ -171,6 +130,9 @@ export default function AdminDashboardPage() {
     0
   );
   const activeEventsCount = eventList.filter((event) => event.status === "active").length;
+  const pendingEventsCount = eventList.filter((event) => event.status === "pending_review").length;
+  const totalCapacity = eventList.reduce((sum, event) => sum + (event.quota || 0), 0);
+  const occupancyRate = totalCapacity ? Math.round((totalRegistrations / totalCapacity) * 100) : 0;
   const statusOptions: Array<{ value: NonNullable<Event["status"]>; label: string }> = [
     { value: "pending_review", label: "Menunggu Review" },
     { value: "needs_revision", label: "Perlu Perbaikan" },
@@ -194,20 +156,17 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#29374A] tracking-tight">
-            Dashboard Ringkasan
+            {activeTab === "events" ? "Kelola Event" : activeTab === "users" ? "Pengguna" : "Dashboard Ringkasan"}
           </h1>
           <p className="text-xs sm:text-sm text-[#6F7580]">
-            Overview data platform EventHub Kampus hari ini (Database Real).
+            {activeTab === "events"
+              ? "Kelola seluruh event, status, dan pendaftaran dari database."
+              : activeTab === "users"
+                ? "Pantau akun pengguna yang terdaftar di platform EventHub."
+                : "Pantau statistik utama platform EventHub Kampus (Database Real)."}
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsAddModalOpen(true)}
-          className="px-4 py-2.5 bg-[#315E9E] text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-[#244777] transition cursor-pointer self-start sm:self-auto shadow-xs flex items-center gap-2"
-        >
-          <span>+ Tambah Event Baru</span>
-        </button>
       </div>
 
       {error && (
@@ -226,54 +185,67 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* 4 Stat Cards Grid - Matching dashboard-admin.html */}
+      {activeTab === "overview" && (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="p-5 card-royal border rounded-lg shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow">
+        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
           <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
             Total Event
           </span>
-          <div className="text-3xl font-extrabold card-heading-royal">
+          <div className="text-3xl font-extrabold text-[#29374A]">
             {isLoading ? "..." : eventList.length}
           </div>
-          <span className="text-[11px] card-text-royal font-medium">Terdaftar di PostgreSQL</span>
+          <span className="text-[11px] text-[#6F7580] font-medium">Terdaftar di PostgreSQL</span>
         </div>
 
-        <div className="p-5 card-sage border rounded-lg shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow">
+        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
           <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
             Event Aktif
           </span>
-          <div className="text-3xl font-extrabold card-heading-sage">
+          <div className="text-3xl font-extrabold text-[#29374A]">
             {isLoading ? "..." : activeEventsCount}
           </div>
-          <span className="text-[11px] card-text-sage font-medium">Pendaftaran terbuka</span>
+          <span className="text-[11px] text-emerald-600 font-medium">Pendaftaran terbuka</span>
         </div>
 
-        <div className="p-5 card-sand border rounded-lg shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow">
+        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
           <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
             Total Pendaftar
           </span>
-          <div className="text-3xl font-extrabold card-heading-sand">
+          <div className="text-3xl font-extrabold text-[#29374A]">
             {isLoading ? "..." : totalRegistrations.toLocaleString("id-ID")}
           </div>
-          <span className="text-[11px] card-text-sand font-medium">Tiket terakumulasi</span>
+          <span className="text-[11px] text-[#6F7580] font-medium">Tiket terakumulasi</span>
         </div>
 
-        <div className="p-5 card-coral border rounded-lg shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow">
+        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
           <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
             Total Pengguna
           </span>
-          <div className="text-3xl font-extrabold card-heading-coral">
+          <div className="text-3xl font-extrabold text-[#29374A]">
             {adminStats.totalUsers.toLocaleString("id-ID")}
           </div>
-          <span className="text-[11px] card-text-coral font-medium">Mahasiswa & organizer</span>
+          <span className="text-[11px] text-emerald-600 font-medium">Mahasiswa & organizer</span>
+        </div>
+        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
+          <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">Menunggu Review</span>
+          <div className="text-3xl font-extrabold text-[#29374A]">{isLoading ? "..." : pendingEventsCount}</div>
+          <span className="text-[11px] text-amber-700 font-medium">Perlu ditindaklanjuti</span>
+        </div>
+        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
+          <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">Tingkat Okupansi</span>
+          <div className="text-3xl font-extrabold text-[#29374A]">{isLoading ? "..." : `${occupancyRate}%`}</div>
+          <span className="text-[11px] text-[#6F7580] font-medium">
+            {totalRegistrations.toLocaleString("id-ID")} dari {totalCapacity.toLocaleString("id-ID")} kuota
+          </span>
         </div>
       </div>
+      )}
 
-      {/* Main Table Card - Matching dashboard-admin.html */}
+      {activeTab === "events" && (
       <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 shadow-xs flex flex-col gap-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E4DCCF]">
           <h2 className="text-base sm:text-lg font-bold text-[#29374A]">
-            Kelola Event Terkini
+            Kelola Event
           </h2>
 
           {/* Interactive Table Search & Filter Controls */}
@@ -310,6 +282,7 @@ export default function AdminDashboardPage() {
               <option value="Beasiswa">Beasiswa</option>
               <option value="Konser & Musik">Konser & Musik</option>
               <option value="Olahraga">Olahraga</option>
+              <option value="Technopreneurship">Technopreneurship</option>
             </select>
 
             <select
@@ -420,120 +393,39 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Modal Tambah Event Baru */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-3">
-              <h3 className="text-base font-bold text-[#29374A]">
-                Tambah Event Baru Kampus
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-[#92959C] hover:text-[#6F7580] cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
+      )}
 
-            <form onSubmit={handleCreateEvent} className="flex flex-col gap-3 text-xs sm:text-sm">
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-[#29374A]">Judul Event</label>
-                <input
-                  type="text"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Contoh: Seminar Nasional AI 2026"
-                  required
-                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-[#29374A]">Kategori</label>
-                  <select
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md cursor-pointer focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
-                  >
-                    <option value="Seminar">Seminar</option>
-                    <option value="Workshop">Workshop</option>
-                    <option value="Lomba">Lomba</option>
-                    <option value="Beasiswa">Beasiswa</option>
-                    <option value="Konser & Musik">Konser & Musik</option>
-                    <option value="Olahraga">Olahraga</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-[#29374A]">Tanggal Pelaksanaan</label>
-                  <input
-                    type="date"
-                    value={newDate}
-                    onChange={(e) => setNewDate(e.target.value)}
-                    required
-                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-[#29374A]">Penyelenggara</label>
-                  <input
-                    type="text"
-                    value={newOrganizer}
-                    onChange={(e) => setNewOrganizer(e.target.value)}
-                    placeholder="BEM / Himpunan"
-                    required
-                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-[#29374A]">Biaya (0 = Gratis)</label>
-                  <input
-                    type="number"
-                    value={newPrice}
-                    onChange={(e) => setNewPrice(e.target.value)}
-                    placeholder="0"
-                    min="0"
-                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-[#29374A]">Lokasi Kegiatan</label>
-                <input
-                  type="text"
-                  value={newLocation}
-                  onChange={(e) => setNewLocation(e.target.value)}
-                  placeholder="Auditorium / Gedung B / Zoom"
-                  required
-                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#ECE5DA]">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 border border-[#E4DCCF] rounded-md text-xs font-semibold text-[#29374A] hover:bg-[#F7F4EE] cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 bg-[#315E9E] text-white rounded-md text-xs font-bold hover:bg-[#244777] cursor-pointer shadow-xs disabled:opacity-50"
-                >
-                  {isSubmitting ? "Menyimpan..." : "Simpan Event"}
-                </button>
-              </div>
-            </form>
+      {activeTab === "users" && (
+        <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 shadow-xs">
+          <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-4 mb-4">
+            <h2 className="text-base sm:text-lg font-bold text-[#29374A]">Daftar Pengguna</h2>
+            <span className="text-xs text-[#6F7580]">{adminStats.totalUsers.toLocaleString("id-ID")} akun terdaftar</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead>
+                <tr className="bg-[#F7F4EE] border-b border-[#E4DCCF] text-[#6F7580] font-bold uppercase tracking-wider text-[11px]">
+                  <th className="py-3 px-4">Nama</th>
+                  <th className="py-3 px-4">Email</th>
+                  <th className="py-3 px-4">Peran</th>
+                  <th className="py-3 px-4">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E4DCCF]">
+                <tr>
+                  <td className="py-3 px-4 font-semibold text-[#29374A]">Admin BEM Kampus</td>
+                  <td className="py-3 px-4 text-[#6F7580]">admin.event@kampus.ac.id</td>
+                  <td className="py-3 px-4">Administrator</td>
+                  <td className="py-3 px-4 text-emerald-700">Aktif</td>
+                </tr>
+                <tr>
+                  <td className="py-3 px-4 font-semibold text-[#29374A]">Muhammad Fauzan</td>
+                  <td className="py-3 px-4 text-[#6F7580]">fauzan@mahasiswa.ac.id</td>
+                  <td className="py-3 px-4">Mahasiswa</td>
+                  <td className="py-3 px-4 text-emerald-700">Aktif</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -626,5 +518,13 @@ export default function AdminDashboardPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function AdminDashboardPage() {
+  return (
+    <Suspense fallback={<main className="flex-1 bg-[#F7F4EE]" />}>
+      <AdminDashboardContent />
+    </Suspense>
   );
 }

@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { EventStatus } from "@/types";
 import { saveSubmittedEvent } from "@/lib/submissions";
 
-const categories = ["Seminar", "Workshop", "Lomba", "Beasiswa", "Konser & Musik", "Olahraga"];
+const categories = ["Seminar", "Workshop", "Lomba", "Beasiswa", "Konser & Musik", "Olahraga", "Technopreneurship"];
 const organizerTypes = ["Individu", "Organisasi mahasiswa", "Unit kampus", "Perusahaan", "Komunitas"];
 const participantTargets = [
   "Mahasiswa umum",

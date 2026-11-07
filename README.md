@@ -1,7 +1,7 @@
 # EventHub Kampus (Universitas Negeri Padang)
-**Platform Terpusat Informasi Kegiatan, Lomba, dan Event Kampus**
+**Platform Terpusat Informasi Kegiatan, Lomba, dan Informasi Kampus**
 
-EventHub Kampus adalah platform informasi kegiatan akademik dan non-akademik mahasiswa di lingkungan kampus Universitas Negeri Padang (UNP). Aplikasi ini bertujuan untuk memusatkan informasi lomba, seminar, workshop, beasiswa, seni budaya, dan olahraga agar mahasiswa dapat dengan mudah menemukan event serta merencanakan jadwal kegiatan mereka, sekaligus memudahkan penyelenggara/organisasi kampus dalam mengelola informasi event.
+EventHub Kampus adalah platform informasi kegiatan akademik dan non-akademik mahasiswa di lingkungan kampus Universitas Negeri Padang (UNP). Aplikasi ini memusatkan informasi lomba, seminar, workshop, beasiswa, pengumuman, dan informasi kampus agar mahasiswa dapat menemukan peluang yang relevan sekaligus mengajukan informasi untuk ditinjau admin.
 
 ---
 
@@ -38,6 +38,7 @@ Implementasi fitur pada repositori ini dibedakan secara tegas antara antarmuka (
 | **Detail Event** | Menampilkan deskripsi lengkap, persyaratan (JSONB), kuota, dan kontak | Terhubung via `apiGetEventById()` | `SELECT WHERE id = $1` | **Selesai dan terverifikasi** |
 | **Kalender Event** | Grid kalender bulanan dengan dot indicator dan panel event harian | Terhubung via `apiGetEvents()` | Pemetaan tanggal event ke tanggal kalender | **Selesai dan terverifikasi** |
 | **Dashboard Admin (CRUD Event)** | Panel admin: formulir tambah event, modal edit, dan hapus event | Terhubung ke endpoint `POST`, `PATCH`, dan `DELETE` | `INSERT`, `UPDATE`, `DELETE` ke tabel `events` | **Selesai dan terverifikasi** |
+| **Informasi Kampus** | Daftar/detail publik, pengajuan dan CRUD pengajuan mahasiswa, monitoring status admin | Endpoint `/api/information` dan service layer tervalidasi | Tabel `information` dengan status review | **Selesai dan terverifikasi** |
 | **Pendaftaran Tiket Event** | Modal konfirmasi tiket dan kode tiket otomatis (`EVT-XXXXXX`) | Belum ada endpoint API pendaftaran | Belum ada tabel registrasi pendaftar | **Sebagian selesai (Simulasi Client)** |
 | **Profil Pengguna** | Tampilan info profil, tab tiket, reminder, dan event tersimpan | Tab event tersimpan mengambil data dari API | Profil dan tiket belum terhubung ke database | **Sebagian selesai** |
 | **Login & Registrasi User** | Formulir login dan pendaftaran akun | Belum ada endpoint `/api/auth/*` | Belum ada tabel `users` | **Sebagian selesai (Simulasi Client)** |

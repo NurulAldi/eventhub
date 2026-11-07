@@ -8,7 +8,8 @@ export type EventCategory =
   | "Lomba"
   | "Beasiswa"
   | "Konser & Musik"
-  | "Olahraga";
+  | "Olahraga"
+  | "Technopreneurship";
 
 export type EventStatus =
   | "active"
@@ -20,6 +21,27 @@ export type EventStatus =
   | "published"
   | "completed"
   | "cancelled";
+
+export type InformationStatus =
+  | "pending_review"
+  | "needs_revision"
+  | "published"
+  | "rejected";
+
+export interface Information {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  organizer: string;
+  institution?: string;
+  authorEmail?: string;
+  image?: string;
+  status: InformationStatus;
+  rejectionReason?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface Event {
   id: string;

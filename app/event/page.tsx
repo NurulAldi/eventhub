@@ -37,6 +37,7 @@ function EventListContent() {
     "Beasiswa",
     "Konser & Musik",
     "Olahraga",
+    "Technopreneurship",
   ];
 
   useEffect(() => {
@@ -150,7 +151,7 @@ function EventListContent() {
       {/* Main 2-Column Layout - Matching daftar-event.html */}
       <div className="flex flex-col lg:flex-row items-start gap-8">
         {/* Left Filter Sidebar (Width 280px in Figma) */}
-        <aside className="w-full lg:w-72 card-sand border rounded-lg p-5 flex flex-col gap-5 shrink-0 shadow-sm">
+        <aside className="w-full lg:w-72 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg p-5 flex flex-col gap-5 shrink-0 shadow-xs">
           <div className="flex items-center justify-between pb-3 border-b border-[#E4DCCF]">
             <div className="flex items-center gap-2">
               <svg className="w-4 h-4 text-[#29374A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

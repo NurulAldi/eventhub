@@ -228,6 +228,25 @@ export async function initSchema(): Promise<void> {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_events_is_popular ON events(is_popular);`);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS information (
+        id VARCHAR(64) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        category VARCHAR(100) NOT NULL,
+        organizer VARCHAR(255) NOT NULL,
+        institution VARCHAR(255),
+        author_email VARCHAR(255),
+        image TEXT,
+        status VARCHAR(32) NOT NULL DEFAULT 'pending_review',
+        rejection_reason TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_information_status ON information(status);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_information_category ON information(category);`);
+
     await client.query("COMMIT;");
   } catch (error) {
     await client.query("ROLLBACK;");

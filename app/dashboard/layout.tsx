@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
 
 export const metadata: Metadata = {
   title: "Dashboard Admin | EventHub Kampus",
-  description: "Panel administrasi pengelolaan event, kategori, dan peserta kampus.",
+  description: "Panel administrasi pengelolaan kegiatan dan informasi kampus.",
 };
 
 export default function DashboardLayout({
@@ -13,7 +14,9 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="flex-1 flex flex-col md:flex-row bg-[#F7F4EE] min-h-screen">
-      <AdminSidebar />
+      <Suspense fallback={<aside className="w-full md:w-64 bg-[#244777]" />}>
+        <AdminSidebar />
+      </Suspense>
       <div className="flex-1 flex flex-col overflow-x-hidden">{children}</div>
     </div>
   );
