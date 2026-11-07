@@ -184,19 +184,19 @@ export default function AdminDashboardPage() {
     needs_revision: "bg-orange-50 text-orange-800 border-orange-200",
     rejected: "bg-red-50 text-red-800 border-red-200",
     active: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    completed: "bg-slate-100 text-slate-700 border-slate-300",
+    completed: "bg-[#EAE2D4] text-[#29374A] border-[#E4DCCF]",
     cancelled: "bg-rose-50 text-rose-800 border-rose-200",
   };
 
   return (
-    <main className="flex-1 p-6 md:p-12 flex flex-col gap-8 bg-gray-50">
+    <main className="flex-1 p-6 md:p-12 flex flex-col gap-8 bg-[#F7F4EE]">
       {/* Top Header - Matching dashboard-admin.html */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#29374A] tracking-tight">
             Dashboard Ringkasan
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500">
+          <p className="text-xs sm:text-sm text-[#6F7580]">
             Overview data platform EventHub Kampus hari ini (Database Real).
           </p>
         </div>
@@ -204,7 +204,7 @@ export default function AdminDashboardPage() {
         <button
           type="button"
           onClick={() => setIsAddModalOpen(true)}
-          className="px-4 py-2.5 bg-gray-900 text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-gray-800 transition cursor-pointer self-start sm:self-auto shadow-xs flex items-center gap-2"
+          className="px-4 py-2.5 bg-[#315E9E] text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-[#244777] transition cursor-pointer self-start sm:self-auto shadow-xs flex items-center gap-2"
         >
           <span>+ Tambah Event Baru</span>
         </button>
@@ -228,41 +228,41 @@ export default function AdminDashboardPage() {
 
       {/* 4 Stat Cards Grid - Matching dashboard-admin.html */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="p-5 bg-white border border-gray-300 rounded-lg shadow-xs flex flex-col gap-3">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
+          <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
             Total Event
           </span>
-          <div className="text-3xl font-extrabold text-gray-900">
+          <div className="text-3xl font-extrabold text-[#29374A]">
             {isLoading ? "..." : eventList.length}
           </div>
-          <span className="text-[11px] text-gray-500 font-medium">Terdaftar di PostgreSQL</span>
+          <span className="text-[11px] text-[#6F7580] font-medium">Terdaftar di PostgreSQL</span>
         </div>
 
-        <div className="p-5 bg-white border border-gray-300 rounded-lg shadow-xs flex flex-col gap-3">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
+          <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
             Event Aktif
           </span>
-          <div className="text-3xl font-extrabold text-gray-900">
+          <div className="text-3xl font-extrabold text-[#29374A]">
             {isLoading ? "..." : activeEventsCount}
           </div>
           <span className="text-[11px] text-emerald-600 font-medium">Pendaftaran terbuka</span>
         </div>
 
-        <div className="p-5 bg-white border border-gray-300 rounded-lg shadow-xs flex flex-col gap-3">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
+          <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
             Total Pendaftar
           </span>
-          <div className="text-3xl font-extrabold text-gray-900">
+          <div className="text-3xl font-extrabold text-[#29374A]">
             {isLoading ? "..." : totalRegistrations.toLocaleString("id-ID")}
           </div>
-          <span className="text-[11px] text-gray-500 font-medium">Tiket terakumulasi</span>
+          <span className="text-[11px] text-[#6F7580] font-medium">Tiket terakumulasi</span>
         </div>
 
-        <div className="p-5 bg-white border border-gray-300 rounded-lg shadow-xs flex flex-col gap-3">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+        <div className="p-5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg shadow-xs flex flex-col gap-3">
+          <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
             Total Pengguna
           </span>
-          <div className="text-3xl font-extrabold text-gray-900">
+          <div className="text-3xl font-extrabold text-[#29374A]">
             {adminStats.totalUsers.toLocaleString("id-ID")}
           </div>
           <span className="text-[11px] text-emerald-600 font-medium">Mahasiswa & organizer</span>
@@ -270,9 +270,9 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Main Table Card - Matching dashboard-admin.html */}
-      <div className="bg-white border border-gray-300 rounded-xl p-6 shadow-xs flex flex-col gap-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
-          <h2 className="text-base sm:text-lg font-bold text-gray-900">
+      <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 shadow-xs flex flex-col gap-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E4DCCF]">
+          <h2 className="text-base sm:text-lg font-bold text-[#29374A]">
             Kelola Event Terkini
           </h2>
 
@@ -284,13 +284,13 @@ export default function AdminDashboardPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Cari judul event..."
-                className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900 w-44 sm:w-56 transition"
+                className="px-3 py-1.5 text-xs bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] w-44 sm:w-56 transition"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2 top-1.5 text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
+                  className="absolute right-2 top-1.5 text-xs text-[#92959C] hover:text-[#6F7580] cursor-pointer"
                 >
                   ✕
                 </button>
@@ -301,7 +301,7 @@ export default function AdminDashboardPage() {
               aria-label="Filter Kategori"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-300 rounded-md text-gray-700 outline-none cursor-pointer focus:border-gray-900"
+              className="px-3 py-1.5 text-xs bg-[#F7F4EE] border border-[#E4DCCF] rounded-md text-[#29374A] outline-none cursor-pointer focus:border-[#315E9E]"
             >
               <option value="Semua">Semua Kategori</option>
               <option value="Seminar">Seminar</option>
@@ -316,7 +316,7 @@ export default function AdminDashboardPage() {
               aria-label="Filter Status"
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-300 rounded-md text-gray-700 outline-none cursor-pointer focus:border-gray-900"
+              className="px-3 py-1.5 text-xs bg-[#F7F4EE] border border-[#E4DCCF] rounded-md text-[#29374A] outline-none cursor-pointer focus:border-[#315E9E]"
             >
               <option value="Semua">Semua Status</option>
               <option value="Buka">Buka (Aktif)</option>
@@ -332,13 +332,13 @@ export default function AdminDashboardPage() {
         {/* Table Content */}
         <div className="overflow-x-auto">
           {isLoading ? (
-            <div className="p-8 text-center text-xs text-gray-400 animate-pulse">
+            <div className="p-8 text-center text-xs text-[#92959C] animate-pulse">
               Memuat data event dashboard...
             </div>
           ) : (
             <table className="w-full text-left text-xs sm:text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider text-[11px]">
+                <tr className="bg-[#F7F4EE] border-b border-[#E4DCCF] text-[#6F7580] font-bold uppercase tracking-wider text-[11px]">
                   <th className="py-3 px-4">Nama Event</th>
                   <th className="py-3 px-4">Kategori</th>
                   <th className="py-3 px-4">Tanggal Pelaksanaan</th>
@@ -348,28 +348,28 @@ export default function AdminDashboardPage() {
                   <th className="py-3 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-[#E4DCCF]">
                 {filteredEvents.length > 0 ? (
                   filteredEvents.map((evt) => {
                     return (
-                      <tr key={evt.id} className="hover:bg-gray-50/80 transition">
-                        <td className="py-3 px-4 font-semibold text-gray-900 max-w-xs truncate">
+                      <tr key={evt.id} className="hover:bg-[#F7F4EE]/80 transition">
+                        <td className="py-3 px-4 font-semibold text-[#29374A] max-w-xs truncate">
                           <Link href={`/event/${evt.id}`} className="hover:underline">
                             {evt.title}
                           </Link>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700 border border-gray-300">
+                          <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#F0E9DC] text-[#29374A] border border-[#E4DCCF]">
                             {evt.category}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
+                        <td className="py-3 px-4 text-[#6F7580] whitespace-nowrap">
                           {evt.date}
                         </td>
-                        <td className="py-3 px-4 text-gray-600 truncate max-w-[150px]">
+                        <td className="py-3 px-4 text-[#6F7580] truncate max-w-[150px]">
                           {evt.organizer}
                         </td>
-                        <td className="py-3 px-4 text-center font-bold text-gray-800">
+                        <td className="py-3 px-4 text-center font-bold text-[#29374A]">
                           {evt.registeredCount || 0} / {evt.quota || 100}
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -391,7 +391,7 @@ export default function AdminDashboardPage() {
                             <button
                               type="button"
                               onClick={() => setEditingEvent(evt)}
-                              className="px-2 py-1 text-xs font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition cursor-pointer"
+                              className="px-2 py-1 text-xs font-semibold text-[#29374A] hover:text-[#29374A] hover:bg-[#F0E9DC] rounded transition cursor-pointer"
                             >
                               Edit
                             </button>
@@ -409,7 +409,7 @@ export default function AdminDashboardPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-gray-500 text-xs">
+                    <td colSpan={7} className="py-8 text-center text-[#6F7580] text-xs">
                       Tidak ada data event yang sesuai dengan filter atau kata kunci pencarian.
                     </td>
                   </tr>
@@ -423,15 +423,15 @@ export default function AdminDashboardPage() {
       {/* Modal Tambah Event Baru */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white border border-gray-300 rounded-xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-              <h3 className="text-base font-bold text-gray-900">
+          <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-3">
+              <h3 className="text-base font-bold text-[#29374A]">
                 Tambah Event Baru Kampus
               </h3>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                className="text-[#92959C] hover:text-[#6F7580] cursor-pointer"
               >
                 ✕
               </button>
@@ -439,24 +439,24 @@ export default function AdminDashboardPage() {
 
             <form onSubmit={handleCreateEvent} className="flex flex-col gap-3 text-xs sm:text-sm">
               <div className="flex flex-col gap-1">
-                <label className="font-bold text-gray-700">Judul Event</label>
+                <label className="font-bold text-[#29374A]">Judul Event</label>
                 <input
                   type="text"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="Contoh: Seminar Nasional AI 2026"
                   required
-                  className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900"
+                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="font-bold text-gray-700">Kategori</label>
+                  <label className="font-bold text-[#29374A]">Kategori</label>
                   <select
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
-                    className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md cursor-pointer focus:bg-white focus:outline-none focus:border-gray-900"
+                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md cursor-pointer focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
                   >
                     <option value="Seminar">Seminar</option>
                     <option value="Workshop">Workshop</option>
@@ -468,67 +468,67 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="font-bold text-gray-700">Tanggal Pelaksanaan</label>
+                  <label className="font-bold text-[#29374A]">Tanggal Pelaksanaan</label>
                   <input
                     type="date"
                     value={newDate}
                     onChange={(e) => setNewDate(e.target.value)}
                     required
-                    className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900"
+                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="font-bold text-gray-700">Penyelenggara</label>
+                  <label className="font-bold text-[#29374A]">Penyelenggara</label>
                   <input
                     type="text"
                     value={newOrganizer}
                     onChange={(e) => setNewOrganizer(e.target.value)}
                     placeholder="BEM / Himpunan"
                     required
-                    className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900"
+                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
                   />
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="font-bold text-gray-700">Biaya (0 = Gratis)</label>
+                  <label className="font-bold text-[#29374A]">Biaya (0 = Gratis)</label>
                   <input
                     type="number"
                     value={newPrice}
                     onChange={(e) => setNewPrice(e.target.value)}
                     placeholder="0"
                     min="0"
-                    className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900"
+                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="font-bold text-gray-700">Lokasi Kegiatan</label>
+                <label className="font-bold text-[#29374A]">Lokasi Kegiatan</label>
                 <input
                   type="text"
                   value={newLocation}
                   onChange={(e) => setNewLocation(e.target.value)}
                   placeholder="Auditorium / Gedung B / Zoom"
                   required
-                  className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900"
+                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#ECE5DA]">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  className="px-4 py-2 border border-[#E4DCCF] rounded-md text-xs font-semibold text-[#29374A] hover:bg-[#F7F4EE] cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 bg-gray-900 text-white rounded-md text-xs font-bold hover:bg-gray-800 cursor-pointer shadow-xs disabled:opacity-50"
+                  className="px-5 py-2 bg-[#315E9E] text-white rounded-md text-xs font-bold hover:bg-[#244777] cursor-pointer shadow-xs disabled:opacity-50"
                 >
                   {isSubmitting ? "Menyimpan..." : "Simpan Event"}
                 </button>
@@ -541,15 +541,15 @@ export default function AdminDashboardPage() {
       {/* Modal Edit Event */}
       {editingEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white border border-gray-300 rounded-xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-              <h3 className="text-base font-bold text-gray-900">
+          <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-3">
+              <h3 className="text-base font-bold text-[#29374A]">
                 Edit Event #{editingEvent.id}
               </h3>
               <button
                 type="button"
                 onClick={() => setEditingEvent(null)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                className="text-[#92959C] hover:text-[#6F7580] cursor-pointer"
               >
                 ✕
               </button>
@@ -557,31 +557,31 @@ export default function AdminDashboardPage() {
 
             <div className="flex flex-col gap-3 text-xs sm:text-sm">
               <div className="flex flex-col gap-1">
-                <label className="font-bold text-gray-700">Judul Event</label>
+                <label className="font-bold text-[#29374A]">Judul Event</label>
                 <input
                   type="text"
                   value={editingEvent.title}
                   onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
-                  className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none"
+                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="font-bold text-gray-700">Lokasi</label>
+                <label className="font-bold text-[#29374A]">Lokasi</label>
                 <input
                   type="text"
                   value={editingEvent.location}
                   onChange={(e) => setEditingEvent({ ...editingEvent, location: e.target.value })}
-                  className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none"
+                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="font-bold text-gray-700">Status Pendaftaran</label>
+                <label className="font-bold text-[#29374A]">Status Pendaftaran</label>
                 <select
                   value={editingEvent.status || "active"}
                   onChange={(e) => setEditingEvent({ ...editingEvent, status: e.target.value as Event["status"] })}
-                  className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md cursor-pointer"
+                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md cursor-pointer"
                 >
                   <option value="pending_review">Menunggu Review</option>
                   <option value="needs_revision">Perlu Perbaikan</option>
@@ -594,30 +594,30 @@ export default function AdminDashboardPage() {
 
               {(editingEvent.status === "rejected" || editingEvent.status === "needs_revision") && (
                 <div className="flex flex-col gap-1">
-                  <label className="font-bold text-gray-700">Catatan admin</label>
+                  <label className="font-bold text-[#29374A]">Catatan admin</label>
                   <textarea
                     rows={3}
                     value={editingEvent.rejectionReason || ""}
                     onChange={(e) => setEditingEvent({ ...editingEvent, rejectionReason: e.target.value })}
                     placeholder="Jelaskan data yang perlu diperbaiki atau alasan penolakan."
-                    className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none"
+                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none"
                   />
                 </div>
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#ECE5DA]">
               <button
                 type="button"
                 onClick={() => setEditingEvent(null)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+                className="px-4 py-2 border border-[#E4DCCF] rounded-md text-xs font-semibold text-[#29374A] hover:bg-[#F7F4EE] cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleSaveEdit}
-                className="px-4 py-2 bg-gray-900 text-white rounded-md text-xs font-bold hover:bg-gray-800 cursor-pointer"
+                className="px-4 py-2 bg-[#315E9E] text-white rounded-md text-xs font-bold hover:bg-[#244777] cursor-pointer"
               >
                 Simpan Perubahan
               </button>

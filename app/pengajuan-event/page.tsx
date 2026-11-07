@@ -216,26 +216,26 @@ export default function EventSubmissionPage() {
     return (
       <div className="flex-1 p-12 text-center">
         <h1 className="text-xl font-bold">Akses Pengajuan Event</h1>
-        <p className="mt-2 text-sm text-gray-500">Silakan masuk sebagai mahasiswa untuk mengajukan event.</p>
-        <button type="button" onClick={() => router.push("/login")} className="mt-5 px-4 py-2 bg-gray-900 text-white rounded-md text-sm">
+        <p className="mt-2 text-sm text-[#6F7580]">Silakan masuk sebagai mahasiswa untuk mengajukan event.</p>
+        <button type="button" onClick={() => router.push("/login")} className="mt-5 px-4 py-2 bg-[#315E9E] text-white rounded-md text-sm">
           Masuk Akun
         </button>
       </div>
     );
   }
 
-  const fieldClass = "w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm focus:bg-white focus:outline-none focus:border-gray-900";
+  const fieldClass = "w-full px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md text-sm focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]";
   const getFieldClass = (field: keyof typeof form) =>
     `${fieldClass} ${fieldErrors[field] ? "border-red-500 bg-red-50 focus:border-red-600" : ""}`;
-  const requiredLabel = (label: string) => <span className="text-xs font-bold text-gray-700">{label} *</span>;
+  const requiredLabel = (label: string) => <span className="text-xs font-bold text-[#29374A]">{label} *</span>;
 
   return (
     <main className="flex-1 max-w-5xl w-full mx-auto px-6 lg:px-16 py-10">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-[#29374A]">
           {editingEventId ? "Perbaiki Pengajuan Event" : "Pengajuan Event"}
         </h1>
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-[#6F7580]">
           {editingEventId
             ? "Perbarui informasi yang diminta admin. Setelah dikirim, pengajuan kembali ke status Menunggu Review."
             : "Lengkapi informasi berikut. Pengajuan akan berstatus Menunggu Review sampai disetujui admin."}
@@ -246,9 +246,9 @@ export default function EventSubmissionPage() {
           {error}
         </div>
       )}
-      <form onSubmit={handleSubmit} noValidate className="bg-white border border-gray-300 rounded-xl p-6 sm:p-8 flex flex-col gap-7">
+      <form onSubmit={handleSubmit} noValidate className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 sm:p-8 flex flex-col gap-7">
         <section className="flex flex-col gap-4">
-          <h2 className="font-bold text-gray-900 border-b border-gray-200 pb-2">Identitas Penyelenggara</h2>
+          <h2 className="font-bold text-[#29374A] border-b border-[#E4DCCF] pb-2">Identitas Penyelenggara</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             <label className="flex flex-col gap-1">{requiredLabel("Nama penyelenggara")}<input required value={form.organizer} onChange={(e) => update("organizer", e.target.value)} className={getFieldClass("organizer")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Jenis penyelenggara")}<select required value={form.organizerType} onChange={(e) => { const value = e.target.value; update("organizerType", value); if (value === "Individu") update("institution", ""); }} className={fieldClass}>{organizerTypes.map((type) => <option key={type}>{type}</option>)}</select></label>
@@ -259,15 +259,15 @@ export default function EventSubmissionPage() {
           </div>
         </section>
         <section className="flex flex-col gap-4">
-          <h2 className="font-bold text-gray-900 border-b border-gray-200 pb-2">Informasi Event</h2>
+          <h2 className="font-bold text-[#29374A] border-b border-[#E4DCCF] pb-2">Informasi Event</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             <label className="sm:col-span-2 flex flex-col gap-1">{requiredLabel("Judul event")}<input required minLength={3} value={form.title} onChange={(e) => update("title", e.target.value)} className={getFieldClass("title")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Kategori")}<select required value={form.category} onChange={(e) => update("category", e.target.value)} className={fieldClass}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
             <label className="flex flex-col gap-1">{requiredLabel("Mode event")}<select required value={form.eventMode} onChange={(e) => update("eventMode", e.target.value as "online" | "offline")} className={getFieldClass("eventMode")}><option value="offline">Offline</option><option value="online">Online</option></select></label>
             <label className="flex flex-col gap-1">{requiredLabel("Target peserta")}<select required value={form.targetParticipants} onChange={(e) => update("targetParticipants", e.target.value)} className={getFieldClass("targetParticipants")}>{participantTargets.map((target) => <option key={target}>{target}</option>)}</select></label>
             <label className="sm:col-span-2 flex flex-col gap-1">{requiredLabel("Deskripsi lengkap")}<textarea required minLength={30} rows={4} value={form.description} onChange={(e) => update("description", e.target.value)} className={getFieldClass("description")} /></label>
-            <label className="flex flex-col gap-1"><span className="text-xs font-bold text-gray-700">Tujuan event</span><textarea rows={3} value={form.purpose} onChange={(e) => update("purpose", e.target.value)} className={fieldClass} /></label>
-            <label className="flex flex-col gap-1"><span className="text-xs font-bold text-gray-700">Narasumber/juri</span><textarea rows={3} value={form.speakers} onChange={(e) => update("speakers", e.target.value)} className={fieldClass} /></label>
+            <label className="flex flex-col gap-1"><span className="text-xs font-bold text-[#29374A]">Tujuan event</span><textarea rows={3} value={form.purpose} onChange={(e) => update("purpose", e.target.value)} className={fieldClass} /></label>
+            <label className="flex flex-col gap-1"><span className="text-xs font-bold text-[#29374A]">Narasumber/juri</span><textarea rows={3} value={form.speakers} onChange={(e) => update("speakers", e.target.value)} className={fieldClass} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Tanggal pelaksanaan")}<input required type="date" value={form.date} onChange={(e) => update("date", e.target.value)} className={getFieldClass("date")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Durasi pelaksanaan (hari)")}<input required type="number" min="1" step="1" value={form.durationDays} onChange={(e) => update("durationDays", e.target.value)} className={getFieldClass("durationDays")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Deadline pendaftaran")}<input required type="date" value={form.registrationDeadline} onChange={(e) => update("registrationDeadline", e.target.value)} className={getFieldClass("registrationDeadline")} /></label>
@@ -277,17 +277,17 @@ export default function EventSubmissionPage() {
             <label className="flex flex-col gap-1">{requiredLabel("Link pendaftaran")}<input required type="url" value={form.registrationUrl} onChange={(e) => update("registrationUrl", e.target.value)} className={getFieldClass("registrationUrl")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Kapasitas peserta")}<input required type="number" min="1" value={form.quota} onChange={(e) => update("quota", e.target.value)} className={fieldClass} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Biaya pendaftaran")}<input required type="number" min="0" value={form.price} onChange={(e) => update("price", e.target.value)} className={fieldClass} /></label>
-            <label className="sm:col-span-2 flex flex-col gap-1"><span className="text-xs font-bold text-gray-700">Fasilitas/hadiah</span><textarea rows={2} value={form.facilities} onChange={(e) => update("facilities", e.target.value)} className={fieldClass} /></label>
-            <label className="sm:col-span-2 flex flex-col gap-1"><span className="text-xs font-bold text-gray-700">Syarat peserta</span><textarea rows={3} value={form.requirements} onChange={(e) => update("requirements", e.target.value)} placeholder="Satu syarat per baris" className={fieldClass} /></label>
+            <label className="sm:col-span-2 flex flex-col gap-1"><span className="text-xs font-bold text-[#29374A]">Fasilitas/hadiah</span><textarea rows={2} value={form.facilities} onChange={(e) => update("facilities", e.target.value)} className={fieldClass} /></label>
+            <label className="sm:col-span-2 flex flex-col gap-1"><span className="text-xs font-bold text-[#29374A]">Syarat peserta</span><textarea rows={3} value={form.requirements} onChange={(e) => update("requirements", e.target.value)} placeholder="Satu syarat per baris" className={fieldClass} /></label>
           </div>
         </section>
         <section className="flex flex-col gap-4">
-          <h2 className="font-bold text-gray-900 border-b border-gray-200 pb-2">Kontak Panitia</h2>
+          <h2 className="font-bold text-[#29374A] border-b border-[#E4DCCF] pb-2">Kontak Panitia</h2>
           <label className="flex flex-col gap-1">{requiredLabel("Kontak panitia")}<input required value={form.contactPic} onChange={(e) => update("contactPic", e.target.value)} className={getFieldClass("contactPic")} /></label>
         </section>
-        <div className="flex justify-end gap-3 border-t border-gray-200 pt-5">
-          <button type="button" onClick={() => router.back()} className="px-4 py-2 border border-gray-300 rounded-md text-sm">Batal</button>
-          <button type="submit" disabled={isSubmitting} className="px-5 py-2 bg-gray-900 text-white rounded-md text-sm font-bold disabled:opacity-50">{isSubmitting ? "Mengirim..." : "Kirim Pengajuan"}</button>
+        <div className="flex justify-end gap-3 border-t border-[#E4DCCF] pt-5">
+          <button type="button" onClick={() => router.back()} className="px-4 py-2 border border-[#E4DCCF] rounded-md text-sm">Batal</button>
+          <button type="submit" disabled={isSubmitting} className="px-5 py-2 bg-[#315E9E] text-white rounded-md text-sm font-bold disabled:opacity-50">{isSubmitting ? "Mengirim..." : "Kirim Pengajuan"}</button>
         </div>
       </form>
     </main>

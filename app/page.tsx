@@ -115,15 +115,15 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="flex-1 flex flex-col bg-gradient-to-b from-indigo-50/50 via-white to-slate-50">
+    <div className="flex-1 flex flex-col bg-gradient-to-b from-[#EAE2D4] via-[#F7F4EE] to-[#E5ECF5]">
       {/* Hero Section - Matching beranda.html */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-blue-50 border-b border-indigo-100 py-16 sm:py-20 px-6 before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.16),transparent_38%)] before:pointer-events-none">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#244777] via-[#315E9E] to-[#315E9E] border-b border-[#244777] py-16 sm:py-20 px-6 before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(233,130,104,0.28),transparent_38%)] before:pointer-events-none">
         <div className="relative max-w-4xl mx-auto flex flex-col items-center gap-6 text-center">
           <div className="max-w-2xl flex flex-col gap-3">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Temukan <span className="text-indigo-600">Event Kampus</span> Terbaikmu
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight">
+              Temukan <span className="text-[#E98268]">Event Kampus</span> Terbaikmu
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 leading-relaxed max-w-xl mx-auto">
+            <p className="text-sm sm:text-base text-[#E5ECF5] leading-relaxed max-w-xl mx-auto">
               Pusat informasi kompetisi, seminar, beasiswa, dan pengabdian masyarakat terlengkap untuk mahasiswa seluruh Indonesia.
             </p>
           </div>
@@ -131,10 +131,10 @@ export default function HomePage() {
           {/* Search Box - Figma Style */}
           <form
             onSubmit={handleSearch}
-            className="w-full max-w-2xl p-2 bg-white border border-slate-200 rounded-xl shadow-sm flex items-center gap-3 transition focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100"
+            className="w-full max-w-2xl p-2 bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl shadow-lg shadow-[#244777]/20 flex items-center gap-3 transition focus-within:border-[#E98268] focus-within:ring-2 focus-within:ring-[#E98268]/30"
           >
             <div className="flex-1 flex items-center gap-2.5 px-3">
-              <svg className="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#92959C] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
@@ -142,12 +142,12 @@ export default function HomePage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Ketik nama event, kampus, atau penyelenggara..."
-                className="w-full text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-transparent outline-none"
+                className="w-full text-xs sm:text-sm text-[#29374A] placeholder-[#92959C] bg-transparent outline-none"
               />
             </div>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-indigo-600 text-white font-semibold text-xs sm:text-sm rounded-lg hover:bg-indigo-700 active:scale-95 transition-transform shrink-0 cursor-pointer"
+              className="px-5 py-2.5 bg-[#E98268] text-white font-semibold text-xs sm:text-sm rounded-lg hover:bg-[#C9674F] active:scale-95 transition-transform shrink-0 cursor-pointer"
             >
               Cari Event
             </button>
@@ -155,19 +155,19 @@ export default function HomePage() {
 
           {/* Quick Category Badges */}
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-            <span className="text-xs text-slate-500 font-medium">Kategori Populer:</span>
+            <span className="text-xs text-[#6F7580] font-medium">Kategori Populer:</span>
             {categories.slice(0, 4).map((cat) => (
               <Link
                 key={cat.name}
                 href={`/event?category=${encodeURIComponent(cat.name)}`}
                 className={`text-xs px-3 py-1 rounded-full transition ${
                   cat.name === "Seminar"
-                    ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                    ? "bg-[#DBE8F8] text-[#244777] hover:bg-[#C7D9F0]"
                     : cat.name === "Lomba"
-                      ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                      ? "bg-[#FBE2D8] text-[#9A4F3A] hover:bg-[#F4C9BB]"
                       : cat.name === "Beasiswa"
-                        ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                        : "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                        ? "bg-[#DDF2E8] text-[#246746] hover:bg-[#C8E8D8]"
+                        : "bg-[#E5ECF5] text-[#244777] hover:bg-[#C7D9F0]"
                 }`}
               >
                 <CategoryIcon name={cat.icon} className="mr-1 inline-block h-3.5 w-3.5 align-[-2px]" /> {cat.name}
@@ -202,22 +202,22 @@ export default function HomePage() {
         )}
 
         {/* Section 1: Buat Event */}
-        <section className="order-1 bg-indigo-700 text-white rounded-xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
+        <section className="order-1 bg-[#244777] text-white rounded-xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col gap-2 max-w-xl text-center md:text-left">
-            <span className="text-xs uppercase tracking-wider text-indigo-200 font-semibold">
+            <span className="text-xs uppercase tracking-wider text-[#DBE8F8] font-semibold">
               Khusus BEM, Himpunan, & Komunitas Kampus
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Ajukan Event Kampusmu Secara Resmi
             </h2>
-            <p className="text-xs sm:text-sm text-indigo-100">
+            <p className="text-xs sm:text-sm text-[#E5ECF5]">
               Semua pengajuan akan divalidasi dan ditinjau admin sebelum dipublikasikan.
             </p>
           </div>
           <button
             type="button"
             onClick={handleCreateEvent}
-            className="px-6 py-3 bg-white text-indigo-700 font-bold text-sm rounded-lg hover:bg-indigo-50 active:scale-95 transition-transform whitespace-nowrap cursor-pointer shadow-md"
+            className="px-6 py-3 bg-[#FFFCF6] text-[#244777] font-bold text-sm rounded-lg hover:bg-[#E5ECF5] active:scale-95 transition-transform whitespace-nowrap cursor-pointer shadow-md"
           >
             Buat Event Sekarang &rarr;
           </button>
@@ -225,16 +225,16 @@ export default function HomePage() {
 
         {/* Section 2: Event Terbaru */}
         <section className="order-4 flex flex-col gap-6">
-          <div className="flex items-end justify-between border-b border-slate-200 pb-3">
+          <div className="flex items-end justify-between border-b border-[#E4DCCF] pb-3">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Event Terbaru</h2>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#29374A] tracking-tight">Event Terbaru</h2>
+              <p className="text-xs sm:text-sm text-[#6F7580] mt-1">
                 Baru saja ditambahkan oleh berbagai universitas dan komunitas kampus
               </p>
             </div>
             <Link
               href="/event?sortBy=terbaru"
-              className="text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition"
+              className="text-xs sm:text-sm font-semibold text-[#315E9E] hover:text-[#244777] flex items-center gap-1 transition"
             >
               <span>Lihat Semua</span>
               <span>&rarr;</span>
@@ -244,11 +244,11 @@ export default function HomePage() {
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="bg-white border border-slate-100 rounded-xl h-72 animate-pulse p-4 flex flex-col justify-between">
-                  <div className="bg-slate-200 h-40 rounded-md w-full" />
+                <div key={n} className="bg-[#FFFCF6] border border-[#ECE5DA] rounded-xl h-72 animate-pulse p-4 flex flex-col justify-between">
+                  <div className="bg-[#E4DCCF] h-40 rounded-md w-full" />
                   <div className="space-y-2 mt-4">
-                    <div className="h-4 bg-slate-200 rounded w-3/4" />
-                    <div className="h-3 bg-slate-100 rounded w-1/2" />
+                    <div className="h-4 bg-[#E4DCCF] rounded w-3/4" />
+                    <div className="h-3 bg-[#EAE2D4] rounded w-1/2" />
                   </div>
                 </div>
               ))}
@@ -260,17 +260,17 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center bg-white border border-slate-100 rounded-xl text-sm text-slate-500">
+            <div className="p-8 text-center bg-[#FFFCF6] border border-[#ECE5DA] rounded-xl text-sm text-[#6F7580]">
               Belum ada event terbaru yang tersedia saat ini.
             </div>
           )}
         </section>
 
         {/* Section 3: Kategori Pilihan Grid */}
-        <section className="order-5 flex flex-col gap-5 bg-white border border-slate-100 rounded-xl p-6 sm:p-8 shadow-sm">
+        <section className="order-5 flex flex-col gap-5 bg-[#FFFCF6] border border-[#ECE5DA] rounded-xl p-6 sm:p-8 shadow-sm">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">Jelajahi Berdasarkan Kategori</h2>
-            <p className="text-xs text-slate-500 mt-1">Pilih jenis kegiatan yang sesuai dengan minat dan tujuan akademikmu</p>
+            <h2 className="text-lg sm:text-xl font-bold text-[#29374A] tracking-tight">Jelajahi Berdasarkan Kategori</h2>
+            <p className="text-xs text-[#6F7580] mt-1">Pilih jenis kegiatan yang sesuai dengan minat dan tujuan akademikmu</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -278,11 +278,11 @@ export default function HomePage() {
               <Link
                 key={cat.name}
                 href={`/event?category=${encodeURIComponent(cat.name)}`}
-                className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition text-center group"
+                className="flex flex-col items-center justify-center p-4 rounded-xl border border-[#ECE5DA] hover:border-[#C7D9F0] hover:bg-[#E5ECF5]/50 transition text-center group"
               >
-                <CategoryIcon name={cat.icon} className="mb-1 h-7 w-7 text-indigo-600 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-slate-800">{cat.name}</span>
-                <span className="text-[10px] text-slate-400 mt-0.5">{cat.count}</span>
+                <CategoryIcon name={cat.icon} className="mb-1 h-7 w-7 text-[#315E9E] group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-bold text-[#29374A]">{cat.name}</span>
+                <span className="text-[10px] text-[#92959C] mt-0.5">{cat.count}</span>
               </Link>
             ))}
           </div>
@@ -290,16 +290,16 @@ export default function HomePage() {
 
         {/* Section 4: Event Populer */}
         <section className="order-2 flex flex-col gap-6">
-          <div className="flex items-end justify-between border-b border-slate-200 pb-3">
+          <div className="flex items-end justify-between border-b border-[#E4DCCF] pb-3">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Event Populer</h2>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#29374A] tracking-tight">Event Populer</h2>
+              <p className="text-xs sm:text-sm text-[#6F7580] mt-1">
                 Paling banyak dilihat dan diminati mahasiswa saat ini
               </p>
             </div>
             <Link
               href="/event?sortBy=populer"
-              className="text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition"
+              className="text-xs sm:text-sm font-semibold text-[#315E9E] hover:text-[#244777] flex items-center gap-1 transition"
             >
               <span>Lihat Semua</span>
               <span>&rarr;</span>
@@ -309,11 +309,11 @@ export default function HomePage() {
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="bg-white border border-slate-100 rounded-xl h-72 animate-pulse p-4 flex flex-col justify-between">
-                  <div className="bg-slate-200 h-40 rounded-md w-full" />
+                <div key={n} className="bg-[#FFFCF6] border border-[#ECE5DA] rounded-xl h-72 animate-pulse p-4 flex flex-col justify-between">
+                  <div className="bg-[#E4DCCF] h-40 rounded-md w-full" />
                   <div className="space-y-2 mt-4">
-                    <div className="h-4 bg-slate-200 rounded w-3/4" />
-                    <div className="h-3 bg-slate-100 rounded w-1/2" />
+                    <div className="h-4 bg-[#E4DCCF] rounded w-3/4" />
+                    <div className="h-3 bg-[#EAE2D4] rounded w-1/2" />
                   </div>
                 </div>
               ))}
@@ -325,7 +325,7 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center bg-white border border-slate-100 rounded-xl text-sm text-slate-500">
+            <div className="p-8 text-center bg-[#FFFCF6] border border-[#ECE5DA] rounded-xl text-sm text-[#6F7580]">
               Belum ada event dengan tingkat pendaftaran tinggi saat ini.
             </div>
           )}
@@ -333,16 +333,16 @@ export default function HomePage() {
 
         {/* Section 5: Deadline Terdekat */}
         <section className="order-3 flex flex-col gap-6">
-          <div className="flex items-end justify-between border-b border-slate-200 pb-3">
+          <div className="flex items-end justify-between border-b border-[#E4DCCF] pb-3">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Deadline Terdekat</h2>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#29374A] tracking-tight">Deadline Terdekat</h2>
+              <p className="text-xs sm:text-sm text-[#6F7580] mt-1">
                 Registrasi hampir ditutup, segera daftarkan dirimu sebelum kuota habis!
               </p>
             </div>
             <Link
               href="/event?sortBy=deadline-terdekat"
-              className="text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition"
+              className="text-xs sm:text-sm font-semibold text-[#315E9E] hover:text-[#244777] flex items-center gap-1 transition"
             >
               <span>Lihat Semua</span>
               <span>&rarr;</span>
@@ -352,11 +352,11 @@ export default function HomePage() {
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="bg-white border border-slate-100 rounded-xl h-72 animate-pulse p-4 flex flex-col justify-between">
-                  <div className="bg-slate-200 h-40 rounded-md w-full" />
+                <div key={n} className="bg-[#FFFCF6] border border-[#ECE5DA] rounded-xl h-72 animate-pulse p-4 flex flex-col justify-between">
+                  <div className="bg-[#E4DCCF] h-40 rounded-md w-full" />
                   <div className="space-y-2 mt-4">
-                    <div className="h-4 bg-slate-200 rounded w-3/4" />
-                    <div className="h-3 bg-slate-100 rounded w-1/2" />
+                    <div className="h-4 bg-[#E4DCCF] rounded w-3/4" />
+                    <div className="h-3 bg-[#EAE2D4] rounded w-1/2" />
                   </div>
                 </div>
               ))}
@@ -368,7 +368,7 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center bg-white border border-slate-100 rounded-xl text-sm text-slate-500">
+            <div className="p-8 text-center bg-[#FFFCF6] border border-[#ECE5DA] rounded-xl text-sm text-[#6F7580]">
               Belum ada event dengan deadline terdekat saat ini.
             </div>
           )}

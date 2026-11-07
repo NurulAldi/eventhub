@@ -12,7 +12,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex-1 flex flex-col md:flex-row bg-gray-50 min-h-screen">
+    <div className="flex-1 flex flex-col md:flex-row bg-[#F7F4EE] min-h-screen">
       <AdminSidebar />
       <div className="flex-1 flex flex-col overflow-x-hidden">{children}</div>
     </div>

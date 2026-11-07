@@ -17,10 +17,10 @@ function NotificationBell({ role, isHydrated }: { role: "user" | "admin"; isHydr
   }, [isHydrated, role]);
 
   return (
-    <Link href="/notifikasi" aria-label="Notifikasi" className="relative p-2 text-slate-600 hover:text-indigo-600 transition-colors">
+    <Link href="/notifikasi" aria-label="Notifikasi" className="relative p-2 text-[#6F7580] hover:text-[#315E9E] transition-colors">
       <svg
         aria-hidden="true"
-        className="h-5 w-5 text-slate-700"
+        className="h-5 w-5 text-[#29374A]"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -64,15 +64,15 @@ export default function Navbar() {
 
   if (isDashboard) {
     return (
-      <header className="h-16 bg-white/70 backdrop-blur-md border-b border-indigo-100 px-6 flex items-center justify-between sticky top-0 z-50">
+      <header className="h-16 bg-[#FFFCF6]/80 backdrop-blur-md border-b border-[#E4DCCF] px-6 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
-            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#244777] via-[#315E9E] to-[#E98268] text-white flex items-center justify-center font-bold text-sm shadow-sm">
               E
             </span>
-            <span className="font-bold text-base text-slate-900">EventHub Admin</span>
+            <span className="font-bold text-base text-[#29374A]">EventHub Admin</span>
           </Link>
-          <span className="text-xs px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-semibold">
+          <span className="text-xs px-2 py-0.5 rounded bg-[#E5ECF5] text-[#244777] font-semibold">
             Mode Admin
           </span>
         </div>
@@ -81,7 +81,7 @@ export default function Navbar() {
           <NotificationBell role="admin" isHydrated={isHydrated} />
           <Link
             href="/"
-            className="text-xs font-semibold text-slate-600 hover:text-indigo-600 transition flex items-center gap-1"
+            className="text-xs font-semibold text-[#6F7580] hover:text-[#315E9E] transition flex items-center gap-1"
           >
             &larr; Lihat Website Utama
           </Link>
@@ -91,14 +91,14 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
-                className="text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1.5 rounded-md font-medium text-slate-700 flex items-center gap-1 active:scale-95 transition-transform"
+                className="text-xs bg-[#F0E9DC] hover:bg-[#EAE2D4] border border-[#E4DCCF] px-2.5 py-1.5 rounded-md font-medium text-[#29374A] flex items-center gap-1 active:scale-95 transition-transform"
               >
                 Role: <strong className="capitalize">{isHydrated ? user?.role || "Tamu" : "user"}</strong>
                 <span>▼</span>
               </button>
               {showRoleSwitcher && (
-              <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-100 rounded-lg shadow-lg py-1 z-50 text-xs">
-                <div className="px-3 py-1.5 font-semibold text-slate-400 border-b border-slate-100">
+              <div className="absolute right-0 mt-2 w-44 bg-[#FFFCF6] border border-[#ECE5DA] rounded-lg shadow-lg py-1 z-50 text-xs">
+                <div className="px-3 py-1.5 font-semibold text-[#92959C] border-b border-[#ECE5DA]">
                   Simulasi Auth
                 </div>
                 <button
@@ -107,7 +107,7 @@ export default function Navbar() {
                     setUserRole("guest");
                     setShowRoleSwitcher(false);
                   }}
-                  className="w-full text-left px-3 py-1.5 hover:bg-slate-50 text-slate-700"
+                  className="w-full text-left px-3 py-1.5 hover:bg-[#F0E9DC] text-[#29374A]"
                 >
                   Tamu (Guest)
                 </button>
@@ -117,7 +117,7 @@ export default function Navbar() {
                     setUserRole("user");
                     setShowRoleSwitcher(false);
                   }}
-                  className="w-full text-left px-3 py-1.5 hover:bg-slate-50 text-slate-700"
+                  className="w-full text-left px-3 py-1.5 hover:bg-[#F0E9DC] text-[#29374A]"
                 >
                   Mahasiswa (User)
                 </button>
@@ -127,7 +127,7 @@ export default function Navbar() {
                     setUserRole("admin");
                     setShowRoleSwitcher(false);
                   }}
-                  className="w-full text-left px-3 py-1.5 hover:bg-slate-50 text-slate-900 font-semibold"
+                  className="w-full text-left px-3 py-1.5 hover:bg-[#F0E9DC] text-[#29374A] font-semibold"
                 >
                   Admin EventHub
                 </button>
@@ -140,14 +140,14 @@ export default function Navbar() {
   }
 
   return (
-    <header className="h-20 bg-white/70 backdrop-blur-md border-b border-indigo-100 px-6 lg:px-16 flex items-center justify-between sticky top-0 z-50">
+    <header className="h-20 bg-[#FFFCF6]/80 backdrop-blur-md border-b border-[#E4DCCF] px-6 lg:px-16 flex items-center justify-between sticky top-0 z-50">
       {/* Brand */}
       <div className="flex items-center gap-8">
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-extrabold text-sm shadow-sm">
+          <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#244777] via-[#315E9E] to-[#E98268] text-white flex items-center justify-center font-extrabold text-sm shadow-sm">
             E
           </span>
-          <span className="font-bold text-lg text-slate-900 tracking-tight">EventHub Kampus</span>
+          <span className="font-bold text-lg text-[#29374A] tracking-tight">EventHub Kampus</span>
         </Link>
       </div>
 
@@ -159,8 +159,8 @@ export default function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className={`transition hover:text-indigo-600 ${
-                isActive ? "text-indigo-600 font-semibold" : "text-slate-600"
+              className={`transition hover:text-[#315E9E] ${
+                isActive ? "text-[#315E9E] font-semibold" : "text-[#6F7580]"
               }`}
             >
               {link.label}
@@ -170,8 +170,8 @@ export default function Navbar() {
         {isHydrated && isLoggedIn && (
           <Link
             href="/profil"
-            className={`transition hover:text-indigo-600 ${
-              pathname === "/profil" ? "text-indigo-600 font-semibold" : "text-slate-600"
+            className={`transition hover:text-[#315E9E] ${
+              pathname === "/profil" ? "text-[#315E9E] font-semibold" : "text-[#6F7580]"
             }`}
           >
             Profil
@@ -189,17 +189,17 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
-            className="text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1.5 rounded-md font-medium text-slate-600 flex items-center gap-1 transition active:scale-95"
+            className="text-xs bg-[#F0E9DC] hover:bg-[#EAE2D4] border border-[#E4DCCF] px-2.5 py-1.5 rounded-md font-medium text-[#6F7580] flex items-center gap-1 transition active:scale-95"
             title="Klik untuk mengganti status simulasi login"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
             <span>Simulasi: <strong className="capitalize">{isHydrated ? user ? user.role : "Guest" : "user"}</strong></span>
-            <span className="text-[10px] text-slate-400">▼</span>
+            <span className="text-[10px] text-[#92959C]">▼</span>
           </button>
 
           {showRoleSwitcher && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-lg shadow-lg py-1 z-50 text-xs">
-              <div className="px-3 py-1.5 font-semibold text-slate-400 border-b border-slate-100">
+            <div className="absolute right-0 mt-2 w-48 bg-[#FFFCF6] border border-[#ECE5DA] rounded-lg shadow-lg py-1 z-50 text-xs">
+              <div className="px-3 py-1.5 font-semibold text-[#92959C] border-b border-[#ECE5DA]">
                 Pilih Mode Simulasi
               </div>
               <button
@@ -208,7 +208,7 @@ export default function Navbar() {
                   setUserRole("guest");
                   setShowRoleSwitcher(false);
                 }}
-                className={`w-full text-left px-3 py-2 hover:bg-slate-50 ${!isLoggedIn ? "font-bold text-indigo-700 bg-indigo-50" : "text-slate-700"}`}
+                className={`w-full text-left px-3 py-2 hover:bg-[#F0E9DC] ${!isLoggedIn ? "font-bold text-[#244777] bg-[#E5ECF5]" : "text-[#29374A]"}`}
               >
                 1. Guest (Tamu / Belum Login)
               </button>
@@ -218,7 +218,7 @@ export default function Navbar() {
                   setUserRole("user");
                   setShowRoleSwitcher(false);
                 }}
-                className={`w-full text-left px-3 py-2 hover:bg-slate-50 ${user?.role === "user" ? "font-bold text-indigo-700 bg-indigo-50" : "text-slate-700"}`}
+                className={`w-full text-left px-3 py-2 hover:bg-[#F0E9DC] ${user?.role === "user" ? "font-bold text-[#244777] bg-[#E5ECF5]" : "text-[#29374A]"}`}
               >
                 2. Mahasiswa (User Biasa)
               </button>
@@ -228,7 +228,7 @@ export default function Navbar() {
                   setUserRole("admin");
                   setShowRoleSwitcher(false);
                 }}
-                className={`w-full text-left px-3 py-2 hover:bg-slate-50 ${user?.role === "admin" ? "font-bold text-indigo-700 bg-indigo-50" : "text-slate-700"}`}
+                className={`w-full text-left px-3 py-2 hover:bg-[#F0E9DC] ${user?.role === "admin" ? "font-bold text-[#244777] bg-[#E5ECF5]" : "text-[#29374A]"}`}
               >
                 3. Admin EventHub
               </button>
@@ -241,13 +241,13 @@ export default function Navbar() {
           <>
             <Link
               href="/login"
-              className="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 active:scale-95 transition-transform"
+              className="px-4 py-2 text-xs sm:text-sm font-semibold text-[#29374A] bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg hover:bg-[#F0E9DC] active:scale-95 transition-transform"
             >
               Masuk
             </Link>
             <Link
               href="/register"
-              className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-700 active:scale-95 transition-transform"
+              className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-[#315E9E] border border-[#315E9E] rounded-lg hover:bg-[#244777] active:scale-95 transition-transform"
             >
               Daftar
             </Link>
@@ -257,16 +257,16 @@ export default function Navbar() {
             {user?.role === "admin" && (
               <Link
                 href="/dashboard"
-                className="px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-md hover:bg-indigo-100 active:scale-95 transition-transform"
+                className="px-3 py-1.5 text-xs font-semibold text-[#244777] bg-[#E5ECF5] border border-[#E4DCCF] rounded-md hover:bg-[#E5ECF5] active:scale-95 transition-transform"
               >
                 Admin Panel
               </Link>
             )}
             <Link
               href="/profil"
-              className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-indigo-200 transition"
+              className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-[#C7D9F0] transition"
             >
-              <span className="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+              <span className="w-8 h-8 rounded-full bg-[#315E9E] text-white font-bold text-xs flex items-center justify-center">
                 {user?.avatarText || "U"}
               </span>
             </Link>
@@ -284,7 +284,7 @@ export default function Navbar() {
         <button
           type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 text-slate-600 hover:text-indigo-600"
+          className="lg:hidden p-2 text-[#6F7580] hover:text-[#315E9E]"
           aria-label="Toggle Navigation Menu"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,14 +299,14 @@ export default function Navbar() {
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="lg:hidden absolute top-20 left-0 w-full bg-white/95 backdrop-blur-md border-b border-slate-100 p-6 flex flex-col gap-4 shadow-xl z-50">
+        <div className="lg:hidden absolute top-20 left-0 w-full bg-[#FFFCF6]/95 backdrop-blur-md border-b border-[#ECE5DA] p-6 flex flex-col gap-4 shadow-xl z-50">
           <nav className="flex flex-col gap-3 text-sm font-medium">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`py-1 ${pathname === link.href ? "text-indigo-600 font-medium" : "text-slate-600"}`}
+                className={`py-1 ${pathname === link.href ? "text-[#315E9E] font-medium" : "text-[#6F7580]"}`}
               >
                 {link.label}
               </Link>
@@ -316,7 +316,7 @@ export default function Navbar() {
                 <Link
                   href="/profil"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`py-1 ${pathname === "/profil" ? "text-indigo-600 font-semibold" : "text-slate-600"}`}
+                  className={`py-1 ${pathname === "/profil" ? "text-[#315E9E] font-semibold" : "text-[#6F7580]"}`}
                 >
                   Profil Saya
                 </Link>
@@ -324,7 +324,7 @@ export default function Navbar() {
                   <Link
                     href="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="py-1 text-indigo-600 font-medium"
+                    className="py-1 text-[#315E9E] font-medium"
                   >
                     Dashboard Admin
                   </Link>
@@ -333,27 +333,27 @@ export default function Navbar() {
             )}
           </nav>
 
-          <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
-            <div className="text-xs text-slate-400 font-medium">Simulasi Status:</div>
+          <div className="pt-3 border-t border-[#ECE5DA] flex flex-col gap-2">
+            <div className="text-xs text-[#92959C] font-medium">Simulasi Status:</div>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setUserRole("guest")}
-                className={`px-2 py-1 text-xs rounded border active:scale-95 transition-transform ${!isLoggedIn ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-700 border-slate-200"}`}
+                className={`px-2 py-1 text-xs rounded border active:scale-95 transition-transform ${!isLoggedIn ? "bg-[#315E9E] text-white border-[#315E9E]" : "bg-[#FFFCF6] text-[#29374A] border-[#E4DCCF]"}`}
               >
                 Guest
               </button>
               <button
                 type="button"
                 onClick={() => setUserRole("user")}
-                className={`px-2 py-1 text-xs rounded border active:scale-95 transition-transform ${user?.role === "user" ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-700 border-slate-200"}`}
+                className={`px-2 py-1 text-xs rounded border active:scale-95 transition-transform ${user?.role === "user" ? "bg-[#315E9E] text-white border-[#315E9E]" : "bg-[#FFFCF6] text-[#29374A] border-[#E4DCCF]"}`}
               >
                 Mahasiswa
               </button>
               <button
                 type="button"
                 onClick={() => setUserRole("admin")}
-                className={`px-2 py-1 text-xs rounded border active:scale-95 transition-transform ${user?.role === "admin" ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-700 border-slate-200"}`}
+                className={`px-2 py-1 text-xs rounded border active:scale-95 transition-transform ${user?.role === "admin" ? "bg-[#315E9E] text-white border-[#315E9E]" : "bg-[#FFFCF6] text-[#29374A] border-[#E4DCCF]"}`}
               >
                 Admin
               </button>

@@ -118,12 +118,12 @@ export default function CalendarPage() {
     return (
       <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8">
         <div className="animate-pulse">
-          <div className="h-8 w-64 rounded bg-gray-200" />
-          <div className="mt-2 h-4 w-96 max-w-full rounded bg-gray-100" />
+          <div className="h-8 w-64 rounded bg-[#E4DCCF]" />
+          <div className="mt-2 h-4 w-96 max-w-full rounded bg-[#F0E9DC]" />
         </div>
         <div className="flex flex-col lg:flex-row items-start gap-8 animate-pulse">
-          <div className="flex-1 w-full h-[620px] rounded-xl bg-gray-100 border border-gray-200" />
-          <div className="w-full lg:w-96 h-80 rounded-xl bg-gray-100 border border-gray-200" />
+          <div className="flex-1 w-full h-[620px] rounded-xl bg-[#F0E9DC] border border-[#E4DCCF]" />
+          <div className="w-full lg:w-96 h-80 rounded-xl bg-[#F0E9DC] border border-[#E4DCCF]" />
         </div>
       </div>
     );
@@ -132,10 +132,10 @@ export default function CalendarPage() {
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-[#29374A] tracking-tight">
           Kalender Event Kampus
         </h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-1">
+        <p className="text-xs sm:text-sm text-[#6F7580] mt-1">
           Pantau seluruh jadwal kegiatan, workshop, lomba, dan seminar berdasarkan tanggal pelaksanaan
         </p>
       </div>
@@ -156,18 +156,18 @@ export default function CalendarPage() {
       {/* Main 2-Column Grid matching kalender-event.html */}
       <div className="flex flex-col lg:flex-row items-start gap-8">
         {/* Left Column: Calendar Grid Box */}
-        <div className="flex-1 w-full bg-white border border-gray-300 rounded-xl p-5 sm:p-6 shadow-xs flex flex-col gap-6">
+        <div className="flex-1 w-full bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-5 sm:p-6 shadow-xs flex flex-col gap-6">
           {/* Calendar Header Controls */}
-          <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+          <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-4">
             <div className="flex items-center gap-3">
-              <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-[#29374A]">
                 {monthNames[currentMonth]} {currentYear}
               </h2>
-              <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-md border border-gray-300">
+              <div className="flex items-center gap-1 bg-[#F0E9DC] p-1 rounded-md border border-[#E4DCCF]">
                 <button
                   type="button"
                   onClick={handlePrevMonth}
-                  className="p-1 text-gray-600 hover:text-gray-900 hover:bg-white rounded transition cursor-pointer"
+                  className="p-1 text-[#6F7580] hover:text-[#29374A] hover:bg-[#FFFCF6] rounded transition cursor-pointer"
                   aria-label="Bulan Sebelumnya"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,7 +177,7 @@ export default function CalendarPage() {
                 <button
                   type="button"
                   onClick={handleNextMonth}
-                  className="p-1 text-gray-600 hover:text-gray-900 hover:bg-white rounded transition cursor-pointer"
+                  className="p-1 text-[#6F7580] hover:text-[#29374A] hover:bg-[#FFFCF6] rounded transition cursor-pointer"
                   aria-label="Bulan Berikutnya"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,14 +199,14 @@ export default function CalendarPage() {
                   String(today.getDate()).padStart(2, "0"),
                 ].join("-"));
               }}
-              className="text-xs font-semibold px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md transition cursor-pointer"
+              className="text-xs font-semibold px-3 py-1.5 bg-[#F0E9DC] hover:bg-[#E4DCCF] text-[#29374A] rounded-md transition cursor-pointer"
             >
               Hari Ini
             </button>
           </div>
 
           {/* Days of Week Header */}
-          <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-gray-500 uppercase tracking-wider">
+          <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-[#6F7580] uppercase tracking-wider">
             {daysOfWeek.map((day, idx) => (
               <div key={day} className={`py-1 ${idx === 0 ? "text-red-500" : ""}`}>
                 {day}
@@ -218,7 +218,7 @@ export default function CalendarPage() {
           <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {/* Blank cells for padding */}
             {leadingBlanks.map((blank) => (
-              <div key={`blank-${blank}`} className="h-20 sm:h-24 bg-gray-50/50 rounded-md border border-transparent" />
+              <div key={`blank-${blank}`} className="h-20 sm:h-24 bg-[#F7F4EE]/50 rounded-md border border-transparent" />
             ))}
 
             {/* Days in current month */}
@@ -234,22 +234,22 @@ export default function CalendarPage() {
                   onClick={() => setSelectedDateStr(dateStr)}
                   className={`h-20 sm:h-24 p-2 rounded-md border transition-all cursor-pointer flex flex-col justify-between ${
                     isSelected
-                      ? "border-gray-900 bg-gray-100/90 ring-2 ring-gray-900"
+                      ? "border-[#244777] bg-[#F0E9DC]/90 ring-2 ring-[#244777]"
                       : hasEvents
-                      ? "border-gray-400 bg-white hover:border-gray-900 hover:shadow-xs"
-                      : "border-gray-200 bg-white hover:border-gray-300"
+                      ? "border-[#B9B2A7] bg-[#FFFCF6] hover:border-[#244777] hover:shadow-xs"
+                      : "border-[#E4DCCF] bg-[#FFFCF6] hover:border-[#E4DCCF]"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span
                       className={`text-xs font-bold ${
-                        isSelected ? "text-gray-900" : hasEvents ? "text-gray-900" : "text-gray-500"
+                        isSelected ? "text-[#29374A]" : hasEvents ? "text-[#29374A]" : "text-[#6F7580]"
                       }`}
                     >
                       {day}
                     </span>
                     {hasEvents && (
-                      <span className="w-2 h-2 rounded-full bg-gray-900 inline-block" />
+                      <span className="w-2 h-2 rounded-full bg-[#315E9E] inline-block" />
                     )}
                   </div>
 
@@ -259,14 +259,14 @@ export default function CalendarPage() {
                       {dayEvents.slice(0, 1).map((evt) => (
                         <div
                           key={evt.id}
-                          className="text-[10px] truncate px-1.5 py-0.5 rounded bg-gray-900 text-white font-medium"
+                          className="text-[10px] truncate px-1.5 py-0.5 rounded bg-[#315E9E] text-white font-medium"
                           title={evt.title}
                         >
                           {evt.title}
                         </div>
                       ))}
                       {dayEvents.length > 1 && (
-                        <span className="text-[9px] text-gray-500 font-bold">
+                        <span className="text-[9px] text-[#6F7580] font-bold">
                           +{dayEvents.length - 1} event lagi
                         </span>
                       )}
@@ -278,32 +278,32 @@ export default function CalendarPage() {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t border-gray-100">
+          <div className="flex items-center gap-4 text-xs text-[#6F7580] pt-2 border-t border-[#ECE5DA]">
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-gray-900" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#315E9E]" />
               <span>Ada Kegiatan Kampus</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded border-2 border-gray-900 bg-gray-100" />
+              <span className="w-3 h-3 rounded border-2 border-[#244777] bg-[#F0E9DC]" />
               <span>Tanggal Terpilih</span>
             </div>
           </div>
         </div>
 
         {/* Right Column: Sidebar Event Pada Tanggal Terpilih */}
-        <aside className="w-full lg:w-96 bg-white border border-gray-300 rounded-xl p-6 shadow-xs flex flex-col gap-5 shrink-0">
-          <div className="border-b border-gray-200 pb-3 flex flex-col gap-1">
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+        <aside className="w-full lg:w-96 bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 shadow-xs flex flex-col gap-5 shrink-0">
+          <div className="border-b border-[#E4DCCF] pb-3 flex flex-col gap-1">
+            <span className="text-[11px] font-bold text-[#92959C] uppercase tracking-wider">
               EVENT PADA TANGGAL INI
             </span>
-            <h3 className="text-base sm:text-lg font-bold text-gray-900 capitalize">
+            <h3 className="text-base sm:text-lg font-bold text-[#29374A] capitalize">
               {selectedDateFormatted}
             </h3>
           </div>
 
           {/* List of events on this date */}
           {isLoading ? (
-            <div className="p-8 text-center text-xs text-gray-400 animate-pulse">
+            <div className="p-8 text-center text-xs text-[#92959C] animate-pulse">
               Memuat event kalender...
             </div>
           ) : selectedDayEvents.length > 0 ? (
@@ -311,10 +311,10 @@ export default function CalendarPage() {
               {selectedDayEvents.map((evt) => (
                 <div
                   key={evt.id}
-                  className="p-4 bg-gray-50 border border-gray-300 rounded-lg flex flex-col gap-3 hover:border-gray-500 transition"
+                  className="p-4 bg-[#F7F4EE] border border-[#E4DCCF] rounded-lg flex flex-col gap-3 hover:border-[#92959C] transition"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white border border-gray-300 text-gray-800">
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#FFFCF6] border border-[#E4DCCF] text-[#29374A]">
                       {evt.category}
                     </span>
                     <span className="text-xs font-bold text-emerald-700">
@@ -322,11 +322,11 @@ export default function CalendarPage() {
                     </span>
                   </div>
 
-                  <h4 className="text-sm font-bold text-gray-900 line-clamp-2">
+                  <h4 className="text-sm font-bold text-[#29374A] line-clamp-2">
                     {evt.title}
                   </h4>
 
-                  <div className="flex flex-col gap-1 text-xs text-gray-500 pt-2 border-t border-gray-200">
+                  <div className="flex flex-col gap-1 text-xs text-[#6F7580] pt-2 border-t border-[#E4DCCF]">
                     <div className="flex items-center gap-1.5">
                       <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l2.5 2.5" /></svg>
                       <span>{evt.time || "09:00 - 13:00 WIB"}</span>
@@ -339,7 +339,7 @@ export default function CalendarPage() {
 
                   <Link
                     href={`/event/${evt.id}`}
-                    className="mt-1 w-full py-2 bg-gray-900 text-white text-xs font-bold rounded-md hover:bg-gray-800 text-center transition block"
+                    className="mt-1 w-full py-2 bg-[#315E9E] text-white text-xs font-bold rounded-md hover:bg-[#244777] text-center transition block"
                   >
                     Detail Event &rarr;
                   </Link>
@@ -347,9 +347,9 @@ export default function CalendarPage() {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center flex flex-col items-center gap-3 bg-gray-50 border border-dashed border-gray-300 rounded-lg">
-              <svg className="h-8 w-8 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16" /></svg>
-              <p className="text-xs text-gray-500">
+            <div className="p-8 text-center flex flex-col items-center gap-3 bg-[#F7F4EE] border border-dashed border-[#E4DCCF] rounded-lg">
+              <svg className="h-8 w-8 text-[#6D95CC]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16" /></svg>
+              <p className="text-xs text-[#6F7580]">
                 Tidak ada event yang terjadwal pada tanggal ini.
               </p>
               <button
@@ -362,7 +362,7 @@ export default function CalendarPage() {
                     String(today.getDate()).padStart(2, "0"),
                   ].join("-"));
                 }}
-                className="text-xs font-semibold text-gray-900 hover:underline cursor-pointer"
+                className="text-xs font-semibold text-[#29374A] hover:underline cursor-pointer"
               >
                 Lihat Agenda 28 Oktober (Seminar AI) &rarr;
               </button>
@@ -370,20 +370,20 @@ export default function CalendarPage() {
           )}
 
           {/* Quick List: Agenda Mendatang Bulan Ini */}
-          <div className="pt-4 border-t border-gray-200 flex flex-col gap-3">
-            <span className="text-xs font-bold text-gray-800">Agenda Lainnya di Bulan Ini:</span>
+          <div className="pt-4 border-t border-[#E4DCCF] flex flex-col gap-3">
+            <span className="text-xs font-bold text-[#29374A]">Agenda Lainnya di Bulan Ini:</span>
             <div className="flex flex-col gap-2">
               {events.slice(0, 3).map((item) => (
                 <div
                   key={item.id}
                   onClick={() => setSelectedDateStr(item.date)}
-                  className="p-2.5 rounded-md hover:bg-gray-100 transition cursor-pointer flex items-center justify-between text-xs"
+                  className="p-2.5 rounded-md hover:bg-[#F0E9DC] transition cursor-pointer flex items-center justify-between text-xs"
                 >
                   <div className="flex flex-col">
-                    <span className="font-semibold text-gray-900 line-clamp-1">{item.title}</span>
-                    <span className="text-[11px] text-gray-400">{item.date}</span>
+                    <span className="font-semibold text-[#29374A] line-clamp-1">{item.title}</span>
+                    <span className="text-[11px] text-[#92959C]">{item.date}</span>
                   </div>
-                  <span className="text-[11px] font-bold text-gray-600 shrink-0 ml-2">
+                  <span className="text-[11px] font-bold text-[#6F7580] shrink-0 ml-2">
                     {item.category}
                   </span>
                 </div>

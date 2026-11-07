@@ -174,33 +174,33 @@ export default function ProfilePage() {
     needs_revision: "bg-orange-100 text-orange-800",
     rejected: "bg-red-100 text-red-800",
     active: "bg-emerald-100 text-emerald-800",
-    completed: "bg-slate-100 text-slate-700",
+    completed: "bg-[#EAE2D4] text-[#29374A]",
     cancelled: "bg-rose-100 text-rose-800",
   };
   const isSubmissionPublic = ["active", "completed", "cancelled"].includes(submissionStatus);
 
   if (isProfileLoading) {
     return (
-      <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8 bg-gray-50">
-        <div className="bg-white border border-gray-300 rounded-xl p-6 sm:p-8 animate-pulse">
-          <div className="h-6 w-48 rounded bg-gray-200" />
-          <div className="mt-3 h-4 w-72 rounded bg-gray-100" />
+      <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8 bg-[#F7F4EE]">
+        <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 sm:p-8 animate-pulse">
+          <div className="h-6 w-48 rounded bg-[#E4DCCF]" />
+          <div className="mt-3 h-4 w-72 rounded bg-[#F0E9DC]" />
         </div>
-        <div className="bg-white border border-gray-300 rounded-xl p-6 animate-pulse">
-          <div className="h-5 w-56 rounded bg-gray-200" />
-          <div className="mt-5 h-24 rounded bg-gray-100" />
-          <div className="mt-4 h-24 rounded bg-gray-100" />
+        <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 animate-pulse">
+          <div className="h-5 w-56 rounded bg-[#E4DCCF]" />
+          <div className="mt-5 h-24 rounded bg-[#F0E9DC]" />
+          <div className="mt-4 h-24 rounded bg-[#F0E9DC]" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8 bg-gray-50">
+    <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8 bg-[#F7F4EE]">
       {/* Profile Header Card - Matching profil.html */}
-      <div className="bg-white border border-gray-300 rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xs">
+      <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xs">
         <div className="flex items-center gap-5 sm:gap-6">
-          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-gray-900 bg-gray-100 shrink-0">
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-[#244777] bg-[#F0E9DC] shrink-0">
             <Image
               src={currentUser.avatar}
               alt={currentUser.name}
@@ -211,17 +211,17 @@ export default function ProfilePage() {
 
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-[#29374A]">
                 {currentUser.name}
               </h1>
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                 Mahasiswa Aktif
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-gray-500">
+            <p className="text-xs sm:text-sm text-[#6F7580]">
               {currentUser.email} &bull; NIM: {currentUser.nim}
             </p>
-            <p className="text-xs text-gray-600 font-medium">
+            <p className="text-xs text-[#6F7580] font-medium">
               {currentUser.major}, {currentUser.faculty}
             </p>
           </div>
@@ -230,7 +230,7 @@ export default function ProfilePage() {
         {authUser?.role === "admin" && (
           <Link
             href="/dashboard"
-            className="px-4 py-2 bg-gray-900 text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-gray-800 transition cursor-pointer self-start sm:self-auto shadow-xs"
+            className="px-4 py-2 bg-[#315E9E] text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-[#244777] transition cursor-pointer self-start sm:self-auto shadow-xs"
           >
             Masuk ke Dashboard Admin &rarr;
           </Link>
@@ -239,18 +239,18 @@ export default function ProfilePage() {
 
       {/* Main 2-Column Content Layout */}
       {submittedEvent && (
-        <section className="bg-white border border-gray-300 rounded-xl p-6 shadow-xs">
+        <section className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Pengajuan Event Terakhir</span>
-              <h2 className="mt-1 text-base font-bold text-gray-900">{submittedEvent.title}</h2>
-              <p className="mt-1 text-xs text-gray-500">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#92959C]">Pengajuan Event Terakhir</span>
+              <h2 className="mt-1 text-base font-bold text-[#29374A]">{submittedEvent.title}</h2>
+              <p className="mt-1 text-xs text-[#6F7580]">
                 {isSubmissionPublic
                   ? "Status event telah diperbarui oleh admin."
                   : "Event belum tampil di katalog sebelum disetujui admin."}
               </p>
             </div>
-            <span className={`w-fit px-3 py-1 rounded-full text-xs font-bold ${submissionStatusColors[submissionStatus] || "bg-gray-100 text-gray-700"}`}>
+            <span className={`w-fit px-3 py-1 rounded-full text-xs font-bold ${submissionStatusColors[submissionStatus] || "bg-[#F0E9DC] text-[#29374A]"}`}>
               {submissionStatusLabels[submissionStatus] || submissionStatus}
             </span>
           </div>
@@ -258,7 +258,7 @@ export default function ProfilePage() {
             {["active", "rejected", "completed", "cancelled"].includes(submissionStatus) && (
               <Link
                 href={`/event/${encodeURIComponent(submittedEvent.id)}`}
-                className="inline-flex w-fit px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-md hover:bg-gray-800 transition"
+                className="inline-flex w-fit px-4 py-2 bg-[#315E9E] text-white text-xs font-bold rounded-md hover:bg-[#244777] transition"
               >
                 Lihat Detail Event
               </Link>
@@ -266,7 +266,7 @@ export default function ProfilePage() {
             {["needs_revision", "pending_review"].includes(submissionStatus) && (
               <Link
                 href={`/pengajuan-event?edit=${encodeURIComponent(submittedEvent.id)}`}
-                className="inline-flex w-fit px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-md hover:bg-gray-800 transition"
+                className="inline-flex w-fit px-4 py-2 bg-[#315E9E] text-white text-xs font-bold rounded-md hover:bg-[#244777] transition"
               >
                 {submissionStatus === "needs_revision" ? "Edit Pengajuan Event" : "Ubah Pengajuan Event"}
               </Link>
@@ -276,7 +276,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => setShowAllSubmissions((current) => !current)}
-              className="mt-4 text-xs font-bold text-gray-700 underline"
+              className="mt-4 text-xs font-bold text-[#29374A] underline"
             >
               {showAllSubmissions ? "Sembunyikan Pengajuan Lain" : `Tampilkan Semua Pengajuan (${submittedEvents.length})`}
             </button>
@@ -285,16 +285,16 @@ export default function ProfilePage() {
             const status = submission.status || "pending_review";
             const isPublic = ["active", "completed", "cancelled"].includes(status);
             return (
-              <div key={submission.id} className="mt-4 border-t border-gray-200 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div key={submission.id} className="mt-4 border-t border-[#E4DCCF] pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900">{submission.title}</h3>
-                  <span className={`mt-1 inline-block px-2 py-1 rounded-full text-[11px] font-bold ${submissionStatusColors[status] || "bg-gray-100 text-gray-700"}`}>
+                  <h3 className="text-sm font-bold text-[#29374A]">{submission.title}</h3>
+                  <span className={`mt-1 inline-block px-2 py-1 rounded-full text-[11px] font-bold ${submissionStatusColors[status] || "bg-[#F0E9DC] text-[#29374A]"}`}>
                     {submissionStatusLabels[status] || status}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {isPublic && <Link href={`/event/${encodeURIComponent(submission.id)}`} className="px-3 py-2 bg-gray-900 text-white text-xs font-bold rounded-md">Lihat Detail Event</Link>}
-                  {!isPublic && status !== "rejected" && <Link href={`/pengajuan-event?edit=${encodeURIComponent(submission.id)}`} className="px-3 py-2 bg-gray-900 text-white text-xs font-bold rounded-md">Edit Pengajuan</Link>}
+                  {isPublic && <Link href={`/event/${encodeURIComponent(submission.id)}`} className="px-3 py-2 bg-[#315E9E] text-white text-xs font-bold rounded-md">Lihat Detail Event</Link>}
+                  {!isPublic && status !== "rejected" && <Link href={`/pengajuan-event?edit=${encodeURIComponent(submission.id)}`} className="px-3 py-2 bg-[#315E9E] text-white text-xs font-bold rounded-md">Edit Pengajuan</Link>}
                 </div>
               </div>
             );
@@ -304,16 +304,16 @@ export default function ProfilePage() {
 
       <div className="flex flex-col lg:flex-row items-start gap-8">
         {/* Left Column: Interactive Tabs Container */}
-        <div className="flex-1 w-full bg-white border border-gray-300 rounded-xl shadow-xs overflow-hidden">
+        <div className="flex-1 w-full bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl shadow-xs overflow-hidden">
           {/* Tab Headers */}
-          <div className="flex border-b border-gray-200 text-xs sm:text-sm font-bold bg-gray-50/50">
+          <div className="flex border-b border-[#E4DCCF] text-xs sm:text-sm font-bold bg-[#F7F4EE]/50">
             <button
               type="button"
               onClick={() => setActiveTab("registered")}
               className={`flex-1 py-3.5 px-4 text-center border-b-2 transition cursor-pointer ${
                 activeTab === "registered"
-                  ? "border-gray-900 text-gray-900 bg-white"
-                  : "border-transparent text-gray-500 hover:text-gray-900"
+                  ? "border-[#244777] text-[#29374A] bg-[#FFFCF6]"
+                  : "border-transparent text-[#6F7580] hover:text-[#29374A]"
               }`}
             >
               Event Diikuti ({registeredEvents.length})
@@ -323,8 +323,8 @@ export default function ProfilePage() {
               onClick={() => setActiveTab("saved")}
               className={`flex-1 py-3.5 px-4 text-center border-b-2 transition cursor-pointer ${
                 activeTab === "saved"
-                  ? "border-gray-900 text-gray-900 bg-white"
-                  : "border-transparent text-gray-500 hover:text-gray-900"
+                  ? "border-[#244777] text-[#29374A] bg-[#FFFCF6]"
+                  : "border-transparent text-[#6F7580] hover:text-[#29374A]"
               }`}
             >
               Disimpan ({savedEvents.length})
@@ -334,11 +334,11 @@ export default function ProfilePage() {
           {/* Tab 1: Event Diikuti (E-Tickets) */}
           {activeTab === "registered" && (
             <div className="p-6 flex flex-col gap-4">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <div className="flex items-center justify-between pb-2 border-b border-[#ECE5DA]">
+                <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
                   TIKET PENDAFTARAN RESMI
                 </span>
-                <span className="text-xs text-gray-500">Klik &quot;Lihat E-Ticket&quot; untuk menampilkan barcode QR</span>
+                <span className="text-xs text-[#6F7580]">Klik &quot;Lihat E-Ticket&quot; untuk menampilkan barcode QR</span>
               </div>
 
               {registeredEvents.map((ticket) => (
@@ -348,25 +348,25 @@ export default function ProfilePage() {
                   return (
                 <div
                   key={ticket.ticketId}
-                  className="p-4 sm:p-5 border border-gray-300 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50/40 hover:border-gray-400 transition"
+                  className="p-4 sm:p-5 border border-[#E4DCCF] rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#F7F4EE]/40 hover:border-[#B9B2A7] transition"
                 >
                   <div className="flex flex-col gap-1.5 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-800">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#E4DCCF] text-[#29374A]">
                         {ticket.category}
                       </span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        isClosed ? "bg-slate-100 text-slate-700" : "bg-emerald-100 text-emerald-800"
+                        isClosed ? "bg-[#EAE2D4] text-[#29374A]" : "bg-emerald-100 text-emerald-800"
                       }`}>
                         {isClosed ? "Event Selesai" : `Tiket Aktif #${ticket.ticketId}`}
                       </span>
                     </div>
 
-                    <h3 className="text-base font-bold text-gray-900 leading-snug">
+                    <h3 className="text-base font-bold text-[#29374A] leading-snug">
                       {ticket.eventTitle}
                     </h3>
 
-                    <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-gray-500 mt-1">
+                    <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-[#6F7580] mt-1">
                       <span className="flex items-center gap-1"><svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16" /></svg>{ticket.date}</span>
                       <span className="flex items-center gap-1"><svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l2.5 2.5" /></svg>{ticket.time}</span>
                       <span className="flex items-center gap-1"><svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2" /></svg>{ticket.location}</span>
@@ -378,14 +378,14 @@ export default function ProfilePage() {
                       <button
                         type="button"
                         onClick={() => setSelectedTicket(ticket)}
-                        className="flex-1 sm:flex-none px-4 py-2 bg-gray-900 text-white font-bold text-xs rounded-md hover:bg-gray-800 transition cursor-pointer text-center"
+                        className="flex-1 sm:flex-none px-4 py-2 bg-[#315E9E] text-white font-bold text-xs rounded-md hover:bg-[#244777] transition cursor-pointer text-center"
                       >
                         Lihat E-Ticket QR
                       </button>
                     )}
                     <Link
                       href={`/event/${ticket.eventId}`}
-                      className="flex-1 sm:flex-none px-4 py-2 border border-gray-300 bg-white text-gray-700 font-semibold text-xs rounded-md hover:bg-gray-50 transition text-center"
+                      className="flex-1 sm:flex-none px-4 py-2 border border-[#E4DCCF] bg-[#FFFCF6] text-[#29374A] font-semibold text-xs rounded-md hover:bg-[#F7F4EE] transition text-center"
                     >
                       Detail Event
                     </Link>
@@ -400,28 +400,28 @@ export default function ProfilePage() {
           {/* Tab 2: Event Disimpan (Wishlist) */}
           {activeTab === "saved" && (
             <div className="p-6 flex flex-col gap-4">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider pb-2 border-b border-gray-100">
+              <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider pb-2 border-b border-[#ECE5DA]">
                 EVENT YANG DISIMPAN KE WISHLIST
               </span>
 
               {savedEvents.map((evt) => (
                 <div
                   key={evt.id}
-                  className="p-4 border border-gray-300 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white hover:border-gray-400 transition"
+                  className="p-4 border border-[#E4DCCF] rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#FFFCF6] hover:border-[#B9B2A7] transition"
                 >
                   <div className="flex flex-col gap-1 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#F0E9DC] text-[#29374A] border border-[#E4DCCF]">
                         {evt.category}
                       </span>
                       <span className="text-xs font-bold text-emerald-700">
                         {evt.price === 0 ? "Gratis" : `Rp ${evt.price.toLocaleString("id-ID")}`}
                       </span>
                     </div>
-                    <h3 className="text-sm sm:text-base font-bold text-gray-900">
+                    <h3 className="text-sm sm:text-base font-bold text-[#29374A]">
                       {evt.title}
                     </h3>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[#6F7580]">
                       <span className="inline-flex items-center gap-1"><svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16" /></svg>{evt.date}</span> &bull; <span className="inline-flex items-center gap-1"><svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2" /></svg>{evt.location}</span>
                     </p>
                   </div>
@@ -430,7 +430,7 @@ export default function ProfilePage() {
                     <select
                       value={reminders[evt.id] || ""}
                       onChange={(event) => toggleReminder(evt, (event.target.value || null) as ReminderTrigger | null)}
-                      className="px-2 py-2 border border-gray-300 rounded-md text-xs text-gray-700"
+                      className="px-2 py-2 border border-[#E4DCCF] rounded-md text-xs text-[#29374A]"
                       aria-label={`Pilih trigger pengingat ${evt.title}`}
                     >
                       <option value="">Tanpa Pengingat</option>
@@ -440,14 +440,14 @@ export default function ProfilePage() {
                     </select>
                     <Link
                       href={`/event/${evt.id}`}
-                      className="px-4 py-2 bg-gray-900 text-white font-semibold text-xs rounded-md hover:bg-gray-800 transition text-center"
+                      className="px-4 py-2 bg-[#315E9E] text-white font-semibold text-xs rounded-md hover:bg-[#244777] transition text-center"
                     >
                       Lihat Detail &rarr;
                     </Link>
                     <button
                       type="button"
                       onClick={() => toggleWishlist(evt.id)}
-                      className="px-3 py-2 border border-gray-300 text-gray-700 font-semibold text-xs rounded-md hover:bg-gray-50 transition"
+                      className="px-3 py-2 border border-[#E4DCCF] text-[#29374A] font-semibold text-xs rounded-md hover:bg-[#F7F4EE] transition"
                     >
                       Hapus
                     </button>
@@ -459,36 +459,36 @@ export default function ProfilePage() {
         </div>
 
         {/* Right Column: Status & Informasi Mahasiswa */}
-        <aside className="w-full lg:w-80 bg-white border border-gray-300 rounded-xl p-6 shadow-xs flex flex-col gap-5 shrink-0">
-          <div className="border-b border-gray-200 pb-3">
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+        <aside className="w-full lg:w-80 bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 shadow-xs flex flex-col gap-5 shrink-0">
+          <div className="border-b border-[#E4DCCF] pb-3">
+            <h3 className="text-sm font-bold text-[#29374A] uppercase tracking-wider">
               Status Akademik Mahasiswa
             </h3>
           </div>
 
           <div className="flex flex-col gap-3 text-xs">
-            <div className="flex justify-between py-1 border-b border-gray-100">
-              <span className="text-gray-500">Status Kuliah:</span>
+            <div className="flex justify-between py-1 border-b border-[#ECE5DA]">
+              <span className="text-[#6F7580]">Status Kuliah:</span>
               <span className="font-bold text-emerald-600">Aktif Normal</span>
             </div>
-            <div className="flex justify-between py-1 border-b border-gray-100">
-              <span className="text-gray-500">Semester:</span>
-              <span className="font-semibold text-gray-800">Semester 7 (Ganjil)</span>
+            <div className="flex justify-between py-1 border-b border-[#ECE5DA]">
+              <span className="text-[#6F7580]">Semester:</span>
+              <span className="font-semibold text-[#29374A]">Semester 7 (Ganjil)</span>
             </div>
-            <div className="flex justify-between py-1 border-b border-gray-100">
-              <span className="text-gray-500">Tahun Akademik:</span>
-              <span className="font-semibold text-gray-800">2026 / 2027</span>
+            <div className="flex justify-between py-1 border-b border-[#ECE5DA]">
+              <span className="text-[#6F7580]">Tahun Akademik:</span>
+              <span className="font-semibold text-[#29374A]">2026 / 2027</span>
             </div>
-            <div className="flex justify-between py-1 border-b border-gray-100">
-              <span className="text-gray-500">Total Event Diikuti:</span>
-              <span className="font-bold text-gray-900">3 Kegiatan</span>
+            <div className="flex justify-between py-1 border-b border-[#ECE5DA]">
+              <span className="text-[#6F7580]">Total Event Diikuti:</span>
+              <span className="font-bold text-[#29374A]">3 Kegiatan</span>
             </div>
           </div>
 
           <div className="pt-2">
             <Link
               href="/event"
-              className="w-full py-2.5 bg-gray-900 text-white text-xs font-bold rounded-md hover:bg-gray-800 transition block text-center"
+              className="w-full py-2.5 bg-[#315E9E] text-white text-xs font-bold rounded-md hover:bg-[#244777] transition block text-center"
             >
               Cari Event Lainnya &rarr;
             </Link>
@@ -499,29 +499,29 @@ export default function ProfilePage() {
       {/* Modal E-Ticket QR Code */}
       {selectedTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white border border-gray-300 rounded-xl max-w-sm w-full p-6 shadow-2xl flex flex-col items-center gap-5 text-center animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between w-full border-b border-gray-200 pb-3">
-              <span className="text-xs font-bold text-gray-400 uppercase">E-TICKET RESMI</span>
+          <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl max-w-sm w-full p-6 shadow-2xl flex flex-col items-center gap-5 text-center animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between w-full border-b border-[#E4DCCF] pb-3">
+              <span className="text-xs font-bold text-[#92959C] uppercase">E-TICKET RESMI</span>
               <button
                 type="button"
                 onClick={() => setSelectedTicket(null)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                className="text-[#92959C] hover:text-[#6F7580] cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             <div className="flex flex-col gap-1">
-              <h3 className="text-base font-bold text-gray-900">
+              <h3 className="text-base font-bold text-[#29374A]">
                 {selectedTicket.eventTitle}
               </h3>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-[#6F7580]">
                 {selectedTicket.date} &bull; {selectedTicket.time}
               </span>
             </div>
 
             {/* Mock QR Image */}
-            <div className="p-3 bg-white border border-gray-300 rounded-xl shadow-xs">
+            <div className="p-3 bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl shadow-xs">
               <div className="relative w-44 h-44">
                 <Image
                   src={selectedTicket.qrCodeMock || "https://api.qrserver.com/v1/create-qr-code/?size=176x176&data=EVENTHUB-TIKET"}
@@ -532,18 +532,18 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-1 w-full p-3 bg-gray-50 rounded-lg border border-gray-200 text-xs">
+            <div className="flex flex-col gap-1 w-full p-3 bg-[#F7F4EE] rounded-lg border border-[#E4DCCF] text-xs">
               <div className="flex justify-between">
-                <span className="text-gray-500">Nomor Tiket:</span>
-                <span className="font-mono font-bold text-gray-900">#{selectedTicket.ticketId}</span>
+                <span className="text-[#6F7580]">Nomor Tiket:</span>
+                <span className="font-mono font-bold text-[#29374A]">#{selectedTicket.ticketId}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Peserta:</span>
-                <span className="font-semibold text-gray-800">{currentUser.name}</span>
+                <span className="text-[#6F7580]">Peserta:</span>
+                <span className="font-semibold text-[#29374A]">{currentUser.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Lokasi:</span>
-                <span className="text-gray-700 truncate max-w-[170px]">{selectedTicket.location}</span>
+                <span className="text-[#6F7580]">Lokasi:</span>
+                <span className="text-[#29374A] truncate max-w-[170px]">{selectedTicket.location}</span>
               </div>
             </div>
 
@@ -553,7 +553,7 @@ export default function ProfilePage() {
                 alert(`Mengunduh E-Ticket #${selectedTicket.ticketId}... Tiket siap dicetak atau ditunjukkan di HP.`);
                 setSelectedTicket(null);
               }}
-              className="w-full py-2.5 bg-gray-900 text-white font-bold text-xs rounded-md hover:bg-gray-800 transition cursor-pointer"
+              className="w-full py-2.5 bg-[#315E9E] text-white font-bold text-xs rounded-md hover:bg-[#244777] transition cursor-pointer"
             >
               Unduh / Cetak Tiket (PDF)
             </button>

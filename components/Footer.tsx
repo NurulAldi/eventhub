@@ -12,18 +12,18 @@ export default function Footer() {
   }
 
   return (
-    <footer className="bg-white border-t border-indigo-50 mt-auto">
+    <footer className="bg-[#FFFCF6] border-t border-[#ECE5DA] mt-auto">
       <div className="max-w-7xl mx-auto px-6 lg:px-16 py-12 flex flex-col gap-8">
         <div className="flex flex-col md:flex-row justify-between items-start gap-10">
           {/* Brand Info */}
           <div className="max-w-sm flex flex-col gap-3">
             <Link href="/" className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold text-sm">
+              <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#244777] via-[#315E9E] to-[#E98268] text-white flex items-center justify-center font-bold text-sm">
                 E
               </span>
-              <span className="font-bold text-lg text-slate-900">EventHub Kampus</span>
+              <span className="font-bold text-lg text-[#29374A]">EventHub Kampus</span>
             </Link>
-            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#6F7580] leading-relaxed">
               Platform agregasi event kampus terlengkap untuk mempermudah mahasiswa Indonesia mencari info lomba, beasiswa, seminar, dan workshop.
             </p>
           </div>
@@ -32,23 +32,23 @@ export default function Footer() {
           <div className="flex flex-wrap gap-12 sm:gap-16">
             {/* Tautan Utama */}
             <div className="flex flex-col gap-3">
-              <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <span className="text-xs font-bold text-[#29374A] uppercase tracking-wider">
                 Tautan Utama
               </span>
-              <nav className="flex flex-col gap-2 text-xs sm:text-sm text-slate-500">
-                <Link href="/" className="hover:text-indigo-600 transition">
+              <nav className="flex flex-col gap-2 text-xs sm:text-sm text-[#6F7580]">
+                <Link href="/" className="hover:text-[#315E9E] transition">
                   Beranda
                 </Link>
-                <Link href="/event" className="hover:text-indigo-600 transition">
+                <Link href="/event" className="hover:text-[#315E9E] transition">
                   Daftar Event
                 </Link>
-                <Link href="/kalender" className="hover:text-indigo-600 transition">
+                <Link href="/kalender" className="hover:text-[#315E9E] transition">
                   Kalender Event
                 </Link>
-                <Link href="/profil" className="hover:text-indigo-600 transition">
+                <Link href="/profil" className="hover:text-[#315E9E] transition">
                   Profil Saya
                 </Link>
-                <Link href="/dashboard" className="hover:text-indigo-600 transition">
+                <Link href="/dashboard" className="hover:text-[#315E9E] transition">
                   Dashboard Admin
                 </Link>
               </nav>
@@ -56,20 +56,20 @@ export default function Footer() {
 
             {/* Kategori Event */}
             <div className="flex flex-col gap-3">
-              <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <span className="text-xs font-bold text-[#29374A] uppercase tracking-wider">
                 Kategori Event
               </span>
-              <div className="flex flex-col gap-2 text-xs sm:text-sm text-slate-500">
-                <Link href="/event?category=lomba" className="hover:text-indigo-600 transition">
+              <div className="flex flex-col gap-2 text-xs sm:text-sm text-[#6F7580]">
+                <Link href="/event?category=lomba" className="hover:text-[#315E9E] transition">
                   Lomba Akademik
                 </Link>
-                <Link href="/event?category=seminar" className="hover:text-indigo-600 transition">
+                <Link href="/event?category=seminar" className="hover:text-[#315E9E] transition">
                   Seminar & Webinar
                 </Link>
-                <Link href="/event?category=workshop" className="hover:text-indigo-600 transition">
+                <Link href="/event?category=workshop" className="hover:text-[#315E9E] transition">
                   Workshop & Bootcamp
                 </Link>
-                <Link href="/event?category=beasiswa" className="hover:text-indigo-600 transition">
+                <Link href="/event?category=beasiswa" className="hover:text-[#315E9E] transition">
                   Beasiswa Mahasiswa
                 </Link>
               </div>
@@ -77,17 +77,17 @@ export default function Footer() {
 
             {/* Akun & Bantuan */}
             <div className="flex flex-col gap-3">
-              <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <span className="text-xs font-bold text-[#29374A] uppercase tracking-wider">
                 Akun & Bantuan
               </span>
-              <div className="flex flex-col gap-2 text-xs sm:text-sm text-slate-500">
-                <Link href="/login" className="hover:text-indigo-600 transition">
+              <div className="flex flex-col gap-2 text-xs sm:text-sm text-[#6F7580]">
+                <Link href="/login" className="hover:text-[#315E9E] transition">
                   Masuk Akun
                 </Link>
-                <Link href="/register" className="hover:text-indigo-600 transition">
+                <Link href="/register" className="hover:text-[#315E9E] transition">
                   Pendaftaran Baru
                 </Link>
-                <a href="mailto:support@eventhub.ac.id" className="hover:text-indigo-600 transition">
+                <a href="mailto:support@eventhub.ac.id" className="hover:text-[#315E9E] transition">
                   Hubungi Bantuan
                 </a>
               </div>
@@ -96,7 +96,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Copyright Bar */}
-        <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+        <div className="pt-6 border-t border-[#ECE5DA] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#92959C]">
           <span>&copy; 2026 EventHub Kampus. Semua Hak Dilindungi.</span>
           <div className="flex items-center gap-4">
             <a href="#" className="hover:underline">Ketentuan Layanan</a>

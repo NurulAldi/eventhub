@@ -11,10 +11,10 @@ interface EventCardProps {
 export default function EventCard({ event, showPrice = true }: EventCardProps) {
   const popularityLabel = getPopularityLabel(event);
   const categoryBadgeClass = {
-    Seminar: "bg-blue-100 text-blue-700",
-    Lomba: "bg-orange-100 text-orange-700",
-    Beasiswa: "bg-emerald-100 text-emerald-700",
-  }[event.category] ?? "bg-indigo-100 text-indigo-700";
+    Seminar: "bg-[#DBE8F8] text-[#244777]",
+    Lomba: "bg-[#FBE2D8] text-[#9A4F3A]",
+    Beasiswa: "bg-[#DDF2E8] text-[#246746]",
+  }[event.category] ?? "bg-[#E5ECF5] text-[#315E9E]";
   // Format price display
   const priceDisplay =
     event.price === 0
@@ -30,10 +30,10 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
   });
 
   return (
-    <div className="group bg-white border border-indigo-50/50 rounded-xl shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md hover:shadow-indigo-100 hover:-translate-y-1 transition-all duration-300">
+    <div className="group bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-lg hover:shadow-[#244777]/10 hover:-translate-y-1 transition-all duration-300">
       <Link href={`/event/${event.id}`} className="block flex-1 flex flex-col">
         {/* Poster Image with next/image */}
-        <div className="relative w-full h-44 bg-slate-100 overflow-hidden">
+        <div className="relative w-full h-44 bg-[#EAE2D4] overflow-hidden">
           <Image
             src={event.image}
             alt={event.title}
@@ -42,7 +42,7 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
             className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
           {(event.status === "completed" || event.status === "cancelled") && (
-            <span className="absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-md bg-slate-700 text-white shadow-xs">
+            <span className="absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-md bg-[#6F7580] text-white shadow-xs">
               Ditutup
             </span>
           )}
@@ -50,8 +50,8 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
             <span
               className={`absolute top-3 right-3 text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xs ${
                 event.price === 0
-                  ? "bg-emerald-600 text-white"
-                  : "bg-slate-900 text-white"
+                  ? "bg-[#2F8A62] text-white"
+                  : "bg-[#244777] text-white"
               }`}
             >
               {priceDisplay}
@@ -66,34 +66,34 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
               {event.category}
             </span>
             {popularityLabel && (
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#F7E5B8] text-[#8A6218]">
                 {popularityLabel}
               </span>
             )}
           </div>
 
-          <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition line-clamp-2 leading-snug tracking-tight">
+          <h3 className="text-base font-bold text-[#29374A] group-hover:text-[#315E9E] transition line-clamp-2 leading-snug tracking-tight">
             {event.title}
           </h3>
 
-          <p className="text-xs text-slate-500 line-clamp-2 mt-auto">
+          <p className="text-xs text-[#6F7580] line-clamp-2 mt-auto">
             {event.description}
           </p>
         </div>
       </Link>
 
       {/* Card Footer */}
-      <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between text-xs bg-slate-50/50">
+      <div className="px-4 py-3 border-t border-[#ECE5DA] flex items-center justify-between text-xs bg-[#F7F4EE]/60">
         <div className="flex flex-col">
-          <span className="font-medium text-slate-700">{formattedDate}</span>
-          <span className="text-slate-400 truncate max-w-[180px] sm:max-w-[200px]">
+          <span className="font-medium text-[#29374A]">{formattedDate}</span>
+          <span className="text-[#92959C] truncate max-w-[180px] sm:max-w-[200px]">
             {event.organizer}
           </span>
         </div>
 
         <Link
           href={`/event/${event.id}`}
-          className="text-xs font-semibold text-slate-900 group-hover:text-indigo-600 flex items-center gap-1 hover:underline transition-colors"
+          className="text-xs font-semibold text-[#29374A] group-hover:text-[#315E9E] flex items-center gap-1 hover:underline transition-colors"
           aria-label={`Detail event ${event.title}`}
         >
           <span>Detail</span>

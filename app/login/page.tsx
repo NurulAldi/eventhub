@@ -39,19 +39,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center py-12 px-6 bg-gray-50">
-      <div className="w-full max-w-[480px] p-8 sm:p-10 bg-white border border-gray-300 rounded-xl shadow-xs flex flex-col gap-6">
+    <div className="flex-1 flex flex-col items-center justify-center py-12 px-6 bg-[#F7F4EE]">
+      <div className="w-full max-w-[480px] p-8 sm:p-10 bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl shadow-xs flex flex-col gap-6">
         {/* Header - Matching login.html */}
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-2xl font-extrabold text-[#29374A] tracking-tight">
             Masuk Akun
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500">
+          <p className="text-xs sm:text-sm text-[#6F7580]">
             Silakan masuk menggunakan email kampus terdaftarmu.
           </p>
         </div>
 
-        <div className="h-px bg-gray-200" />
+        <div className="h-px bg-[#E4DCCF]" />
 
         {errorMsg && (
           <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-md">
@@ -64,7 +64,7 @@ export default function LoginPage() {
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="email"
-              className="text-xs font-bold text-gray-700 uppercase tracking-wide"
+              className="text-xs font-bold text-[#29374A] uppercase tracking-wide"
             >
               Email Mahasiswa
             </label>
@@ -76,10 +76,10 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="contoh@mahasiswa.ui.ac.id"
                 required
-                className="w-full px-3.5 py-3 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900 transition"
+                className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition"
               />
             </div>
-            <span className="text-[11px] text-gray-400">
+            <span className="text-[11px] text-[#92959C]">
               Tips: Gunakan email dengan kata <code>admin</code> untuk simulasi akun Admin.
             </span>
           </div>
@@ -88,14 +88,14 @@ export default function LoginPage() {
             <div className="flex items-center justify-between">
               <label
                 htmlFor="password"
-                className="text-xs font-bold text-gray-700 uppercase tracking-wide"
+                className="text-xs font-bold text-[#29374A] uppercase tracking-wide"
               >
                 Password
               </label>
               <button
                 type="button"
                 onClick={() => alert("Simulasi: Link reset password telah dikirim ke email kampus Anda.")}
-                className="text-xs text-gray-500 hover:text-gray-900 cursor-pointer"
+                className="text-xs text-[#6F7580] hover:text-[#29374A] cursor-pointer"
               >
                 Lupa Password?
               </button>
@@ -107,22 +107,22 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••••••"
               required
-              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900 transition"
+              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition"
             />
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="mt-2 w-full py-3 bg-gray-900 text-white font-bold text-sm rounded-md hover:bg-gray-800 transition cursor-pointer disabled:opacity-50 shadow-xs"
+            className="mt-2 w-full py-3 bg-[#315E9E] text-white font-bold text-sm rounded-md hover:bg-[#244777] transition cursor-pointer disabled:opacity-50 shadow-xs"
           >
             {isLoading ? "Memverifikasi..." : "Masuk Sekarang"}
           </button>
         </form>
 
         {/* Quick Demo Shortcuts */}
-        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg flex flex-col gap-2 text-xs">
-          <span className="font-semibold text-gray-500">Pilihan Cepat Masuk (Simulasi):</span>
+        <div className="p-3 bg-[#F7F4EE] border border-[#E4DCCF] rounded-lg flex flex-col gap-2 text-xs">
+          <span className="font-semibold text-[#6F7580]">Pilihan Cepat Masuk (Simulasi):</span>
           <div className="flex gap-2">
             <button
               type="button"
@@ -130,7 +130,7 @@ export default function LoginPage() {
                 loginAsUser();
                 router.push("/profil");
               }}
-              className="flex-1 py-1.5 bg-white border border-gray-300 text-gray-800 font-medium rounded hover:bg-gray-100 transition cursor-pointer text-center"
+              className="flex-1 py-1.5 bg-[#FFFCF6] border border-[#E4DCCF] text-[#29374A] font-medium rounded hover:bg-[#F0E9DC] transition cursor-pointer text-center"
             >
               Mahasiswa &rarr;
             </button>
@@ -140,7 +140,7 @@ export default function LoginPage() {
                 loginAsAdmin();
                 router.push("/dashboard");
               }}
-              className="flex-1 py-1.5 bg-white border border-gray-300 text-gray-900 font-bold rounded hover:bg-gray-100 transition cursor-pointer text-center"
+              className="flex-1 py-1.5 bg-[#FFFCF6] border border-[#E4DCCF] text-[#29374A] font-bold rounded hover:bg-[#F0E9DC] transition cursor-pointer text-center"
             >
               Admin &rarr;
             </button>
@@ -148,9 +148,9 @@ export default function LoginPage() {
         </div>
 
         {/* Footer Link */}
-        <div className="text-center text-xs sm:text-sm text-gray-600 flex items-center justify-center gap-1.5 pt-2 border-t border-gray-100">
+        <div className="text-center text-xs sm:text-sm text-[#6F7580] flex items-center justify-center gap-1.5 pt-2 border-t border-[#ECE5DA]">
           <span>Belum punya akun?</span>
-          <Link href="/register" className="font-bold text-gray-900 hover:underline">
+          <Link href="/register" className="font-bold text-[#29374A] hover:underline">
             Daftar Sekarang
           </Link>
         </div>

@@ -59,19 +59,19 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center py-12 px-6 bg-gray-50">
-      <div className="w-full max-w-[480px] p-8 sm:p-10 bg-white border border-gray-300 rounded-xl shadow-xs flex flex-col gap-6">
+    <div className="flex-1 flex flex-col items-center justify-center py-12 px-6 bg-[#F7F4EE]">
+      <div className="w-full max-w-[480px] p-8 sm:p-10 bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl shadow-xs flex flex-col gap-6">
         {/* Header - Matching register.html */}
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-2xl font-extrabold text-[#29374A] tracking-tight">
             Buat Akun Baru
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500">
+          <p className="text-xs sm:text-sm text-[#6F7580]">
             Daftar untuk mulai menemukan event kampus terbaik.
           </p>
         </div>
 
-        <div className="h-px bg-gray-200" />
+        <div className="h-px bg-[#E4DCCF]" />
 
         {errorMsg && (
           <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-md">
@@ -85,7 +85,7 @@ export default function RegisterPage() {
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="name"
-              className="text-xs font-bold text-gray-700 uppercase tracking-wide"
+              className="text-xs font-bold text-[#29374A] uppercase tracking-wide"
             >
               Nama Lengkap
             </label>
@@ -96,7 +96,7 @@ export default function RegisterPage() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Masukkan nama lengkap Anda"
               required
-              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900 transition"
+              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition"
             />
           </div>
 
@@ -104,7 +104,7 @@ export default function RegisterPage() {
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="email"
-              className="text-xs font-bold text-gray-700 uppercase tracking-wide"
+              className="text-xs font-bold text-[#29374A] uppercase tracking-wide"
             >
               Email Mahasiswa
             </label>
@@ -115,7 +115,7 @@ export default function RegisterPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="contoh@mahasiswa.ui.ac.id"
               required
-              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900 transition"
+              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition"
             />
           </div>
 
@@ -123,7 +123,7 @@ export default function RegisterPage() {
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="university"
-              className="text-xs font-bold text-gray-700 uppercase tracking-wide"
+              className="text-xs font-bold text-[#29374A] uppercase tracking-wide"
             >
               Universitas / Perguruan Tinggi
             </label>
@@ -131,7 +131,7 @@ export default function RegisterPage() {
               id="university"
               value={university}
               onChange={(e) => setUniversity(e.target.value)}
-              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900 transition cursor-pointer text-gray-800"
+              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition cursor-pointer text-[#29374A]"
             >
               {universities.map((univ) => (
                 <option key={univ} value={univ}>
@@ -145,7 +145,7 @@ export default function RegisterPage() {
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="password"
-              className="text-xs font-bold text-gray-700 uppercase tracking-wide"
+              className="text-xs font-bold text-[#29374A] uppercase tracking-wide"
             >
               Password
             </label>
@@ -156,7 +156,7 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Minimal 6 karakter"
               required
-              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900 transition"
+              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition"
             />
           </div>
 
@@ -164,7 +164,7 @@ export default function RegisterPage() {
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="confirmPassword"
-              className="text-xs font-bold text-gray-700 uppercase tracking-wide"
+              className="text-xs font-bold text-[#29374A] uppercase tracking-wide"
             >
               Konfirmasi Password
             </label>
@@ -175,23 +175,23 @@ export default function RegisterPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Ulangi kata sandi"
               required
-              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-md focus:bg-white focus:outline-none focus:border-gray-900 transition"
+              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition"
             />
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="mt-2 w-full py-3 bg-gray-900 text-white font-bold text-sm rounded-md hover:bg-gray-800 transition cursor-pointer disabled:opacity-50 shadow-xs"
+            className="mt-2 w-full py-3 bg-[#315E9E] text-white font-bold text-sm rounded-md hover:bg-[#244777] transition cursor-pointer disabled:opacity-50 shadow-xs"
           >
             {isLoading ? "Mendaftarkan Akun..." : "Daftar Sekarang"}
           </button>
         </form>
 
         {/* Footer Link */}
-        <div className="text-center text-xs sm:text-sm text-gray-600 flex items-center justify-center gap-1.5 pt-2 border-t border-gray-100">
+        <div className="text-center text-xs sm:text-sm text-[#6F7580] flex items-center justify-center gap-1.5 pt-2 border-t border-[#ECE5DA]">
           <span>Sudah memiliki akun?</span>
-          <Link href="/login" className="font-bold text-gray-900 hover:underline">
+          <Link href="/login" className="font-bold text-[#29374A] hover:underline">
             Masuk Sekarang
           </Link>
         </div>

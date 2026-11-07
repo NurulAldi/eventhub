@@ -65,12 +65,12 @@ export default function NotificationsPage() {
     return (
       <main className="flex-1 max-w-4xl w-full mx-auto px-6 lg:px-16 py-10">
         <div className="animate-pulse">
-          <div className="h-8 w-40 rounded bg-gray-200" />
-          <div className="mt-2 h-4 w-80 max-w-full rounded bg-gray-100" />
+          <div className="h-8 w-40 rounded bg-[#E4DCCF]" />
+          <div className="mt-2 h-4 w-80 max-w-full rounded bg-[#F0E9DC]" />
         </div>
         <div className="mt-8 flex flex-col gap-3 animate-pulse">
           {[1, 2, 3].map((item) => (
-            <div key={item} className="h-28 rounded-xl border border-gray-200 bg-gray-100" />
+            <div key={item} className="h-28 rounded-xl border border-[#E4DCCF] bg-[#F0E9DC]" />
           ))}
         </div>
       </main>
@@ -81,24 +81,24 @@ export default function NotificationsPage() {
     <main className="flex-1 max-w-4xl w-full mx-auto px-6 lg:px-16 py-10">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Notifikasi</h1>
-          <p className="mt-1 text-sm text-gray-500">Informasi penting berdasarkan aktivitas dan pengingat Anda.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#29374A]">Notifikasi</h1>
+          <p className="mt-1 text-sm text-[#6F7580]">Informasi penting berdasarkan aktivitas dan pengingat Anda.</p>
         </div>
         <button type="button" onClick={() => { markAllNotificationsRead(role); setNotifications(readNotifications().filter((item) => item.role === role)); }} className="text-xs font-semibold underline">
           Tandai semua dibaca
         </button>
       </div>
       <div className="flex flex-col gap-3">
-        {notifications.length === 0 && <div className="p-8 text-center bg-white border border-gray-200 rounded-xl text-sm text-gray-500">Belum ada notifikasi.</div>}
+        {notifications.length === 0 && <div className="p-8 text-center bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl text-sm text-[#6F7580]">Belum ada notifikasi.</div>}
         {notifications.map((notification) => (
-          <div key={notification.id} className={`p-4 rounded-xl border ${notification.read ? "bg-white border-gray-200" : "bg-blue-50 border-blue-200"}`}>
+          <div key={notification.id} className={`p-4 rounded-xl border ${notification.read ? "bg-[#FFFCF6] border-[#E4DCCF]" : "bg-blue-50 border-blue-200"}`}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-bold text-sm text-gray-900">{notification.title}</h2>
-                <time dateTime={notification.createdAt} className="mt-1 block text-[11px] text-gray-400">
+                <h2 className="font-bold text-sm text-[#29374A]">{notification.title}</h2>
+                <time dateTime={notification.createdAt} className="mt-1 block text-[11px] text-[#92959C]">
                   {formatNotificationTime(notification.createdAt, currentTime)}
                 </time>
-                <p className="mt-1 text-sm text-gray-600">{notification.message}</p>
+                <p className="mt-1 text-sm text-[#6F7580]">{notification.message}</p>
                 {notification.href && <Link href={notification.href} onClick={() => markNotificationRead(notification.id)} className="inline-block mt-2 text-xs font-semibold underline">Lihat detail</Link>}
               </div>
               {!notification.read && <button type="button" onClick={() => { markNotificationRead(notification.id); setNotifications(readNotifications().filter((item) => item.role === role)); }} className="text-[11px] font-semibold text-blue-700">Tandai dibaca</button>}
