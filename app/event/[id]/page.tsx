@@ -125,7 +125,10 @@ function EventDetailContent({ params }: Props) {
     return (
       <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-20 flex flex-col items-center justify-center text-center gap-4">
         <div className="w-20 h-20 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-3xl">
-          🔍
+          <svg className="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path strokeLinecap="round" d="m20 20-4-4" />
+          </svg>
         </div>
         <h1 className="text-2xl font-bold text-gray-900">Event Tidak Ditemukan</h1>
         <p className="text-sm text-gray-500 max-w-md">
@@ -358,7 +361,7 @@ function EventDetailContent({ params }: Props) {
               {/* Kategori */}
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-sm shrink-0">
-                  🏷️
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 5h8l8 7-8 7H4V5Z" /><circle cx="8" cy="12" r="1" /></svg>
                 </div>
                 <div>
                   <span className="block text-[11px] text-gray-400">Kategori</span>
@@ -369,7 +372,7 @@ function EventDetailContent({ params }: Props) {
               {/* Tanggal & Waktu */}
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-sm shrink-0">
-                  📅
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16" /></svg>
                 </div>
                 <div>
                   <span className="block text-[11px] text-gray-400">Tanggal & Waktu</span>
@@ -381,7 +384,7 @@ function EventDetailContent({ params }: Props) {
               {/* Lokasi */}
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-sm shrink-0">
-                  📍
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2" /></svg>
                 </div>
                 <div>
                   <span className="block text-[11px] text-gray-400">Lokasi Pelaksanaan</span>
@@ -392,7 +395,7 @@ function EventDetailContent({ params }: Props) {
               {/* Biaya */}
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-sm shrink-0">
-                  🎟️
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 7a2 2 0 0 0 0 4v2a2 2 0 0 0 0 4h16v-4a2 2 0 0 0 0-4V7H4Z" /><path d="M12 7v2m0 3v2m0 3v1" /></svg>
                 </div>
                 <div>
                   <span className="block text-[11px] text-gray-400">Biaya Registrasi</span>
@@ -403,7 +406,7 @@ function EventDetailContent({ params }: Props) {
               {/* Deadline Pendaftaran */}
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-sm shrink-0">
-                  ⏳
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M6 4h12M6 20h12M8 4c0 4 4 4 4 8s-4 4-4 8m8-16c0 4-4 4-4 8s4 4 4 8" /></svg>
                 </div>
                 <div>
                   <span className="block text-[11px] text-gray-400">Deadline Pendaftaran</span>
@@ -414,7 +417,7 @@ function EventDetailContent({ params }: Props) {
               {/* Kuota */}
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-sm shrink-0">
-                  👥
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3" /><path d="M3 19a6 6 0 0 1 12 0m3-8a3 3 0 0 0 0-6m3 14a6 6 0 0 0-3-5.2" /></svg>
                 </div>
                 <div>
                   <span className="block text-[11px] text-gray-400">Kuota Peserta</span>
@@ -536,8 +539,8 @@ function EventDetailContent({ params }: Props) {
                 <div className="flex flex-col gap-3 text-xs sm:text-sm">
                   <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg flex flex-col gap-1">
                     <span className="font-bold text-gray-900">{event.title}</span>
-                    <span className="text-gray-500 text-xs">📅 {formattedDate}</span>
-                    <span className="text-gray-500 text-xs">📍 {event.location}</span>
+                    <span className="text-gray-500 text-xs flex items-center gap-1"><svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16" /></svg>{formattedDate}</span>
+                    <span className="text-gray-500 text-xs flex items-center gap-1"><svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2" /></svg>{event.location}</span>
                   </div>
 
                   <div className="flex justify-between py-1 border-b border-gray-100 text-xs">

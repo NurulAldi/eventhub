@@ -328,11 +328,11 @@ export default function CalendarPage() {
 
                   <div className="flex flex-col gap-1 text-xs text-gray-500 pt-2 border-t border-gray-200">
                     <div className="flex items-center gap-1.5">
-                      <span>⏰</span>
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l2.5 2.5" /></svg>
                       <span>{evt.time || "09:00 - 13:00 WIB"}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span>📍</span>
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2" /></svg>
                       <span className="truncate">{evt.location}</span>
                     </div>
                   </div>
@@ -348,7 +348,7 @@ export default function CalendarPage() {
             </div>
           ) : (
             <div className="p-8 text-center flex flex-col items-center gap-3 bg-gray-50 border border-dashed border-gray-300 rounded-lg">
-              <span className="text-2xl">🗓️</span>
+              <svg className="h-8 w-8 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16" /></svg>
               <p className="text-xs text-gray-500">
                 Tidak ada event yang terjadwal pada tanggal ini.
               </p>

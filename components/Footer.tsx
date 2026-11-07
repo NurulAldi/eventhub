@@ -12,7 +12,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="bg-white border-t border-slate-100 mt-auto">
+    <footer className="bg-white border-t border-indigo-50 mt-auto">
       <div className="max-w-7xl mx-auto px-6 lg:px-16 py-12 flex flex-col gap-8">
         <div className="flex flex-col md:flex-row justify-between items-start gap-10">
           {/* Brand Info */}

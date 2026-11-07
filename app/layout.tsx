@@ -31,13 +31,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="id"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
+      <body className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50/40 via-white to-blue-50/30 text-slate-800">
         <AuthProvider>
           <NotificationBootstrap />
           <Suspense fallback={<div className="h-20 bg-white border-b border-slate-100" />}>
             <Navbar />
           </Suspense>
-          <main className="flex-1 flex flex-col bg-slate-50">{children}</main>
+          <main className="flex-1 flex flex-col bg-gradient-to-b from-indigo-50/50 via-white to-slate-50">
+            {children}
+          </main>
           <Suspense fallback={null}>
             <Footer />
           </Suspense>

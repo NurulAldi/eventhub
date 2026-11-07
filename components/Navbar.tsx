@@ -64,7 +64,7 @@ export default function Navbar() {
 
   if (isDashboard) {
     return (
-      <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 flex items-center justify-between sticky top-0 z-50">
+      <header className="h-16 bg-white/70 backdrop-blur-md border-b border-indigo-100 px-6 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
@@ -140,7 +140,7 @@ export default function Navbar() {
   }
 
   return (
-    <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 lg:px-16 flex items-center justify-between sticky top-0 z-50">
+    <header className="h-20 bg-white/70 backdrop-blur-md border-b border-indigo-100 px-6 lg:px-16 flex items-center justify-between sticky top-0 z-50">
       {/* Brand */}
       <div className="flex items-center gap-8">
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
@@ -160,7 +160,7 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               className={`transition hover:text-indigo-600 ${
-                isActive ? "text-indigo-600 font-medium" : "text-slate-600"
+                isActive ? "text-indigo-600 font-semibold" : "text-slate-600"
               }`}
             >
               {link.label}
@@ -171,7 +171,7 @@ export default function Navbar() {
           <Link
             href="/profil"
             className={`transition hover:text-indigo-600 ${
-              pathname === "/profil" ? "text-indigo-600 font-medium" : "text-slate-600"
+              pathname === "/profil" ? "text-indigo-600 font-semibold" : "text-slate-600"
             }`}
           >
             Profil
@@ -316,7 +316,7 @@ export default function Navbar() {
                 <Link
                   href="/profil"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`py-1 ${pathname === "/profil" ? "text-indigo-600 font-medium" : "text-slate-600"}`}
+                  className={`py-1 ${pathname === "/profil" ? "text-indigo-600 font-semibold" : "text-slate-600"}`}
                 >
                   Profil Saya
                 </Link>

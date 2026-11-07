@@ -341,7 +341,10 @@ function EventListContent() {
             </div>
           ) : (
             <div className="bg-white border border-gray-200 rounded-xl p-12 text-center flex flex-col items-center gap-3">
-              <span className="text-4xl">🔍</span>
+              <svg className="h-10 w-10 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path strokeLinecap="round" d="m20 20-4-4" />
+              </svg>
               <h3 className="text-base font-bold text-gray-900">Event Tidak Ditemukan</h3>
               <p className="text-xs text-gray-500 max-w-sm">
                 Tidak ada event yang cocok dengan kriteria filter saat ini. Coba gunakan kata kunci lain atau reset filter.

@@ -30,7 +30,7 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
   });
 
   return (
-    <div className="group bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+    <div className="group bg-white border border-indigo-50/50 rounded-xl shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md hover:shadow-indigo-100 hover:-translate-y-1 transition-all duration-300">
       <Link href={`/event/${event.id}`} className="block flex-1 flex flex-col">
         {/* Poster Image with next/image */}
         <div className="relative w-full h-44 bg-slate-100 overflow-hidden">

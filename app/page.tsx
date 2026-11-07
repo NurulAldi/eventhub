@@ -9,6 +9,23 @@ import { Event } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { getPopularityLabel, getRegistrationPercentage } from "@/lib/event-popularity";
 
+function CategoryIcon({ name, className = "h-4 w-4" }: { name: string; className?: string }) {
+  const paths: Record<string, string> = {
+    academic: "M12 3 3 7l9 4 7-3.11V14m-7-3L5 8.67V14l7 4 7-4V8.89M19 14v4",
+    workshop: "M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 0 5.4-5.4L15 12l-3-3 2.7-2.7Z",
+    competition: "m12 3 1.8 5.3H19l-4.2 3.1 1.6 5.2-4.4-3.2-4.4 3.2 1.6-5.2L5 8.3h5.2L12 3Z",
+    scholarship: "M5 4h14v16H5zM8 8h8M8 12h8M8 16h5",
+    music: "M9 18V5l10-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3Zm10-2a3 3 0 1 1-3-3 3 3 0 0 1 3 3Z",
+    sports: "M12 4v16M4 12h16M7 7l10 10M17 7 7 17",
+  };
+
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={paths[name] ?? paths.academic} />
+    </svg>
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -89,19 +106,19 @@ export default function HomePage() {
   };
 
   const categories = [
-    { name: "Seminar", icon: "🎓", count: getCategoryCount("Seminar") },
-    { name: "Workshop", icon: "💻", count: getCategoryCount("Workshop") },
-    { name: "Lomba", icon: "🏆", count: getCategoryCount("Lomba") },
-    { name: "Beasiswa", icon: "📚", count: getCategoryCount("Beasiswa") },
-    { name: "Konser & Musik", icon: "🎵", count: getCategoryCount("Konser & Musik") },
-    { name: "Olahraga", icon: "⚽", count: getCategoryCount("Olahraga") },
+    { name: "Seminar", icon: "academic", count: getCategoryCount("Seminar") },
+    { name: "Workshop", icon: "workshop", count: getCategoryCount("Workshop") },
+    { name: "Lomba", icon: "competition", count: getCategoryCount("Lomba") },
+    { name: "Beasiswa", icon: "scholarship", count: getCategoryCount("Beasiswa") },
+    { name: "Konser & Musik", icon: "music", count: getCategoryCount("Konser & Musik") },
+    { name: "Olahraga", icon: "sports", count: getCategoryCount("Olahraga") },
   ];
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50">
+    <div className="flex-1 flex flex-col bg-gradient-to-b from-indigo-50/50 via-white to-slate-50">
       {/* Hero Section - Matching beranda.html */}
-      <section className="bg-gradient-to-br from-slate-50 via-white to-indigo-50 border-b border-slate-100 py-16 sm:py-20 px-6">
-        <div className="max-w-4xl mx-auto flex flex-col items-center gap-6 text-center">
+      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-blue-50 border-b border-indigo-100 py-16 sm:py-20 px-6 before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.16),transparent_38%)] before:pointer-events-none">
+        <div className="relative max-w-4xl mx-auto flex flex-col items-center gap-6 text-center">
           <div className="max-w-2xl flex flex-col gap-3">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
               Temukan <span className="text-indigo-600">Event Kampus</span> Terbaikmu
@@ -153,7 +170,7 @@ export default function HomePage() {
                         : "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
                 }`}
               >
-                {cat.icon} {cat.name}
+                <CategoryIcon name={cat.icon} className="mr-1 inline-block h-3.5 w-3.5 align-[-2px]" /> {cat.name}
               </Link>
             ))}
           </div>
@@ -263,7 +280,7 @@ export default function HomePage() {
                 href={`/event?category=${encodeURIComponent(cat.name)}`}
                 className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition text-center group"
               >
-                <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">{cat.icon}</span>
+                <CategoryIcon name={cat.icon} className="mb-1 h-7 w-7 text-indigo-600 group-hover:scale-110 transition-transform" />
                 <span className="text-xs font-bold text-slate-800">{cat.name}</span>
                 <span className="text-[10px] text-slate-400 mt-0.5">{cat.count}</span>
               </Link>
