@@ -197,8 +197,8 @@ export default function ProfilePage() {
       {/* Profile Header Card - Matching profil.html */}
       <div className="card-royal border rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-sm">
         <div className="flex items-center gap-5 sm:gap-6">
-          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-[#244777] bg-[#F0E9DC] shrink-0">
-            <span className="text-xl font-extrabold text-[#244777]">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#315E9E] text-white font-bold text-3xl flex items-center justify-center shrink-0">
+            <span>
               {authUser.name.slice(0, 2).toUpperCase()}
             </span>
           </div>
@@ -208,9 +208,11 @@ export default function ProfilePage() {
               <h1 className="text-xl sm:text-2xl font-extrabold card-heading-royal">
                 {authUser.name}
               </h1>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                Mahasiswa Aktif
-              </span>
+              {authUser.role === "user" && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  Pengguna
+                </span>
+              )}
             </div>
             <p className="text-xs sm:text-sm text-[#6F7580]">
               {authUser.email}{authUser.nim ? ` • NIM: ${authUser.nim}` : ""}
@@ -452,33 +454,8 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Right Column: Status & Informasi Mahasiswa */}
+        {/* Right Column: Informasi pengguna */}
         <aside className="w-full lg:w-80 bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 shadow-xs flex flex-col gap-5 shrink-0">
-          <div className="border-b border-[#E4DCCF] pb-3">
-            <h3 className="text-sm font-bold text-[#29374A] uppercase tracking-wider">
-              Status Akademik Mahasiswa
-            </h3>
-          </div>
-
-          <div className="flex flex-col gap-3 text-xs">
-            <div className="flex justify-between py-1 border-b border-[#ECE5DA]">
-              <span className="text-[#6F7580]">Status Kuliah:</span>
-              <span className="font-bold text-emerald-600">Aktif Normal</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-[#ECE5DA]">
-              <span className="text-[#6F7580]">Semester:</span>
-              <span className="font-semibold text-[#29374A]">Semester 7 (Ganjil)</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-[#ECE5DA]">
-              <span className="text-[#6F7580]">Tahun Akademik:</span>
-              <span className="font-semibold text-[#29374A]">2026 / 2027</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-[#ECE5DA]">
-              <span className="text-[#6F7580]">Total Event Diikuti:</span>
-              <span className="font-bold text-[#29374A]">3 Kegiatan</span>
-            </div>
-          </div>
-
           <div className="pt-2">
             <Link
               href="/event"

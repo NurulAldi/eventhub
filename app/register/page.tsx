@@ -11,7 +11,7 @@ export default function RegisterPage() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [university, setUniversity] = useState("Universitas Indonesia");
+  const [university, setUniversity] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -134,6 +134,9 @@ export default function RegisterPage() {
               onChange={(e) => setUniversity(e.target.value)}
               className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition cursor-pointer text-[#29374A]"
             >
+              <option value="" disabled>
+                Pilih universitas
+              </option>
               {universities.map((univ) => (
                 <option key={univ} value={univ}>
                   {univ}

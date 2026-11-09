@@ -27,10 +27,10 @@ export default function AdminDashboardPage() {
   // Form states for new event
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("Seminar");
-  const [newDate, setNewDate] = useState("2026-11-12");
+  const [newDate, setNewDate] = useState("");
   const [newLocation, setNewLocation] = useState("Auditorium Kampus");
   const [newPrice, setNewPrice] = useState("0");
-  const [newOrganizer, setNewOrganizer] = useState("BEM Universitas");
+  const [newOrganizer, setNewOrganizer] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function AdminDashboardPage() {
         title: newTitle,
         description: `Deskripsi kegiatan ${newTitle} yang diselenggarakan oleh ${newOrganizer} di ${newLocation}.`,
         date: newDate,
-        time: "09:00 - 13:00 WIB",
+        time: undefined,
         location: newLocation,
         category: newCategory,
         image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=800&q=80",
@@ -445,7 +445,7 @@ export default function AdminDashboardPage() {
                   type="text"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Contoh: Seminar Nasional AI 2026"
+                  placeholder="Masukkan judul event"
                   required
                   className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
                 />

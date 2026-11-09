@@ -389,7 +389,7 @@ function EventDetailContent({ params }: Props) {
                 <div>
                   <span className="block text-[11px] text-[#92959C]">Tanggal & Waktu</span>
                   <span className="font-semibold text-[#29374A]">{formattedDate}</span>
-                  <span className="block text-xs text-[#6F7580]">{event.time || "09:00 - 13:00 WIB"}</span>
+                  <span className="block text-xs text-[#6F7580]">{event.time || "Waktu belum ditentukan"}</span>
                 </div>
               </div>
 

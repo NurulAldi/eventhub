@@ -1,4 +1,4 @@
-import { Event, UserProfile } from "@/types";
+import { Event } from "@/types";
 
 export const events: Event[] = [
   {
@@ -146,55 +146,6 @@ export const events: Event[] = [
     ],
   },
 ];
-
-export const userProfile: UserProfile = {
-  name: "Muhammad Fauzan",
-  email: "fauzan@mahasiswa.ac.id",
-  avatar:
-    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80",
-  nim: "21081010001",
-  faculty: "Fakultas Ilmu Komputer",
-  major: "Teknik Informatika",
-  phone: "+62 812-3456-7890",
-  registeredEvents: [
-    {
-      ticketId: "EVT-202601",
-      eventId: "1",
-      eventTitle: "AI Revolution: Transformasi Digital Kampus Masa Depan",
-      category: "Seminar",
-      date: "28 Oktober 2026",
-      time: "09:00 - 13:00 WIB",
-      location: "Auditorium Utama Gedung Rektorat",
-      registeredAt: "2026-10-10",
-      ticketStatus: "active",
-      qrCodeMock: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=EVT-202601-FAUZAN",
-    },
-    {
-      ticketId: "EVT-202602",
-      eventId: "2",
-      eventTitle: "National Tech Workshop & Career Talk 2026",
-      category: "Workshop",
-      date: "05 November 2026",
-      time: "10:00 - 15:30 WIB",
-      location: "Lab Komputer Terpadu Gedung B",
-      registeredAt: "2026-10-12",
-      ticketStatus: "active",
-      qrCodeMock: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=EVT-202602-FAUZAN",
-    },
-    {
-      ticketId: "EVT-202603",
-      eventId: "5",
-      eventTitle: "Campus Music Fest & Gelar Budaya Nusantara",
-      category: "Konser & Musik",
-      date: "20 November 2026",
-      time: "18:00 - 22:30 WIB",
-      location: "Lapangan Terbuka Kampus Utama",
-      registeredAt: "2026-10-14",
-      ticketStatus: "active",
-      qrCodeMock: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=EVT-202603-FAUZAN",
-    },
-  ],
-};
 
 /**
  * Utility helpers to query mock data

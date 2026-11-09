@@ -116,7 +116,7 @@ eventhub/
 ├── lib/
 │   ├── api.ts                        # Client API wrapper pemanggilan fetch backend
 │   ├── db.ts                         # Connection pool PostgreSQL, SSL, init skema
-│   ├── mock-data.ts                  # Data seed awal dan mock profil
+│   ├── mock-data.ts                  # Fixture event untuk automated integration test
 │   └── services/
 │       └── event-service.ts          # Business logic, query builder SQL, validasi DTO
 ├── scripts/
@@ -411,7 +411,7 @@ DB_SSL=false
 
 ### B. Fitur Parsial / Menggunakan Simulasi Client
 * [ ] **Pendaftaran Tiket Event:** Mahasiswa dapat membuka modal pendaftaran dan menghasilkan kode tiket di peramban, namun data registrasi belum disimpan ke tabel pendaftaran database.
-* [ ] **Halaman Profil Mahasiswa:** Tab "Event Tersimpan" mengambil data dari API, namun profil diri dan tab "Tiket Terdaftar" masih menggunakan data mock statis.
+* [ ] **Halaman Profil Mahasiswa:** Tab "Event Tersimpan" dan profil akun menggunakan session user; tab tiket masih menggunakan penyimpanan client per user.
 * [ ] **Autentikasi Pengguna (Login & Register):** Endpoint dan session sudah nyata; data tiket/profil tambahan masih memakai penyimpanan client.
 
 ### C. Fitur Belum Diimplementasikan

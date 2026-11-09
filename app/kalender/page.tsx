@@ -7,9 +7,9 @@ import { Event } from "@/types";
 
 export default function CalendarPage() {
   // Keep the initial render deterministic, then sync the calendar to the browser date.
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(9); // 9 = Oktober 2026
-  const [selectedDateStr, setSelectedDateStr] = useState<string>("2026-10-28");
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
+  const [currentMonth, setCurrentMonth] = useState<number | null>(null);
+  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
 
   // Dynamic events from database API
   const [events, setEvents] = useState<Event[]>([]);
@@ -65,6 +65,7 @@ export default function CalendarPage() {
 
   // Navigation handlers
   const handlePrevMonth = () => {
+    if (currentYear === null || currentMonth === null) return;
     if (currentMonth === 0) {
       setCurrentMonth(11);
       setCurrentYear(currentYear - 1);
@@ -74,6 +75,7 @@ export default function CalendarPage() {
   };
 
   const handleNextMonth = () => {
+    if (currentYear === null || currentMonth === null) return;
     if (currentMonth === 11) {
       setCurrentMonth(0);
       setCurrentYear(currentYear + 1);
@@ -83,8 +85,12 @@ export default function CalendarPage() {
   };
 
   // Calculate days in the current month
-  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay(); // 0 is Sunday
-  const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfMonth = currentYear === null || currentMonth === null
+    ? 0
+    : new Date(currentYear, currentMonth, 1).getDay();
+  const totalDays = currentYear === null || currentMonth === null
+    ? 0
+    : new Date(currentYear, currentMonth + 1, 0).getDate();
 
   // Create grid cells: leading blanks + days of month
   const daysArray = Array.from({ length: totalDays }, (_, i) => i + 1);
@@ -92,9 +98,9 @@ export default function CalendarPage() {
 
   // Helper to format ISO date string: YYYY-MM-DD
   const formatISO = (day: number) => {
-    const m = String(currentMonth + 1).padStart(2, "0");
+    const m = String((currentMonth ?? 0) + 1).padStart(2, "0");
     const d = String(day).padStart(2, "0");
-    return `${currentYear}-${m}-${d}`;
+    return `${currentYear ?? 0}-${m}-${d}`;
   };
 
   // Get events on a specific date
@@ -103,16 +109,18 @@ export default function CalendarPage() {
   };
 
   // Events on the currently selected date
-  const selectedDayEvents = getEventsForDate(selectedDateStr);
+  const selectedDayEvents = selectedDateStr ? getEventsForDate(selectedDateStr) : [];
 
   // Formatted date label for selected date
-  const [selectedYear, selectedMonth, selectedDay] = selectedDateStr.split("-").map(Number);
-  const selectedDateFormatted = new Date(selectedYear, selectedMonth - 1, selectedDay).toLocaleDateString("id-ID", {
+  const [selectedYear, selectedMonth, selectedDay] = (selectedDateStr || "").split("-").map(Number);
+  const selectedDateFormatted = selectedDateStr
+    ? new Date(selectedYear, selectedMonth - 1, selectedDay).toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
-  });
+    })
+    : "Tanggal belum dipilih";
 
   if (isLoading) {
     return (
@@ -161,7 +169,9 @@ export default function CalendarPage() {
           <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-4">
             <div className="flex items-center gap-3">
               <h2 className="text-xl sm:text-2xl font-extrabold text-[#29374A]">
-                {monthNames[currentMonth]} {currentYear}
+                {currentMonth === null || currentYear === null
+                  ? "Kalender"
+                  : `${monthNames[currentMonth]} ${currentYear}`}
               </h2>
               <div className="flex items-center gap-1 bg-[#F0E9DC] p-1 rounded-md border border-[#E4DCCF]">
                 <button
@@ -329,7 +339,7 @@ export default function CalendarPage() {
                   <div className="flex flex-col gap-1 text-xs text-[#6F7580] pt-2 border-t border-[#E4DCCF]">
                     <div className="flex items-center gap-1.5">
                       <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l2.5 2.5" /></svg>
-                      <span>{evt.time || "09:00 - 13:00 WIB"}</span>
+                      <span>{evt.time || "Waktu belum ditentukan"}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2" /></svg>
@@ -352,20 +362,6 @@ export default function CalendarPage() {
               <p className="text-xs text-[#6F7580]">
                 Tidak ada event yang terjadwal pada tanggal ini.
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  const today = new Date();
-                  setSelectedDateStr([
-                    today.getFullYear(),
-                    String(today.getMonth() + 1).padStart(2, "0"),
-                    String(today.getDate()).padStart(2, "0"),
-                  ].join("-"));
-                }}
-                className="text-xs font-semibold text-[#29374A] hover:underline cursor-pointer"
-              >
-                Lihat Agenda 28 Oktober (Seminar AI) &rarr;
-              </button>
             </div>
           )}
 
@@ -388,6 +384,9 @@ export default function CalendarPage() {
                   </span>
                 </div>
               ))}
+              {events.length === 0 && (
+                <span className="text-xs text-[#92959C]">Belum ada event terdaftar.</span>
+              )}
             </div>
           </div>
         </aside>
