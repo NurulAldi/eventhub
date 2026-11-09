@@ -1,4 +1,4 @@
-import { Event, UserProfile, AdminStats } from "@/types";
+import { Event, UserProfile } from "@/types";
 
 export const events: Event[] = [
   {
@@ -194,14 +194,6 @@ export const userProfile: UserProfile = {
       qrCodeMock: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=EVT-202603-FAUZAN",
     },
   ],
-};
-
-export const adminStats: AdminStats = {
-  totalEvents: 24,
-  totalUsers: 1280,
-  pendingApprovals: 3,
-  activeEvents: 8,
-  totalRegistrations: 3450,
 };
 
 /**

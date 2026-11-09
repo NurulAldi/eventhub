@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { loginAsUser } = useAuth();
+  const { register } = useAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -29,7 +29,7 @@ export default function RegisterPage() {
     "Lainnya",
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -43,19 +43,20 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setErrorMsg("Kata sandi minimal 6 karakter.");
+    if (password.length < 8) {
+      setErrorMsg("Kata sandi minimal 8 karakter.");
       return;
     }
 
     setIsLoading(true);
-
-    setTimeout(() => {
+    try {
+      await register({ name, email, university, password });
       setIsLoading(false);
-      loginAsUser();
-      alert(`Pendaftaran akun atas nama ${name} berhasil!`);
       router.push("/profil");
-    }, 400);
+    } catch (error) {
+      setIsLoading(false);
+      setErrorMsg(error instanceof Error ? error.message : "Registrasi gagal.");
+    }
   };
 
   return (
@@ -154,7 +155,7 @@ export default function RegisterPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimal 6 karakter"
+              placeholder="Minimal 8 karakter"
               required
               className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition"
             />

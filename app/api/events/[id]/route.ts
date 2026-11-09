@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getEventById, updateEvent, registerEvent, deleteEvent } from "@/lib/services/event-service";
+import { authErrorResponse, requireAdmin, requireUser } from "@/lib/auth";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -51,6 +52,7 @@ export async function PATCH(
   { params }: RouteContext
 ) {
   try {
+    await requireAdmin();
     const { id } = await params;
 
     if (!id) {
@@ -81,6 +83,8 @@ export async function PATCH(
     return NextResponse.json(updated, { status: 200 });
   } catch (error) {
     console.error("[API_PATCH_EVENT_ERROR]:", error);
+    const authError = authErrorResponse(error);
+    if (authError) return NextResponse.json({ error: authError.error }, { status: authError.status });
 
     const errorMessage = error instanceof Error ? error.message : "Gagal memperbarui event.";
     const isValidationError =
@@ -101,6 +105,7 @@ export async function POST(
   { params }: RouteContext
 ) {
   try {
+    await requireUser();
     const { id } = await params;
     const body = await request.json();
     if (!id || body?.action !== "register") {
@@ -117,6 +122,8 @@ export async function POST(
     return NextResponse.json(registered, { status: 200 });
   } catch (error) {
     console.error("[API_REGISTER_EVENT_ERROR]:", error);
+    const authError = authErrorResponse(error);
+    if (authError) return NextResponse.json({ error: authError.error }, { status: authError.status });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Gagal mendaftarkan peserta." },
       { status: 500 }
@@ -136,6 +143,7 @@ export async function DELETE(
   { params }: RouteContext
 ) {
   try {
+    await requireAdmin();
     const { id } = await params;
 
     if (!id) {
@@ -164,6 +172,8 @@ export async function DELETE(
     );
   } catch (error) {
     console.error("[API_DELETE_EVENT_ERROR]:", error);
+    const authError = authErrorResponse(error);
+    if (authError) return NextResponse.json({ error: authError.error }, { status: authError.status });
     return NextResponse.json(
       {
         error: "Gagal menghapus event dari database.",

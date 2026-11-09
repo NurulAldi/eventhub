@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { userProfile } from "@/lib/mock-data";
+import { useRouter } from "next/navigation";
 import { apiGetEventById, apiGetEvents } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { RegisteredEvent, Event } from "@/types";
@@ -17,20 +17,11 @@ import { getRegisteredTickets, removeRegisteredTickets, subscribeToTickets } fro
 import { getSubmittedEvents } from "@/lib/submissions";
 
 export default function ProfilePage() {
-  const { user: authUser } = useAuth();
+  const router = useRouter();
+  const { user: authUser, isLoading: isAuthLoading } = useAuth();
 
-  // Active user data merged with mock-data
-  const currentUser = {
-    name: authUser?.name || userProfile.name,
-    email: authUser?.email || userProfile.email,
-    nim: authUser?.nim || userProfile.nim,
-    avatar: userProfile.avatar,
-    faculty: userProfile.faculty,
-    major: userProfile.major,
-    phone: userProfile.phone,
-    registeredEvents: userProfile.registeredEvents,
-  };
-  const submissionOrganizer = currentUser.name;
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>([]);
 
   // State Tabs
   const [activeTab, setActiveTab] = useState<"registered" | "saved">("registered");
@@ -40,12 +31,18 @@ export default function ProfilePage() {
   const [submittedEvents, setSubmittedEvents] = useState<Event[]>([]);
   const [showAllSubmissions, setShowAllSubmissions] = useState(false);
   const [reminders, setReminders] = useState<Record<string, ReminderTrigger>>({});
-  const [registeredEvents, setRegisteredEvents] = useState(currentUser.registeredEvents);
   const [registeredEventStatuses, setRegisteredEventStatuses] = useState<Record<string, Event["status"]>>({});
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   useEffect(() => {
+    if (!isAuthLoading && !authUser) router.replace("/login");
+  }, [authUser, isAuthLoading, router]);
+
+  useEffect(() => {
+    const authenticatedUser = authUser;
+    if (isAuthLoading || !authenticatedUser) return;
     let isMounted = true;
+    const userId = authenticatedUser.id;
+    const submissionOrganizer = authenticatedUser.name;
     async function loadProfileEvents() {
       try {
         const storedSubmissions = getSubmittedEvents();
@@ -58,7 +55,7 @@ export default function ProfilePage() {
         );
         const submissions = Array.from(submissionMap.values());
         const submissionIds = submissions.map((submission) => submission.id);
-        const tickets = getRegisteredTickets();
+        const tickets = getRegisteredTickets(userId);
         const ticketEvents = await Promise.all(
           tickets.map(async (ticket) => {
             try {
@@ -76,7 +73,7 @@ export default function ProfilePage() {
           .filter((ticket, index) => ticketEvents[index] === null)
           .map((ticket) => ticket.eventId);
         if (removedTicketIds.length > 0) {
-          removeRegisteredTickets(removedTicketIds);
+          removeRegisteredTickets(userId, removedTicketIds);
         }
         if (isMounted) {
           setRegisteredEvents(validTicketEntries.map((entry) => entry.ticket));
@@ -153,7 +150,7 @@ export default function ProfilePage() {
       window.removeEventListener("focus", refreshProfileEvents);
       document.removeEventListener("visibilitychange", refreshProfileEvents);
     };
-  }, [submissionOrganizer]);
+  }, [authUser, isAuthLoading]);
 
   const toggleReminder = (event: Event, trigger: ReminderTrigger | null) => {
     setReminderPreference(event.id, trigger);
@@ -179,7 +176,7 @@ export default function ProfilePage() {
   };
   const isSubmissionPublic = ["active", "completed", "cancelled"].includes(submissionStatus);
 
-  if (isProfileLoading) {
+  if (isAuthLoading || !authUser || isProfileLoading) {
     return (
       <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8 bg-[#F7F4EE]">
         <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 sm:p-8 animate-pulse">
@@ -201,28 +198,25 @@ export default function ProfilePage() {
       <div className="card-royal border rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-sm">
         <div className="flex items-center gap-5 sm:gap-6">
           <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-[#244777] bg-[#F0E9DC] shrink-0">
-            <Image
-              src={currentUser.avatar}
-              alt={currentUser.name}
-              fill
-              className="object-cover"
-            />
+            <span className="text-xl font-extrabold text-[#244777]">
+              {authUser.name.slice(0, 2).toUpperCase()}
+            </span>
           </div>
 
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-extrabold card-heading-royal">
-                {currentUser.name}
+                {authUser.name}
               </h1>
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                 Mahasiswa Aktif
               </span>
             </div>
             <p className="text-xs sm:text-sm text-[#6F7580]">
-              {currentUser.email} &bull; NIM: {currentUser.nim}
+              {authUser.email}{authUser.nim ? ` • NIM: ${authUser.nim}` : ""}
             </p>
             <p className="text-xs text-[#6F7580] font-medium">
-              {currentUser.major}, {currentUser.faculty}
+              {authUser.university || "Universitas belum diisi"}
             </p>
           </div>
         </div>
@@ -539,7 +533,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-[#6F7580]">Peserta:</span>
-                <span className="font-semibold text-[#29374A]">{currentUser.name}</span>
+                <span className="font-semibold text-[#29374A]">{authUser.name}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#6F7580]">Lokasi:</span>

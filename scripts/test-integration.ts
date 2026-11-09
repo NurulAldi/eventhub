@@ -50,10 +50,12 @@ async function runTests() {
     }
 
     await initSchema();
-    const tableCheck = await queryOne<{ table_name: string }>(
-      "SELECT table_name FROM information_schema.tables WHERE table_name = 'events';"
+    const tableCheck = await queryOne<{ table_count: string }>(
+      `SELECT COUNT(*)::text AS table_count
+       FROM information_schema.tables
+       WHERE table_schema = 'public' AND table_name IN ('users', 'events');`
     );
-    assert(tableCheck?.table_name === "events", "Tabel 'events' tersedia di skema PostgreSQL Server");
+    assert(tableCheck?.table_count === "2", "Tabel 'users' dan 'events' tersedia di skema PostgreSQL Server");
   } catch (err) {
     assert(false, "Koneksi database & skema server", String(err));
   }

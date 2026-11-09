@@ -4,7 +4,7 @@
  * Jalankan via: npm run db:init (atau npx tsx scripts/init-db.ts)
  */
 
-import { initSchema, testConnection, getDatabaseUrl } from "../lib/db";
+import { initSchema, query, testConnection, getDatabaseUrl, getPool } from "../lib/db";
 
 async function main() {
   console.log("=========================================");
@@ -26,8 +26,21 @@ async function main() {
 
     console.log("Membuat skema tabel dan indeks PostgreSQL...");
     await initSchema();
-    console.log("✓ Skema tabel 'events' dan indeks berhasil diinisialisasi.");
+    const tables = await query<{ table_name: string }>(
+      `SELECT table_name
+       FROM information_schema.tables
+       WHERE table_schema = 'public' AND table_name IN ('users', 'events')
+       ORDER BY table_name`
+    );
+    const tableNames = new Set(tables.map((table) => table.table_name));
+    if (!tableNames.has("users") || !tableNames.has("events")) {
+      throw new Error(
+        `Verifikasi skema gagal. Tabel tersedia: ${Array.from(tableNames).join(", ") || "(tidak ada)"}`
+      );
+    }
+    console.log("✓ Tabel 'users' dan 'events' beserta indeks berhasil diinisialisasi.");
     console.log("Inisialisasi selesai tanpa error.");
+    await getPool().end();
     process.exit(0);
   } catch (error) {
     console.error("✗ Gagal menginisialisasi database server:", error);

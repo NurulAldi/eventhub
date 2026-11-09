@@ -7,14 +7,14 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { loginAsUser, loginAsAdmin } = useAuth();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -24,18 +24,14 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-
-    // Simulated network authentication delay
-    setTimeout(() => {
+    try {
+      const authenticatedUser = await login(email, password);
       setIsLoading(false);
-      if (email.toLowerCase().includes("admin")) {
-        loginAsAdmin();
-        router.push("/dashboard");
-      } else {
-        loginAsUser();
-        router.push("/profil");
-      }
-    }, 400);
+      router.push(authenticatedUser.role === "admin" ? "/dashboard" : "/profil");
+    } catch (error) {
+      setIsLoading(false);
+      setErrorMsg(error instanceof Error ? error.message : "Login gagal.");
+    }
   };
 
   return (
@@ -79,9 +75,6 @@ export default function LoginPage() {
                 className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition"
               />
             </div>
-            <span className="text-[11px] text-[#92959C]">
-              Tips: Gunakan email dengan kata <code>admin</code> untuk simulasi akun Admin.
-            </span>
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -119,33 +112,6 @@ export default function LoginPage() {
             {isLoading ? "Memverifikasi..." : "Masuk Sekarang"}
           </button>
         </form>
-
-        {/* Quick Demo Shortcuts */}
-        <div className="p-3 bg-[#F7F4EE] border border-[#E4DCCF] rounded-lg flex flex-col gap-2 text-xs">
-          <span className="font-semibold text-[#6F7580]">Pilihan Cepat Masuk (Simulasi):</span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                loginAsUser();
-                router.push("/profil");
-              }}
-              className="flex-1 py-1.5 bg-[#FFFCF6] border border-[#E4DCCF] text-[#29374A] font-medium rounded hover:bg-[#F0E9DC] transition cursor-pointer text-center"
-            >
-              Mahasiswa &rarr;
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                loginAsAdmin();
-                router.push("/dashboard");
-              }}
-              className="flex-1 py-1.5 bg-[#FFFCF6] border border-[#E4DCCF] text-[#29374A] font-bold rounded hover:bg-[#F0E9DC] transition cursor-pointer text-center"
-            >
-              Admin &rarr;
-            </button>
-          </div>
-        </div>
 
         {/* Footer Link */}
         <div className="text-center text-xs sm:text-sm text-[#6F7580] flex items-center justify-center gap-1.5 pt-2 border-t border-[#ECE5DA]">

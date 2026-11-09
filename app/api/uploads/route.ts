@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authErrorResponse, requireAdmin } from "@/lib/auth";
 
 const maxFileSize = 5 * 1024 * 1024;
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAdmin();
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const bucket = process.env.SUPABASE_STORAGE_BUCKET || "event-images";
@@ -55,6 +57,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[API_UPLOAD_IMAGE_ERROR]:", error);
+    const authError = authErrorResponse(error);
+    if (authError) return NextResponse.json({ error: authError.error }, { status: authError.status });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Gagal memproses upload gambar." },
       { status: 500 }

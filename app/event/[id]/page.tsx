@@ -51,8 +51,12 @@ function EventDetailContent({ params }: Props) {
         if (!isMounted) return;
         setEvent(fetchedEvent);
         setIsSaved(isEventInWishlist(fetchedEvent.id));
-        setIsRegistered(isEventRegistered(fetchedEvent.id));
-        setRegisteredTicket(getRegisteredTickets().find((ticket) => ticket.eventId === fetchedEvent.id) || null);
+        setIsRegistered(user ? isEventRegistered(user.id, fetchedEvent.id) : false);
+        setRegisteredTicket(
+          user
+            ? getRegisteredTickets(user.id).find((ticket) => ticket.eventId === fetchedEvent.id) || null
+            : null
+        );
 
         // Ambil event terkait
         try {
@@ -86,15 +90,15 @@ function EventDetailContent({ params }: Props) {
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, user]);
 
   useEffect(() => {
-    if (!event) return;
+    if (!event || !user) return;
     return subscribeToTickets(() => {
-      setIsRegistered(isEventRegistered(event.id));
-      setRegisteredTicket(getRegisteredTickets().find((ticket) => ticket.eventId === event.id) || null);
+      setIsRegistered(isEventRegistered(user.id, event.id));
+      setRegisteredTicket(getRegisteredTickets(user.id).find((ticket) => ticket.eventId === event.id) || null);
     });
-  }, [event]);
+  }, [event, user]);
 
   useEffect(() => {
     const unsubscribe = subscribeToWishlist(() => {
@@ -221,7 +225,7 @@ function EventDetailContent({ params }: Props) {
         ticketStatus: "active",
         qrCodeMock: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${generatedTicket}`,
       };
-      if (!addRegisteredTicket(registeredTicket)) return;
+      if (!user || !addRegisteredTicket(user.id, registeredTicket)) return;
       setEvent(updatedEvent);
       setTicketCode(generatedTicket);
       setRegisteredTicket(registeredTicket);
@@ -553,11 +557,11 @@ function EventDetailContent({ params }: Props) {
 
                   <div className="flex justify-between py-1 border-b border-[#ECE5DA] text-xs">
                     <span className="text-[#6F7580]">Nama Pendaftar:</span>
-                    <span className="font-semibold text-[#29374A]">{user?.name || "Muhammad Fauzan"}</span>
+                    <span className="font-semibold text-[#29374A]">{user?.name || "-"}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-[#ECE5DA] text-xs">
                     <span className="text-[#6F7580]">Email Kampus:</span>
-                    <span className="font-semibold text-[#29374A]">{user?.email || "fauzan@mahasiswa.ac.id"}</span>
+                    <span className="font-semibold text-[#29374A]">{user?.email || "-"}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-[#ECE5DA] text-xs">
                     <span className="text-[#6F7580]">Total Biaya:</span>

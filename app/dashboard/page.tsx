@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiGetEvents, apiCreateEvent, apiUpdateEvent, apiDeleteEvent } from "@/lib/api";
-import { adminStats } from "@/lib/mock-data";
+import { apiGetEvents, apiGetAdminStats, apiCreateEvent, apiUpdateEvent, apiDeleteEvent } from "@/lib/api";
 import { Event } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 
@@ -12,6 +11,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [eventList, setEventList] = useState<Event[]>([]);
+  const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -43,10 +43,11 @@ export default function AdminDashboardPage() {
     if (user?.role !== "admin") return;
     let isMounted = true;
 
-    apiGetEvents({ status: "Semua" })
-      .then((data) => {
+    Promise.all([apiGetEvents({ status: "Semua" }), apiGetAdminStats()])
+      .then(([data, stats]) => {
         if (isMounted) {
           setEventList(data);
+          setTotalUsers(stats.totalUsers);
           setError(null);
           setIsLoading(false);
         }
@@ -263,7 +264,7 @@ export default function AdminDashboardPage() {
             Total Pengguna
           </span>
           <div className="text-3xl font-extrabold card-heading-coral">
-            {adminStats.totalUsers.toLocaleString("id-ID")}
+            {isLoading || totalUsers === null ? "..." : totalUsers.toLocaleString("id-ID")}
           </div>
           <span className="text-[11px] card-text-coral font-medium">Mahasiswa & organizer</span>
         </div>

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:init": "tsx scripts/init-db.ts",
-    "db:seed": "tsx scripts/seed.ts",
+    "db:clear-events": "tsx scripts/clear-events.ts",
+    "auth:hash-password": "tsx scripts/hash-password.ts",
     "test:integration": "tsx scripts/test-integration.ts"
   },
   "dependencies": {

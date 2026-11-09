@@ -43,9 +43,8 @@ function NotificationBell({ role, isHydrated }: { role: "user" | "admin"; isHydr
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { user, isLoggedIn, setUserRole } = useAuth();
+  const { user, isLoggedIn, isLoading, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -85,56 +84,8 @@ export default function Navbar() {
           >
             &larr; Lihat Website Utama
           </Link>
+        </div>
 
-          {/* Quick Role Switcher for Testing */}
-          <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
-                className="text-xs bg-[#F0E9DC] hover:bg-[#EAE2D4] border border-[#E4DCCF] px-2.5 py-1.5 rounded-md font-medium text-[#29374A] flex items-center gap-1 active:scale-95 transition-transform"
-              >
-                Role: <strong className="capitalize">{isHydrated ? user?.role || "Tamu" : "user"}</strong>
-                <span>▼</span>
-              </button>
-              {showRoleSwitcher && (
-              <div className="absolute right-0 mt-2 w-44 bg-[#FFFCF6] border border-[#ECE5DA] rounded-lg shadow-lg py-1 z-50 text-xs">
-                <div className="px-3 py-1.5 font-semibold text-[#92959C] border-b border-[#ECE5DA]">
-                  Simulasi Auth
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUserRole("guest");
-                    setShowRoleSwitcher(false);
-                  }}
-                  className="w-full text-left px-3 py-1.5 hover:bg-[#F0E9DC] text-[#29374A]"
-                >
-                  Tamu (Guest)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUserRole("user");
-                    setShowRoleSwitcher(false);
-                  }}
-                  className="w-full text-left px-3 py-1.5 hover:bg-[#F0E9DC] text-[#29374A]"
-                >
-                  Mahasiswa (User)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUserRole("admin");
-                    setShowRoleSwitcher(false);
-                  }}
-                  className="w-full text-left px-3 py-1.5 hover:bg-[#F0E9DC] text-[#29374A] font-semibold"
-                >
-                  Admin EventHub
-                </button>
-              </div>
-              )}
-            </div>
-          </div>
       </header>
     );
   }
@@ -184,60 +135,8 @@ export default function Navbar() {
         {isHydrated && isLoggedIn && (
           <NotificationBell role={user?.role === "admin" ? "admin" : "user"} isHydrated={isHydrated} />
         )}
-        {/* Quick Simulation Mode Switcher */}
-        <div className="relative hidden sm:block">
-          <button
-            type="button"
-            onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
-            className="text-xs bg-[#F0E9DC] hover:bg-[#EAE2D4] border border-[#E4DCCF] px-2.5 py-1.5 rounded-md font-medium text-[#6F7580] flex items-center gap-1 transition active:scale-95"
-            title="Klik untuk mengganti status simulasi login"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-            <span>Simulasi: <strong className="capitalize">{isHydrated ? user ? user.role : "Guest" : "user"}</strong></span>
-            <span className="text-[10px] text-[#92959C]">▼</span>
-          </button>
-
-          {showRoleSwitcher && (
-            <div className="absolute right-0 mt-2 w-48 bg-[#FFFCF6] border border-[#ECE5DA] rounded-lg shadow-lg py-1 z-50 text-xs">
-              <div className="px-3 py-1.5 font-semibold text-[#92959C] border-b border-[#ECE5DA]">
-                Pilih Mode Simulasi
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setUserRole("guest");
-                  setShowRoleSwitcher(false);
-                }}
-                className={`w-full text-left px-3 py-2 hover:bg-[#F0E9DC] ${!isLoggedIn ? "font-bold text-[#244777] bg-[#E5ECF5]" : "text-[#29374A]"}`}
-              >
-                1. Guest (Tamu / Belum Login)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setUserRole("user");
-                  setShowRoleSwitcher(false);
-                }}
-                className={`w-full text-left px-3 py-2 hover:bg-[#F0E9DC] ${user?.role === "user" ? "font-bold text-[#244777] bg-[#E5ECF5]" : "text-[#29374A]"}`}
-              >
-                2. Mahasiswa (User Biasa)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setUserRole("admin");
-                  setShowRoleSwitcher(false);
-                }}
-                className={`w-full text-left px-3 py-2 hover:bg-[#F0E9DC] ${user?.role === "admin" ? "font-bold text-[#244777] bg-[#E5ECF5]" : "text-[#29374A]"}`}
-              >
-                3. Admin EventHub
-              </button>
-            </div>
-          )}
-        </div>
-
         {/* Render Guest or Logged In Buttons */}
-        {!isHydrated || !isLoggedIn ? (
+        {isLoading || !isLoggedIn ? (
           <>
             <Link
               href="/login"
@@ -272,7 +171,7 @@ export default function Navbar() {
             </Link>
             <button
               type="button"
-              onClick={() => setUserRole("guest")}
+              onClick={() => void logout()}
               className="hidden md:inline-block text-xs text-red-600 hover:text-red-700 font-medium ml-1"
             >
               Logout
@@ -333,32 +232,11 @@ export default function Navbar() {
             )}
           </nav>
 
-          <div className="pt-3 border-t border-[#ECE5DA] flex flex-col gap-2">
-            <div className="text-xs text-[#92959C] font-medium">Simulasi Status:</div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setUserRole("guest")}
-                className={`px-2 py-1 text-xs rounded border active:scale-95 transition-transform ${!isLoggedIn ? "bg-[#315E9E] text-white border-[#315E9E]" : "bg-[#FFFCF6] text-[#29374A] border-[#E4DCCF]"}`}
-              >
-                Guest
-              </button>
-              <button
-                type="button"
-                onClick={() => setUserRole("user")}
-                className={`px-2 py-1 text-xs rounded border active:scale-95 transition-transform ${user?.role === "user" ? "bg-[#315E9E] text-white border-[#315E9E]" : "bg-[#FFFCF6] text-[#29374A] border-[#E4DCCF]"}`}
-              >
-                Mahasiswa
-              </button>
-              <button
-                type="button"
-                onClick={() => setUserRole("admin")}
-                className={`px-2 py-1 text-xs rounded border active:scale-95 transition-transform ${user?.role === "admin" ? "bg-[#315E9E] text-white border-[#315E9E]" : "bg-[#FFFCF6] text-[#29374A] border-[#E4DCCF]"}`}
-              >
-                Admin
-              </button>
-            </div>
-          </div>
+          {isLoggedIn && (
+            <button type="button" onClick={() => void logout()} className="text-xs text-red-600 font-medium">
+              Logout
+            </button>
+          )}
         </div>
       )}
     </header>

@@ -81,11 +81,3 @@ export interface UserProfile {
   phone?: string;
   registeredEvents: RegisteredEvent[];
 }
-
-export interface AdminStats {
-  totalEvents: number;
-  totalUsers: number;
-  pendingApprovals: number;
-  activeEvents?: number;
-  totalRegistrations?: number;
-}

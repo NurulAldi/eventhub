@@ -40,8 +40,8 @@ Implementasi fitur pada repositori ini dibedakan secara tegas antara antarmuka (
 | **Dashboard Admin (CRUD Event)** | Panel admin: formulir tambah event, modal edit, dan hapus event | Terhubung ke endpoint `POST`, `PATCH`, dan `DELETE` | `INSERT`, `UPDATE`, `DELETE` ke tabel `events` | **Selesai dan terverifikasi** |
 | **Pendaftaran Tiket Event** | Modal konfirmasi tiket dan kode tiket otomatis (`EVT-XXXXXX`) | Belum ada endpoint API pendaftaran | Belum ada tabel registrasi pendaftar | **Sebagian selesai (Simulasi Client)** |
 | **Profil Pengguna** | Tampilan info profil, tab tiket, reminder, dan event tersimpan | Tab event tersimpan mengambil data dari API | Profil dan tiket belum terhubung ke database | **Sebagian selesai** |
-| **Login & Registrasi User** | Formulir login dan pendaftaran akun | Belum ada endpoint `/api/auth/*` | Belum ada tabel `users` | **Sebagian selesai (Simulasi Client)** |
-| **Proteksi Rute Admin** | Tampilan navigasi sidebar admin | Belum ada middleware proteksi rute | Belum ada token/session auth | **Belum diimplementasikan** |
+| **Login & Registrasi User** | Formulir login dan pendaftaran akun | Endpoint `/api/auth/login`, `/register`, `/me`, dan `/logout` dengan session cookie HTTP-only | Tabel `users` dengan hash password dan role | **Selesai** |
+| **Proteksi Rute Admin** | Dashboard hanya dapat diakses akun admin | Proxy untuk pengecekan awal serta validasi role pada setiap API mutasi | Role admin/user divalidasi dari database | **Selesai** |
 
 ---
 
@@ -121,7 +121,6 @@ eventhub/
 │       └── event-service.ts          # Business logic, query builder SQL, validasi DTO
 ├── scripts/
 │   ├── init-db.ts                    # Inisialisasi skema tabel database (npm run db:init)
-│   ├── seed.ts                       # Seeding 6 data event awal (npm run db:seed)
 │   └── test-integration.ts           # 26 skenario pengujian otomatis (npm run test:integration)
 ├── types/
 │   └── index.ts                      # Definisi tipe data TypeScript (Event, User, dll.)
@@ -169,7 +168,10 @@ Copy-Item .env.example .env.local
 # Linux / macOS:
 cp .env.example .env.local
 ```
-Buka `.env.local` dan sesuaikan nilai `DATABASE_URL` dengan database Anda.
+Buka `.env.local` dan sesuaikan nilai `DATABASE_URL` dengan database Anda. Tambahkan secret session acak minimal 32 karakter:
+```env
+AUTH_SECRET="ganti-dengan-secret-acak-minimal-32-karakter"
+```
 
 ### Langkah 4: Menyiapkan Database Server
 Pilih salah satu metode berikut:
@@ -194,17 +196,23 @@ Pilih salah satu metode berikut:
   ```
 
 ### Langkah 5: Inisialisasi Skema Tabel (Migration)
-Jalankan skrip inisialisasi untuk membuat tabel `events` dan indeksnya:
+Jalankan skrip inisialisasi untuk membuat tabel `users`, `events`, dan indeksnya:
 ```bash
 npm run db:init
 ```
+Perintah ini hanya membuat atau memperbarui struktur database; tidak ada data event awal yang dimasukkan.
 
-### Langkah 6: Seeding Data Awal
-Masukkan 6 data kegiatan awal UNP ke dalam database:
+### Langkah 6: Membuat Akun Admin Secara Manual
+Registrasi publik selalu membuat role `user`; tidak ada form atau endpoint untuk mendaftarkan admin. Buat hash password terlebih dahulu:
 ```bash
-npm run db:seed
+npm run auth:hash-password -- "password-admin-anda"
 ```
-*Skrip ini bersifat idempoten (dapat dijalankan berulang tanpa menduplikasi data).*
+Lalu masukkan hasil hash ke database:
+```sql
+INSERT INTO users (name, email, university, password_hash, role)
+VALUES ('Admin EventHub', 'admin@eventhub.local', NULL, '<HASIL_HASH>', 'admin');
+```
+Kolom `university` wajib diisi untuk user biasa, tetapi harus `NULL` untuk admin EventHub karena admin bukan perwakilan universitas tertentu.
 
 ### Langkah 7: Menjalankan Automated Integration Test
 Pastikan integrasi database dan API berfungsi 100%:
@@ -233,7 +241,7 @@ Backend API Next.js Route Handlers tersedia pada basis rute `/api/events`.
 
 > [!WARNING]
 > **Catatan Keamanan & Hak Akses:**
-> Endpoint mutasi data (`POST`, `PATCH`, `PUT`, `DELETE`) saat ini **belum dilengkapi dengan proteksi autentikasi token/session**. Siapa pun yang mengirimkan HTTP request ke endpoint tersebut dapat memodifikasi data. Proteksi middleware dan verifikasi otorisasi admin merupakan prioritas pekerjaan berikutnya.
+> Endpoint mutasi data (`POST`, `PATCH`, `PUT`, `DELETE`) kini memerlukan session yang valid; operasi pengelolaan event dan upload gambar hanya dapat dilakukan oleh akun dengan role `admin`.
 
 ### 1. `GET /api/events`
 * **Fungsi:** Mengambil daftar event dengan dukungan pemfilteran dan pencarian.
@@ -397,19 +405,21 @@ DB_SSL=false
 * [x] Halaman Detail Event dinamis terintegrasi ke database dengan handling 404 Not Found.
 * [x] Halaman Kalender bulanan memetakan tanggal event dari database.
 * [x] Dashboard Admin dengan operasi CRUD nyata (tambah, edit, hapus event) ke database server.
+* [x] Autentikasi login/register berbasis database, session cookie HTTP-only, dan role admin/user.
+* [x] Proteksi backend untuk operasi admin serta provisioning admin manual melalui database.
 * [x] 26 skenario automated integration test (`npm run test:integration`) lolos 100%.
 
 ### B. Fitur Parsial / Menggunakan Simulasi Client
 * [ ] **Pendaftaran Tiket Event:** Mahasiswa dapat membuka modal pendaftaran dan menghasilkan kode tiket di peramban, namun data registrasi belum disimpan ke tabel pendaftaran database.
 * [ ] **Halaman Profil Mahasiswa:** Tab "Event Tersimpan" mengambil data dari API, namun profil diri dan tab "Tiket Terdaftar" masih menggunakan data mock statis.
-* [ ] **Autentikasi Pengguna (Login & Register):** Antarmuka formulir tersedia dan memiliki validasi input di client, namun alur login menggunakan simulasi *mock context* (`AuthContext.tsx`) dan menyimpan status role di `localStorage`.
+* [ ] **Autentikasi Pengguna (Login & Register):** Endpoint dan session sudah nyata; data tiket/profil tambahan masih memakai penyimpanan client.
 
 ### C. Fitur Belum Diimplementasikan
-* [ ] **Skema Database Pengguna (`users`):** Belum ada tabel akun user di PostgreSQL.
-* [ ] **Backend Autentikasi Nyata:** Belum ada endpoint `/api/auth/login`, `/api/auth/register`, maupun `/api/auth/me`.
-* [ ] **Enkripsi Kata Sandi:** Belum ada implementasi hashing password (`bcryptjs`/`argon2`).
-* [ ] **Manajemen Sesi:** Belum ada JWT token atau session cookie.
-* [ ] **Middleware Proteksi Rute (`middleware.ts`):** Rute `/dashboard` dan rute mutasi API belum diproteksi guard otorisasi admin.
+* [x] **Skema Database Pengguna (`users`):** Tabel akun, role, status aktif, dan hash password dibuat oleh `npm run db:init`.
+* [x] **Backend Autentikasi Nyata:** Tersedia endpoint `/api/auth/login`, `/api/auth/register`, `/api/auth/me`, dan `/api/auth/logout`.
+* [x] **Enkripsi Kata Sandi:** Password di-hash dengan `scrypt` dan salt acak.
+* [x] **Manajemen Sesi:** Session cookie HTTP-only bertanda tangan HMAC dengan masa berlaku 7 hari.
+* [x] **Proteksi Rute (`proxy.ts`):** Dashboard dan endpoint mutasi memeriksa session serta role admin di server.
 * [ ] **Unggah Berkas Gambar Poster:** Masih menggunakan link URL teks, belum terintegrasi ke object storage (S3 / Supabase Storage).
 
 ---
@@ -463,9 +473,8 @@ npm run build
   npm run dev -- -p 3001
   ```
 
-#### 5. Error Seeding: Duplikasi Data atau Primary Key Violation
-* **Penyebab:** ID event sudah ada di database saat seeding dijalankan.
-* **Solusi:** Skrip [`scripts/seed.ts`](file:///c:/NEK/KULIAH/SEMESTER%207/Technopreneurship/Projects/eventhub/scripts/seed.ts) menggunakan sintaks `ON CONFLICT (id) DO UPDATE ...`, sehingga aman dijalankan kembali. Jika Anda ingin mengatur ulang dari tabel kosong, jalankan kueri SQL `TRUNCATE TABLE events;` sebelum menjalankan `npm run db:seed`.
+#### 5. Data event kosong setelah inisialisasi
+`npm run db:init` hanya membuat schema dan tidak memasukkan event awal. Event hanya dapat ditambahkan melalui dashboard admin setelah admin berhasil login.
 
 ---
 

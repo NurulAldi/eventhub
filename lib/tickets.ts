@@ -1,12 +1,14 @@
 import type { RegisteredEvent } from "@/types";
-import { userProfile } from "@/lib/mock-data";
 
-const ticketsKey = "eventhub_registered_tickets";
 const ticketChangeEvent = "eventhub-ticket-change";
 
-export function getRegisteredTickets(): RegisteredEvent[] {
+function getTicketsKey(userId: string): string {
+  return `eventhub_registered_tickets:${userId}`;
+}
+
+export function getRegisteredTickets(userId: string): RegisteredEvent[] {
   try {
-    const stored = localStorage.getItem(ticketsKey);
+    const stored = localStorage.getItem(getTicketsKey(userId));
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed)) return parsed as RegisteredEvent[];
@@ -15,27 +17,27 @@ export function getRegisteredTickets(): RegisteredEvent[] {
     console.error("Data tiket tersimpan tidak valid.");
   }
 
-  return userProfile.registeredEvents;
+  return [];
 }
 
-export function isEventRegistered(eventId: string): boolean {
-  return getRegisteredTickets().some((ticket) => ticket.eventId === eventId);
+export function isEventRegistered(userId: string, eventId: string): boolean {
+  return getRegisteredTickets(userId).some((ticket) => ticket.eventId === eventId);
 }
 
-export function addRegisteredTicket(ticket: RegisteredEvent): boolean {
-  const tickets = getRegisteredTickets();
+export function addRegisteredTicket(userId: string, ticket: RegisteredEvent): boolean {
+  const tickets = getRegisteredTickets(userId);
   if (tickets.some((item) => item.eventId === ticket.eventId)) return false;
 
-  localStorage.setItem(ticketsKey, JSON.stringify([ticket, ...tickets]));
+  localStorage.setItem(getTicketsKey(userId), JSON.stringify([ticket, ...tickets]));
   window.dispatchEvent(new Event(ticketChangeEvent));
   return true;
 }
 
-export function removeRegisteredTickets(eventIds: string[]) {
+export function removeRegisteredTickets(userId: string, eventIds: string[]) {
   if (eventIds.length === 0) return;
   const removedIds = new Set(eventIds);
-  const tickets = getRegisteredTickets().filter((ticket) => !removedIds.has(ticket.eventId));
-  localStorage.setItem(ticketsKey, JSON.stringify(tickets));
+  const tickets = getRegisteredTickets(userId).filter((ticket) => !removedIds.has(ticket.eventId));
+  localStorage.setItem(getTicketsKey(userId), JSON.stringify(tickets));
   window.dispatchEvent(new Event(ticketChangeEvent));
 }
 

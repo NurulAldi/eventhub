@@ -1,12 +1,14 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 export type UserRole = "guest" | "user" | "admin";
 
 export interface UserProfile {
+  id: string;
   name: string;
   email: string;
+  university?: string;
   nim?: string;
   role: UserRole;
   avatarText: string;
@@ -15,116 +17,57 @@ export interface UserProfile {
 interface AuthContextType {
   user: UserProfile | null;
   isLoggedIn: boolean;
-  loginAsUser: () => void;
-  loginAsAdmin: () => void;
-  logout: () => void;
-  setUserRole: (role: UserRole) => void;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<UserProfile>;
+  register: (data: { name: string; email: string; university: string; password: string }) => Promise<void>;
+  logout: () => Promise<void>;
 }
-
-const defaultUser: UserProfile = {
-  name: "Muhammad Fauzan",
-  email: "fauzan@mahasiswa.ac.id",
-  nim: "21081010001",
-  role: "user",
-  avatarText: "MF",
-};
-
-const defaultAdmin: UserProfile = {
-  name: "Admin BEM Kampus",
-  email: "admin.event@kampus.ac.id",
-  role: "admin",
-  avatarText: "AD",
-};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function readStoredRole(): UserRole {
-  const saved = localStorage.getItem("eventhub_auth_role");
-  if (saved === "admin" || saved === "guest" || saved === "user") {
-    return saved;
-  }
-  return "user";
-}
-
-interface AuthStore {
-  getSnapshot: () => UserRole;
-  getServerSnapshot: () => UserRole;
-  subscribe: (listener: () => void) => () => void;
-  hydrate: () => void;
-  setRole: (role: UserRole) => void;
-}
-
-function createAuthStore(): AuthStore {
-  let role: UserRole = "user";
-  let isReady = false;
-  const listeners = new Set<() => void>();
-  const notify = () => listeners.forEach((listener) => listener());
-
-  const loadStoredRole = () => {
-    role = readStoredRole();
-    isReady = true;
-    notify();
-  };
-
-  return {
-    getSnapshot: () => (isReady ? role : "user"),
-    getServerSnapshot: () => "user",
-    subscribe: (listener) => {
-      listeners.add(listener);
-      window.addEventListener("storage", loadStoredRole);
-      window.addEventListener("eventhub-auth-change", loadStoredRole);
-      return () => {
-        listeners.delete(listener);
-        window.removeEventListener("storage", loadStoredRole);
-        window.removeEventListener("eventhub-auth-change", loadStoredRole);
-      };
-    },
-    hydrate: loadStoredRole,
-    setRole: (nextRole) => {
-      localStorage.setItem("eventhub_auth_role", nextRole);
-      role = nextRole;
-      isReady = true;
-      notify();
-    },
-  };
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const store = useMemo(() => createAuthStore(), []);
-  const role = useSyncExternalStore(
-    store.subscribe,
-    store.getSnapshot,
-    store.getServerSnapshot
-  );
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    store.hydrate();
-  }, [store]);
-  const user = role === "user"
-    ? defaultUser
-    : role === "admin"
-      ? defaultAdmin
-      : null;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Sesi gagal diperiksa.");
+        const data = await response.json();
+        setUser(data.user ? { ...data.user, avatarText: data.user.name.slice(0, 2).toUpperCase() } : null);
+      })
+      .catch(() => setUser(null))
+      .finally(() => setIsLoading(false));
+  }, []);
 
-  const loginAsUser = () => {
-    store.setRole("user");
+  const login = async (email: string, password: string): Promise<UserProfile> => {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Login gagal.");
+    const profile = { ...data, avatarText: data.name.slice(0, 2).toUpperCase() } as UserProfile;
+    setUser(profile);
+    return profile;
   };
 
-  const loginAsAdmin = () => {
-    store.setRole("admin");
+  const register = async (data: { name: string; email: string; university: string; password: string }) => {
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Registrasi gagal.");
+    setUser({ ...result, avatarText: result.name.slice(0, 2).toUpperCase() });
   };
 
-  const logout = () => {
-    store.setRole("guest");
-  };
-
-  const setUserRole = (role: UserRole) => {
-    if (role === "admin") {
-      loginAsAdmin();
-    } else if (role === "user") {
-      loginAsUser();
-    } else {
-      logout();
-    }
+  const logout = async () => {
+    const response = await fetch("/api/auth/logout", { method: "POST" });
+    if (!response.ok) throw new Error("Logout gagal.");
+    setUser(null);
   };
 
   return (
@@ -132,10 +75,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         isLoggedIn: !!user,
-        loginAsUser,
-        loginAsAdmin,
+        isLoading,
+        login,
+        register,
         logout,
-        setUserRole,
       }}
     >
       {children}

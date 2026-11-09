@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getAllEvents, createEvent, EventFilters } from "@/lib/services/event-service";
+import { authErrorResponse, requireAdmin } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireAdmin();
     const body = await request.json();
 
     if (!body || typeof body !== "object") {
@@ -55,6 +57,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newEvent, { status: 201 });
   } catch (error) {
     console.error("[API_POST_EVENT_ERROR]:", error);
+    const authError = authErrorResponse(error);
+    if (authError) return NextResponse.json({ error: authError.error }, { status: authError.status });
 
     const errorMessage = error instanceof Error ? error.message : "Gagal menambahkan event.";
     const isValidationError =

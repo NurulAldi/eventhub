@@ -46,6 +46,22 @@ export interface CreateEventPayload {
   rejectionReason?: string;
 }
 
+export interface AdminStats {
+  totalUsers: number;
+}
+
+export async function apiGetAdminStats(): Promise<AdminStats> {
+  const response = await fetch("/api/admin/stats", {
+    method: "GET",
+    cache: "no-store",
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || `Gagal mengambil statistik admin (HTTP ${response.status})`);
+  }
+  return data;
+}
+
 /**
  * Mendapatkan base API URL dari env atau default ke relative URL
  */
