@@ -24,7 +24,7 @@ export default function Footer() {
               <span className="font-bold text-lg text-[#29374A]">EventHub Kampus</span>
             </Link>
             <p className="text-xs sm:text-sm text-[#6F7580] leading-relaxed">
-              Platform agregasi kegiatan dan informasi kampus untuk mempermudah mahasiswa Indonesia menemukan peluang terbaik.
+              Platform agregasi event kampus terlengkap untuk mempermudah mahasiswa Indonesia mencari info lomba, beasiswa, seminar, dan workshop.
             </p>
           </div>
 
@@ -40,13 +40,16 @@ export default function Footer() {
                   Beranda
                 </Link>
                 <Link href="/event" className="hover:text-[#315E9E] transition">
-                  Kegiatan
+                  Daftar Event
                 </Link>
                 <Link href="/kalender" className="hover:text-[#315E9E] transition">
-                  Kalender Kegiatan
+                  Kalender Event
                 </Link>
                 <Link href="/profil" className="hover:text-[#315E9E] transition">
                   Profil Saya
+                </Link>
+                <Link href="/dashboard" className="hover:text-[#315E9E] transition">
+                  Dashboard Admin
                 </Link>
               </nav>
             </div>
@@ -54,7 +57,7 @@ export default function Footer() {
             {/* Kategori Event */}
             <div className="flex flex-col gap-3">
               <span className="text-xs font-bold text-[#29374A] uppercase tracking-wider">
-                Kategori Kegiatan
+                Kategori Event
               </span>
               <div className="flex flex-col gap-2 text-xs sm:text-sm text-[#6F7580]">
                 <Link href="/event?category=lomba" className="hover:text-[#315E9E] transition">

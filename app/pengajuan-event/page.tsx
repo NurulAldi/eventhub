@@ -1,13 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { DragEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiCreateEvent, apiGetEventById, apiUpdateEvent } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { EventStatus } from "@/types";
+import { DescriptionBlock, EventStatus } from "@/types";
 import { saveSubmittedEvent } from "@/lib/submissions";
 
-const categories = ["Seminar", "Workshop", "Lomba", "Beasiswa", "Konser & Musik", "Olahraga", "Technopreneurship"];
+const categories = ["Seminar", "Workshop", "Lomba", "Beasiswa", "Konser & Musik", "Olahraga"];
 const organizerTypes = ["Individu", "Organisasi mahasiswa", "Unit kampus", "Perusahaan", "Komunitas"];
 const participantTargets = [
   "Mahasiswa umum",
@@ -16,6 +16,100 @@ const participantTargets = [
   "Pelajar dan mahasiswa",
   "Umum",
 ];
+const makeBlock = (type: DescriptionBlock["type"] = "paragraph", id = `block-${type}`): DescriptionBlock => ({
+  id,
+  type,
+  content: "",
+});
+const parseList = (value: string | string[] | undefined) => {
+  if (Array.isArray(value)) return value;
+  return value ? value.split("\n").map((item) => item.trim()).filter(Boolean) : [];
+};
+
+async function uploadImage(file: File): Promise<string> {
+  const body = new FormData();
+  body.append("file", file);
+  const response = await fetch("/api/uploads", { method: "POST", body });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Upload gambar gagal.");
+  return result.url;
+}
+
+function ImageUploadField({
+  value,
+  onChange,
+  onFileSelect,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onFileSelect?: (file: File | undefined) => void;
+  className?: string;
+}) {
+  const [selectedFile, setSelectedFile] = useState<File>();
+  const previewUrl = useMemo(() => selectedFile ? URL.createObjectURL(selectedFile) : "", [selectedFile]);
+
+  useEffect(() => {
+    if (previewUrl) return () => URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
+
+  const selectFile = (file: File) => {
+    setSelectedFile(file);
+    onChange("");
+    onFileSelect?.(file);
+  };
+
+  const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file) selectFile(file);
+  };
+
+  const preview = previewUrl || value;
+
+  return (
+    <div className={className}>
+      {preview ? (
+        <div className="relative overflow-hidden rounded-xl border border-[#D7E1EF] bg-[#F7F4EE] p-2">
+          <img src={preview} alt="Pratinjau gambar yang dipilih" className="max-h-64 w-full rounded-lg object-cover" />
+          <button
+            type="button"
+            aria-label="Hapus gambar"
+            title="Hapus gambar"
+            onClick={() => {
+              setSelectedFile(undefined);
+              onChange("");
+              onFileSelect?.(undefined);
+            }}
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-red-600 text-xl font-bold leading-none text-white shadow-lg transition hover:bg-red-700"
+          >
+            ×
+          </button>
+        </div>
+      ) : (
+        <label
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={handleDrop}
+          className="flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#B8C9E0] bg-[#F7F4EE] px-4 py-6 text-center transition hover:border-[#315E9E] hover:bg-[#F1F5FB]"
+        >
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="sr-only"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) selectFile(file);
+              event.target.value = "";
+            }}
+          />
+          <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#E5EDF8] text-xl text-[#315E9E]">↑</span>
+          <span className="text-sm font-bold text-[#29374A]">Pilih gambar atau drag & drop di sini</span>
+          <span className="mt-1 text-xs text-[#6F7580]">JPG, PNG, WEBP, GIF maksimal 5 MB</span>
+        </label>
+      )}
+    </div>
+  );
+}
 
 export default function EventSubmissionPage() {
   const router = useRouter();
@@ -23,12 +117,13 @@ export default function EventSubmissionPage() {
   const [form, setForm] = useState({
     organizer: user?.name || "",
     organizerType: "Organisasi mahasiswa",
-    organizerContact: "",
     institution: "",
     title: "",
     category: "Seminar",
     eventMode: "offline" as "online" | "offline",
     description: "",
+    image: "",
+    descriptionBlocks: [makeBlock()],
     purpose: "",
     targetParticipants: "Mahasiswa umum",
     speakers: "",
@@ -38,17 +133,18 @@ export default function EventSubmissionPage() {
     endTime: "",
     registrationDeadline: "",
     location: "",
-    registrationUrl: "",
     quota: "100",
     price: "0",
-    facilities: "",
-    requirements: "",
+    facilities: [] as string[],
+    requirements: [] as string[],
     contactPic: "",
   });
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [pendingImageFile, setPendingImageFile] = useState<File>();
+  const [pendingDescriptionFiles, setPendingDescriptionFiles] = useState<Record<string, File>>({});
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -66,11 +162,12 @@ export default function EventSubmissionPage() {
           organizer: event.organizer,
           organizerType: event.organizerType || current.organizerType,
           institution: event.institution || "",
-          organizerContact: event.organizerContact || "",
           title: event.title,
           category: event.category,
           eventMode: event.eventMode || "offline",
+          image: event.image || "",
           description: event.description,
+          descriptionBlocks: event.descriptionBlocks?.length ? event.descriptionBlocks : [{ ...makeBlock("paragraph", "legacy-description"), content: event.description }],
           purpose: event.purpose || "",
           targetParticipants: event.targetParticipants || "Mahasiswa umum",
           speakers: event.speakers || "",
@@ -80,11 +177,10 @@ export default function EventSubmissionPage() {
           endTime,
           registrationDeadline: event.registrationDeadline || "",
           location: event.location,
-          registrationUrl: event.registrationUrl || "",
           quota: String(event.quota || 100),
           price: String(event.price || 0),
-          facilities: event.facilities || "",
-          requirements: (event.requirements || []).join("\n"),
+          facilities: parseList(event.facilities),
+          requirements: event.requirements || [],
           contactPic: event.contactPic || "",
         }));
       }).catch((loadError) => {
@@ -97,6 +193,24 @@ export default function EventSubmissionPage() {
   const update = <K extends keyof typeof form>(field: K, value: typeof form[K]) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
+  const updateBlock = (id: string, changes: Partial<DescriptionBlock>) => {
+    update("descriptionBlocks", form.descriptionBlocks.map((block) => block.id === id ? { ...block, ...changes } as DescriptionBlock : block));
+  };
+  const removeBlock = (id: string) => update("descriptionBlocks", form.descriptionBlocks.filter((block) => block.id !== id));
+  const moveBlock = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= form.descriptionBlocks.length) return;
+    const blocks = [...form.descriptionBlocks];
+    [blocks[index], blocks[target]] = [blocks[target], blocks[index]];
+    update("descriptionBlocks", blocks);
+  };
+  const updateListItem = (field: "facilities" | "requirements", index: number, value: string) => {
+    const values = [...form[field]];
+    values[index] = value;
+    update(field, values);
+  };
+  const addListItem = (field: "facilities" | "requirements") => update(field, [...form[field], ""]);
+  const removeListItem = (field: "facilities" | "requirements", index: number) => update(field, form[field].filter((_, itemIndex) => itemIndex !== index));
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -106,10 +220,8 @@ export default function EventSubmissionPage() {
     const nextFieldErrors: Partial<Record<keyof typeof form, string>> = {};
     const requiredFields: Array<[keyof typeof form, string]> = [
       ["organizer", "Nama penyelenggara wajib diisi."],
-      ["organizerContact", "Nomor WhatsApp wajib diisi."],
       ["title", "Judul event wajib diisi."],
       ["targetParticipants", "Target peserta wajib dipilih."],
-      ["description", "Deskripsi event wajib diisi."],
       ["date", "Tanggal pelaksanaan wajib diisi."],
       ["durationDays", "Durasi event wajib diisi."],
       ["eventMode", "Mode event wajib dipilih."],
@@ -117,14 +229,16 @@ export default function EventSubmissionPage() {
       ["time", "Waktu mulai wajib diisi."],
       ["endTime", "Waktu selesai wajib diisi."],
       ["location", "Lokasi atau link online wajib diisi."],
-      ["registrationUrl", "Link pendaftaran wajib diisi."],
       ["contactPic", "Kontak panitia wajib diisi."],
     ];
     if (form.organizerType !== "Individu") {
       requiredFields.splice(2, 0, ["institution", "Institusi/organisasi wajib diisi."]);
     }
     for (const [field, message] of requiredFields) {
-      if (!form[field].trim()) nextFieldErrors[field] = message;
+      const value = form[field];
+      if ((typeof value === "string" && !value.trim()) || (Array.isArray(value) && value.length === 0)) {
+        nextFieldErrors[field] = message;
+      }
     }
 
     const showValidationError = (message: string) => {
@@ -138,10 +252,26 @@ export default function EventSubmissionPage() {
       return;
     }
 
-    if (form.description.trim().length < 30) {
-      nextFieldErrors.description = "Deskripsi event minimal 30 karakter.";
+    if (!form.image && !pendingImageFile) {
+      nextFieldErrors.image = "Sampul/gambar utama event wajib diisi.";
+      showValidationError(nextFieldErrors.image);
+      return;
+    }
+
+    const textContent = form.descriptionBlocks.filter((block) => block.type !== "image").map((block) => block.content.trim()).join(" ");
+    if (textContent.length < 30) {
+      nextFieldErrors.description = "Isi deskripsi teks minimal 30 karakter.";
       showValidationError(nextFieldErrors.description);
       return;
+    }
+    if (form.image && !pendingImageFile) {
+      try {
+        new URL(form.image);
+      } catch {
+        nextFieldErrors.image = "Masukkan URL gambar yang valid.";
+        showValidationError(nextFieldErrors.image);
+        return;
+      }
     }
     if (form.registrationDeadline >= form.date) {
       nextFieldErrors.registrationDeadline = "Deadline harus sebelum tanggal pelaksanaan.";
@@ -165,19 +295,22 @@ export default function EventSubmissionPage() {
       showValidationError(nextFieldErrors.date);
       return;
     }
-    try {
-      new URL(form.registrationUrl);
-    } catch {
-      nextFieldErrors.registrationUrl = "Masukkan URL yang valid.";
-      showValidationError(nextFieldErrors.registrationUrl);
-      return;
-    }
-
     setIsSubmitting(true);
     try {
+      const imageUrl = pendingImageFile ? await uploadImage(pendingImageFile) : form.image.trim();
+      const descriptionBlocks = await Promise.all(
+        form.descriptionBlocks
+          .filter((block) => block.content.trim() || pendingDescriptionFiles[block.id])
+          .map(async (block) => {
+            const file = pendingDescriptionFiles[block.id];
+            return file ? { ...block, content: await uploadImage(file) } : block;
+          })
+      );
       const payload: Parameters<typeof apiCreateEvent>[0] = {
         title: form.title,
-        description: form.description,
+        description: textContent,
+        descriptionBlocks,
+        image: imageUrl,
         date: form.date,
         durationDays: Number(form.durationDays),
         time: `${form.time} - ${form.endTime}`,
@@ -190,14 +323,12 @@ export default function EventSubmissionPage() {
         status: "pending_review" as EventStatus,
         organizerType: form.organizerType,
         institution: form.organizerType === "Individu" ? "" : form.institution.trim(),
-        organizerContact: form.organizerContact,
         registrationDeadline: form.registrationDeadline,
-        registrationUrl: form.registrationUrl,
         purpose: form.purpose,
         targetParticipants: form.targetParticipants,
         speakers: form.speakers,
-        facilities: form.facilities,
-        requirements: form.requirements.split("\n").map((item) => item.trim()).filter(Boolean),
+        facilities: form.facilities.map((item) => item.trim()).filter(Boolean),
+        requirements: form.requirements.map((item) => item.trim()).filter(Boolean),
         contactPic: form.contactPic,
       };
       const submittedEvent = editingEventId
@@ -247,12 +378,22 @@ export default function EventSubmissionPage() {
         </div>
       )}
       <form onSubmit={handleSubmit} noValidate className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 sm:p-8 flex flex-col gap-7">
+        <section className="flex flex-col gap-3">
+          <h2 className="font-bold text-[#29374A] border-b border-[#E4DCCF] pb-2">Sampul Event</h2>
+          <span>{requiredLabel("Sampul/gambar utama event")}</span>
+          <p className="text-xs text-[#6F7580]">Gunakan satu gambar terbaik sebagai identitas event. Gambar baru hanya disimpan setelah Anda menekan tombol kirim.</p>
+          <ImageUploadField
+            value={form.image}
+            onChange={(value) => update("image", value)}
+            onFileSelect={setPendingImageFile}
+          />
+          {fieldErrors.image && <span className="text-xs text-red-600">{fieldErrors.image}</span>}
+        </section>
         <section className="flex flex-col gap-4">
           <h2 className="font-bold text-[#29374A] border-b border-[#E4DCCF] pb-2">Identitas Penyelenggara</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             <label className="flex flex-col gap-1">{requiredLabel("Nama penyelenggara")}<input required value={form.organizer} onChange={(e) => update("organizer", e.target.value)} className={getFieldClass("organizer")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Jenis penyelenggara")}<select required value={form.organizerType} onChange={(e) => { const value = e.target.value; update("organizerType", value); if (value === "Individu") update("institution", ""); }} className={fieldClass}>{organizerTypes.map((type) => <option key={type}>{type}</option>)}</select></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Nomor WhatsApp")}<input required value={form.organizerContact} onChange={(e) => update("organizerContact", e.target.value)} className={getFieldClass("organizerContact")} /></label>
             {form.organizerType !== "Individu" && (
               <label className="flex flex-col gap-1">{requiredLabel("Institusi/organisasi")}<input required value={form.institution} onChange={(e) => update("institution", e.target.value)} className={getFieldClass("institution")} /></label>
             )}
@@ -265,7 +406,66 @@ export default function EventSubmissionPage() {
             <label className="flex flex-col gap-1">{requiredLabel("Kategori")}<select required value={form.category} onChange={(e) => update("category", e.target.value)} className={fieldClass}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
             <label className="flex flex-col gap-1">{requiredLabel("Mode event")}<select required value={form.eventMode} onChange={(e) => update("eventMode", e.target.value as "online" | "offline")} className={getFieldClass("eventMode")}><option value="offline">Offline</option><option value="online">Online</option></select></label>
             <label className="flex flex-col gap-1">{requiredLabel("Target peserta")}<select required value={form.targetParticipants} onChange={(e) => update("targetParticipants", e.target.value)} className={getFieldClass("targetParticipants")}>{participantTargets.map((target) => <option key={target}>{target}</option>)}</select></label>
-            <label className="sm:col-span-2 flex flex-col gap-1">{requiredLabel("Deskripsi lengkap")}<textarea required minLength={30} rows={4} value={form.description} onChange={(e) => update("description", e.target.value)} className={getFieldClass("description")} /></label>
+            <div className="sm:col-span-2 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  {requiredLabel("Deskripsi lengkap")}
+                  <p className="mt-1 text-xs font-normal text-[#6F7580]">Susun informasi event dengan judul, paragraf, dan gambar pendukung.</p>
+                </div>
+                <span className="rounded-full bg-[#E5EDF8] px-3 py-1 text-xs font-bold text-[#315E9E]">{form.descriptionBlocks.length}/10 blok</span>
+              </div>
+              <div className="rounded-xl border border-[#D7E1EF] bg-[#F8FAFD] p-3 sm:p-4">
+                <div className="mb-3 border-b border-[#D7E1EF] pb-3">
+                  <button
+                    type="button"
+                    disabled={form.descriptionBlocks.length >= 10}
+                    onClick={() => update("descriptionBlocks", [...form.descriptionBlocks, makeBlock("paragraph", `block-${Date.now()}`)])}
+                    className="rounded-lg border border-[#B8C9E0] bg-white px-4 py-2 text-xs font-bold text-[#315E9E] transition hover:border-[#315E9E] hover:bg-[#E5EDF8] disabled:opacity-40"
+                  >
+                    + Tambah Blok Konten
+                  </button>
+                </div>
+                <div className="flex flex-col gap-3">
+                {form.descriptionBlocks.map((block, index) => (
+                  <div key={block.id} className="rounded-xl border border-[#E4DCCF] bg-white p-3 shadow-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                      <select aria-label="Jenis blok deskripsi" value={block.type} onChange={(e) => updateBlock(block.id, { type: e.target.value as DescriptionBlock["type"] })} className="rounded-lg border border-[#E4DCCF] bg-[#F7F4EE] px-3 py-2 text-xs font-bold text-[#29374A]">
+                        <option value="paragraph">Paragraf</option>
+                        <option value="heading1">Heading 1</option>
+                        <option value="heading2">Heading 2</option>
+                        <option value="heading3">Heading 3</option>
+                        <option value="image">Gambar</option>
+                      </select>
+                      <div className="flex gap-1">
+                        <button type="button" aria-label="Pindahkan blok ke atas" title="Pindahkan ke atas" onClick={() => moveBlock(index, -1)} disabled={index === 0} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E4DCCF] text-lg leading-none text-[#6F7580] disabled:cursor-not-allowed disabled:opacity-40">↑</button>
+                        <button type="button" aria-label="Pindahkan blok ke bawah" title="Pindahkan ke bawah" onClick={() => moveBlock(index, 1)} disabled={index === form.descriptionBlocks.length - 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E4DCCF] text-lg leading-none text-[#6F7580] disabled:cursor-not-allowed disabled:opacity-40">↓</button>
+                        <button type="button" aria-label="Hapus blok" title="Hapus blok" onClick={() => removeBlock(block.id)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-50">
+                          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
+                            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7l1-3h4l1 3" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    {block.type === "image" ? (
+                      <ImageUploadField
+                        value={block.content}
+                        onChange={(value) => updateBlock(block.id, { content: value })}
+                        onFileSelect={(file) => setPendingDescriptionFiles((current) => {
+                          const next = { ...current };
+                          if (file) next[block.id] = file;
+                          else delete next[block.id];
+                          return next;
+                        })}
+                      />
+                    ) : (
+                      <textarea rows={block.type === "paragraph" ? 4 : 2} value={block.content} onChange={(e) => updateBlock(block.id, { content: e.target.value })} placeholder={block.type === "paragraph" ? "Jelaskan rangkaian, manfaat, atau informasi penting event..." : "Tulis judul bagian..."} className={`${fieldClass} resize-y`} />
+                    )}
+                  </div>
+                ))}
+                </div>
+              </div>
+              {fieldErrors.description && <span className="text-xs text-red-600">{fieldErrors.description}</span>}
+            </div>
             <label className="flex flex-col gap-1"><span className="text-xs font-bold text-[#29374A]">Tujuan event</span><textarea rows={3} value={form.purpose} onChange={(e) => update("purpose", e.target.value)} className={fieldClass} /></label>
             <label className="flex flex-col gap-1"><span className="text-xs font-bold text-[#29374A]">Narasumber/juri</span><textarea rows={3} value={form.speakers} onChange={(e) => update("speakers", e.target.value)} className={fieldClass} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Tanggal pelaksanaan")}<input required type="date" value={form.date} onChange={(e) => update("date", e.target.value)} className={getFieldClass("date")} /></label>
@@ -274,11 +474,20 @@ export default function EventSubmissionPage() {
             <label className="flex flex-col gap-1">{requiredLabel("Waktu mulai")}<input required type="time" value={form.time} onChange={(e) => update("time", e.target.value)} className={getFieldClass("time")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Waktu selesai")}<input required type="time" value={form.endTime} onChange={(e) => update("endTime", e.target.value)} className={getFieldClass("endTime")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel(form.eventMode === "online" ? "Link meeting online" : "Lokasi event")}<input required value={form.location} onChange={(e) => update("location", e.target.value)} placeholder={form.eventMode === "online" ? "https://..." : "Gedung atau ruangan"} className={getFieldClass("location")} /></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Link pendaftaran")}<input required type="url" value={form.registrationUrl} onChange={(e) => update("registrationUrl", e.target.value)} className={getFieldClass("registrationUrl")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Kapasitas peserta")}<input required type="number" min="1" value={form.quota} onChange={(e) => update("quota", e.target.value)} className={fieldClass} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Biaya pendaftaran")}<input required type="number" min="0" value={form.price} onChange={(e) => update("price", e.target.value)} className={fieldClass} /></label>
-            <label className="sm:col-span-2 flex flex-col gap-1"><span className="text-xs font-bold text-[#29374A]">Fasilitas/hadiah</span><textarea rows={2} value={form.facilities} onChange={(e) => update("facilities", e.target.value)} className={fieldClass} /></label>
-            <label className="sm:col-span-2 flex flex-col gap-1"><span className="text-xs font-bold text-[#29374A]">Syarat peserta</span><textarea rows={3} value={form.requirements} onChange={(e) => update("requirements", e.target.value)} placeholder="Satu syarat per baris" className={fieldClass} /></label>
+            {(["facilities", "requirements"] as const).map((field) => (
+              <div key={field} className="sm:col-span-2 flex flex-col gap-2">
+                <span className="text-xs font-bold text-[#29374A]">{field === "facilities" ? "Fasilitas/hadiah" : "Syarat peserta"}</span>
+                {form[field].map((item, index) => (
+                  <div key={`${field}-${index}`} className="flex gap-2">
+                    <input value={item} onChange={(e) => updateListItem(field, index, e.target.value)} placeholder={field === "facilities" ? "Contoh: E-sertifikat" : "Contoh: Mahasiswa aktif"} className={fieldClass} />
+                    <button type="button" onClick={() => removeListItem(field, index)} className="rounded-md border border-red-200 px-3 text-xs text-red-600">Hapus</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => addListItem(field)} className="self-start rounded-md border border-[#315E9E] px-3 py-2 text-xs font-bold text-[#315E9E]">+ Tambah {field === "facilities" ? "fasilitas/hadiah" : "syarat"}</button>
+              </div>
+            ))}
           </div>
         </section>
         <section className="flex flex-col gap-4">

@@ -178,6 +178,7 @@ export async function initSchema(): Promise<void> {
         id VARCHAR(64) PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
         description TEXT NOT NULL,
+        description_blocks JSONB NOT NULL DEFAULT '[]'::jsonb,
         date VARCHAR(64) NOT NULL,
         duration_days INTEGER NOT NULL DEFAULT 1 CHECK (duration_days >= 1),
         time VARCHAR(64),
@@ -211,6 +212,7 @@ export async function initSchema(): Promise<void> {
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_type VARCHAR(64);`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS institution VARCHAR(255);`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS duration_days INTEGER NOT NULL DEFAULT 1;`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS description_blocks JSONB NOT NULL DEFAULT '[]'::jsonb;`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_mode VARCHAR(16) NOT NULL DEFAULT 'offline';`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_contact VARCHAR(255);`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_deadline VARCHAR(64);`);
@@ -227,25 +229,6 @@ export async function initSchema(): Promise<void> {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_events_date ON events(date);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_events_is_popular ON events(is_popular);`);
-
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS information (
-        id VARCHAR(64) PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        description TEXT NOT NULL,
-        category VARCHAR(100) NOT NULL,
-        organizer VARCHAR(255) NOT NULL,
-        institution VARCHAR(255),
-        author_email VARCHAR(255),
-        image TEXT,
-        status VARCHAR(32) NOT NULL DEFAULT 'pending_review',
-        rejection_reason TEXT,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_information_status ON information(status);`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_information_category ON information(category);`);
 
     await client.query("COMMIT;");
   } catch (error) {

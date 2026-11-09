@@ -3,7 +3,7 @@
  * Menyediakan fungsi-fungsi konsisten untuk mengambil dan mengubah data melalui Backend REST API.
  */
 
-import { Event, EventCategory, EventStatus, Information } from "@/types";
+import { DescriptionBlock, Event, EventCategory, EventStatus } from "@/types";
 
 export interface EventQueryParams {
   category?: string;
@@ -25,6 +25,7 @@ export interface CreateEventPayload {
   eventMode?: "online" | "offline";
   category: EventCategory | string;
   image?: string;
+  descriptionBlocks?: DescriptionBlock[];
   price?: number;
   organizer: string;
   quota?: number;
@@ -41,7 +42,7 @@ export interface CreateEventPayload {
   purpose?: string;
   targetParticipants?: string;
   speakers?: string;
-  facilities?: string;
+  facilities?: string[];
   rejectionReason?: string;
 }
 
@@ -207,72 +208,4 @@ export async function apiDeleteEvent(id: string): Promise<void> {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || `Gagal menghapus event (HTTP ${response.status})`);
   }
-}
-
-export interface InformationPayload {
-    title: string;
-    description: string;
-    category: string;
-    organizer: string;
-    institution?: string;
-    authorEmail?: string;
-    image?: string;
-    status?: Information["status"];
-    rejectionReason?: string;
-  }
-
-async function informationRequest(path: string, init?: RequestInit): Promise<Response> {
-    const response = await fetch(`/api/information${path}`, {
-      ...init,
-      headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
-      cache: "no-store",
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || `Permintaan informasi gagal (HTTP ${response.status})`);
-    }
-    return response;
-  }
-
-export async function apiGetInformation(params: { search?: string; category?: string; status?: string; authorEmail?: string; role?: "user" | "admin" } = {}) {
-    const query = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => value && key !== "role" && query.set(key, value));
-    const response = await informationRequest(`?${query.toString()}`, {
-      headers: params.role ? { "x-user-role": params.role, ...(params.authorEmail ? { "x-user-email": params.authorEmail } : {}) } : undefined,
-    });
-    return response.json() as Promise<Information[]>;
-  }
-
-export async function apiGetInformationById(id: string) {
-    const response = await informationRequest(`/${encodeURIComponent(id)}`);
-    return response.json() as Promise<Information>;
-  }
-
-export async function apiCreateInformation(payload: InformationPayload, role: "user" | "admin") {
-    const response = await informationRequest("", {
-      method: "POST",
-      headers: { "x-user-role": role },
-      body: JSON.stringify(payload),
-    });
-    return response.json() as Promise<Information>;
-  }
-
-export async function apiUpdateInformation(
-    id: string,
-    payload: Partial<InformationPayload>,
-    role: "user" | "admin"
-  ) {
-    const response = await informationRequest(`/${encodeURIComponent(id)}`, {
-      method: "PATCH",
-      headers: { "x-user-role": role },
-      body: JSON.stringify(payload),
-    });
-    return response.json() as Promise<Information>;
-  }
-
-export async function apiDeleteInformation(id: string, role: "user" | "admin", authorEmail?: string) {
-    await informationRequest(`/${encodeURIComponent(id)}`, {
-      method: "DELETE",
-      headers: { "x-user-role": role, ...(authorEmail ? { "x-user-email": authorEmail } : {}) },
-    });
 }

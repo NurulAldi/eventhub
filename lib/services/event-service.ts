@@ -4,7 +4,7 @@
  */
 
 import { query, queryOne } from "@/lib/db";
-import { Event, EventCategory, EventStatus } from "@/types";
+import { DescriptionBlock, Event, EventCategory, EventStatus } from "@/types";
 
 export interface EventFilters {
   category?: string;
@@ -19,6 +19,7 @@ export interface CreateEventDTO {
   id?: string;
   title: string;
   description: string;
+  descriptionBlocks?: DescriptionBlock[];
   date: string;
   durationDays?: number;
   time?: string;
@@ -42,7 +43,7 @@ export interface CreateEventDTO {
   purpose?: string;
   targetParticipants?: string;
   speakers?: string;
-  facilities?: string;
+  facilities?: string[];
   rejectionReason?: string;
 }
 
@@ -50,6 +51,7 @@ export interface DatabaseEventRow {
   id: string;
   title: string;
   description: string;
+  description_blocks: unknown;
   date: string;
   duration_days?: number | null;
   time: string | null;
@@ -73,7 +75,7 @@ export interface DatabaseEventRow {
   purpose?: string | null;
   target_participants?: string | null;
   speakers?: string | null;
-  facilities?: string | null;
+  facilities?: unknown;
   rejection_reason?: string | null;
   activated_at?: string | null;
   created_at: string;
@@ -85,6 +87,10 @@ export interface DatabaseEventRow {
  */
 export function mapRowToEvent(row: DatabaseEventRow): Event {
   let parsedRequirements: string[] = [];
+  let parsedFacilities: string[] = [];
+  const parsedDescriptionBlocks = Array.isArray(row.description_blocks)
+    ? row.description_blocks as DescriptionBlock[]
+    : [];
   if (Array.isArray(row.requirements)) {
     parsedRequirements = row.requirements;
   } else if (typeof row.requirements === "string") {
@@ -94,11 +100,22 @@ export function mapRowToEvent(row: DatabaseEventRow): Event {
       parsedRequirements = [];
     }
   }
+  if (Array.isArray(row.facilities)) {
+    parsedFacilities = row.facilities;
+  } else if (typeof row.facilities === "string") {
+    try {
+      const parsed = JSON.parse(row.facilities);
+      parsedFacilities = Array.isArray(parsed) ? parsed : row.facilities.split("\n").map((item) => item.trim()).filter(Boolean);
+    } catch {
+      parsedFacilities = row.facilities.split("\n").map((item) => item.trim()).filter(Boolean);
+    }
+  }
 
   return {
     id: String(row.id),
     title: row.title,
     description: row.description,
+    descriptionBlocks: parsedDescriptionBlocks,
     date: row.date,
     durationDays: row.duration_days !== null && row.duration_days !== undefined ? Number(row.duration_days) : 1,
     time: row.time || undefined,
@@ -123,7 +140,7 @@ export function mapRowToEvent(row: DatabaseEventRow): Event {
     purpose: row.purpose || undefined,
     targetParticipants: row.target_participants || undefined,
     speakers: row.speakers || undefined,
-    facilities: row.facilities || undefined,
+    facilities: parsedFacilities,
     rejectionReason: row.rejection_reason || undefined,
   };
 }
@@ -180,6 +197,10 @@ export function validateEventInput(data: Partial<CreateEventDTO>, isUpdate = fal
 
   if (data.durationDays !== undefined && (!Number.isInteger(data.durationDays) || data.durationDays < 1)) {
     errors.push("Durasi event harus berupa jumlah hari minimal 1.");
+  }
+
+  if (data.descriptionBlocks !== undefined && data.descriptionBlocks.length > 10) {
+    errors.push("Deskripsi event maksimal terdiri dari 10 blok konten.");
   }
 
   return {
@@ -321,17 +342,17 @@ export async function createEvent(data: CreateEventDTO): Promise<Event> {
 
   const sql = `
     INSERT INTO events (
-      id, title, description, date, duration_days, time, location,
+      id, title, description, description_blocks, date, duration_days, time, location,
       event_mode,
       category, image, price, organizer, quota,
       registered_count, status, requirements, contact_pic, is_popular,
       organizer_type, institution, organizer_contact, registration_deadline, registration_url,
       purpose, target_participants, speakers, facilities, rejection_reason
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7,
-      $8, $9, $10, $11, $12, $13,
-      $14, $15, $16::jsonb, $17, $18,
-      $19, $20, $21, $22, $23, $24, $25, $26, $27, $28
+      $1, $2, $3, $4::jsonb, $5, $6, $7, $8,
+      $9, $10, $11, $12, $13, $14,
+      $15, $16, $17::jsonb, $18, $19,
+      $20, $21, $22, $23, $24, $25, $26, $27, $28, $29
     )
     RETURNING *;
   `;
@@ -340,6 +361,7 @@ export async function createEvent(data: CreateEventDTO): Promise<Event> {
     id,
     data.title.trim(),
     data.description.trim(),
+    JSON.stringify(data.descriptionBlocks || []),
     data.date.trim(),
     data.durationDays !== undefined ? Math.max(1, Math.floor(Number(data.durationDays))) : 1,
     data.time ? data.time.trim() : "09:00 - 13:00 WIB",
@@ -363,7 +385,7 @@ export async function createEvent(data: CreateEventDTO): Promise<Event> {
     data.purpose || null,
     data.targetParticipants || null,
     data.speakers || null,
-    data.facilities || null,
+    data.facilities ? JSON.stringify(data.facilities) : null,
     data.rejectionReason || null,
   ];
 
@@ -474,6 +496,11 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
     params.push(JSON.stringify(data.requirements));
   }
 
+  if (data.descriptionBlocks !== undefined) {
+    updates.push(`description_blocks = $${paramIndex++}::jsonb`);
+    params.push(JSON.stringify(data.descriptionBlocks));
+  }
+
   if (data.contactPic !== undefined) {
     updates.push(`contact_pic = $${paramIndex++}`);
     params.push(data.contactPic ? data.contactPic.trim() : null);
@@ -499,7 +526,7 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
   for (const [field, column] of optionalFields) {
     if (data[field] !== undefined) {
       updates.push(`${column} = $${paramIndex++}`);
-      params.push(data[field] || null);
+      params.push(field === "facilities" && Array.isArray(data[field]) ? JSON.stringify(data[field]) : data[field] || null);
     }
   }
 

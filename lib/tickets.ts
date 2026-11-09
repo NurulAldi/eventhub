@@ -31,14 +31,12 @@ export function addRegisteredTicket(ticket: RegisteredEvent): boolean {
   return true;
 }
 
-export function removeRegisteredTickets(eventIds: string[], notify = true) {
+export function removeRegisteredTickets(eventIds: string[]) {
   if (eventIds.length === 0) return;
   const removedIds = new Set(eventIds);
   const tickets = getRegisteredTickets().filter((ticket) => !removedIds.has(ticket.eventId));
   localStorage.setItem(ticketsKey, JSON.stringify(tickets));
-  if (notify) {
-    window.dispatchEvent(new Event(ticketChangeEvent));
-  }
+  window.dispatchEvent(new Event(ticketChangeEvent));
 }
 
 export function subscribeToTickets(listener: () => void) {

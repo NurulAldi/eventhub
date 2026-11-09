@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: "%s | EventHub Kampus",
     default: "EventHub Kampus - Platform Event & Kegiatan Kampus",
   },
-  description: "Temukan kegiatan dan informasi kampus terbaik untuk mahasiswa.",
+  description: "Temukan dan ikuti berbagai event, seminar, workshop, dan kompetisi kampus terbaik.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

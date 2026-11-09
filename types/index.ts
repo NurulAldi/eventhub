@@ -8,8 +8,7 @@ export type EventCategory =
   | "Lomba"
   | "Beasiswa"
   | "Konser & Musik"
-  | "Olahraga"
-  | "Technopreneurship";
+  | "Olahraga";
 
 export type EventStatus =
   | "active"
@@ -22,26 +21,9 @@ export type EventStatus =
   | "completed"
   | "cancelled";
 
-export type InformationStatus =
-  | "pending_review"
-  | "needs_revision"
-  | "published"
-  | "rejected";
-
-export interface Information {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  organizer: string;
-  institution?: string;
-  authorEmail?: string;
-  image?: string;
-  status: InformationStatus;
-  rejectionReason?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+export type DescriptionBlock =
+  | { id: string; type: "heading1" | "heading2" | "heading3" | "paragraph"; content: string }
+  | { id: string; type: "image"; content: string; alt?: string };
 
 export interface Event {
   id: string;
@@ -54,6 +36,7 @@ export interface Event {
   eventMode?: "online" | "offline";
   category: EventCategory | string;
   image: string;
+  descriptionBlocks?: DescriptionBlock[];
   price: number; // 0 for free events
   organizer: string;
   quota?: number;
@@ -71,7 +54,7 @@ export interface Event {
   purpose?: string;
   targetParticipants?: string;
   speakers?: string;
-  facilities?: string;
+  facilities?: string[];
   rejectionReason?: string;
 }
 

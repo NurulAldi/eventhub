@@ -58,8 +58,7 @@ export default function Navbar() {
 
   const navLinks = [
     { label: "Beranda", href: "/" },
-    { label: "Kegiatan", href: "/event" },
-    { label: "Informasi", href: "/informasi" },
+    { label: "Daftar Event", href: "/event" },
     { label: "Kalender", href: "/kalender" },
   ];
 

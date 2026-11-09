@@ -40,7 +40,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center py-12 px-6 bg-[#F7F4EE]">
-      <div className="w-full max-w-[480px] p-8 sm:p-10 bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl shadow-xs flex flex-col gap-6">
+      <div className="w-full max-w-[480px] p-8 sm:p-10 card-sand border rounded-xl shadow-sm flex flex-col gap-6">
         {/* Header - Matching login.html */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-extrabold text-[#29374A] tracking-tight">
