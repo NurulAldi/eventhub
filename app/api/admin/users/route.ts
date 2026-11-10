@@ -9,7 +9,7 @@ interface UserRow {
   name: string;
   email: string;
   university: string | null;
-  nim: string | null;
+  avatar_url: string | null;
   role: "user";
   is_active: boolean;
   created_at: Date | string;
@@ -29,7 +29,7 @@ export async function GET() {
          u.name, 
          u.email, 
          u.university, 
-         u.nim, 
+         u.avatar_url, 
          u.role, 
          u.is_active, 
          u.created_at, 
@@ -47,7 +47,7 @@ export async function GET() {
       name: row.name,
       email: row.email,
       university: row.university || null,
-      nim: row.nim || null,
+      avatarUrl: row.avatar_url || null,
       role: "user",
       isActive: Boolean(row.is_active),
       createdAt: typeof row.created_at === "string" ? row.created_at : row.created_at.toISOString(),

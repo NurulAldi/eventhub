@@ -43,7 +43,10 @@ web-eventhub/
 │   │   │   ├── route.ts                       # GET (filter & katalog event) dan POST (pengajuan event oleh user)
 │   │   │   └── [id]/route.ts                  # GET (detail), PATCH (update), POST (daftar tiket), DELETE (hapus event)
 │   │   │
-│   │   └── uploads/route.ts                   # POST: Mengunggah file poster/gambar event ke cloud storage
+│   │   ├── uploads/route.ts                   # POST: Mengunggah file poster/gambar event ke cloud storage
+│   │   │
+│   │   └── user/
+│   │       └── profile/route.ts               # PATCH: Memperbarui profil pengguna (foto avatar, nama lengkap, email, univ)
 │   │
 │   ├── dashboard/                             # Portal Administrasi Khusus Role Admin
 │   │   ├── layout.tsx                         # Proteksi rute admin server-side & pembungkus AdminSidebar
@@ -76,7 +79,6 @@ web-eventhub/
 │   ├── auth.ts                                # Keamanan: hashing password scrypt, cookie sesi HMAC, & guard role
 │   ├── db.ts                                  # Database pool PostgreSQL, query wrapper, & inisialisasi skema tabel
 │   ├── event-popularity.ts                    # Logika perhitungan badge popularitas event berdasarkan pendaftar
-│   ├── mock-data.ts                           # Data fixture awal untuk pengujian dan seeding database
 │   ├── notifications.ts                       # Helper penyimpanan preferensi alarm/reminder notifikasi event
 │   ├── submissions.ts                         # Helper penyimpanan lokal riwayat pengajuan event user
 │   ├── tickets.ts                             # Helper penyimpanan e-ticket lokal, pembersihan tiket, & barcode QR

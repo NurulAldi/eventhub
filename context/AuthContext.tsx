@@ -9,7 +9,7 @@ export interface UserProfile {
   name: string;
   email: string;
   university?: string;
-  nim?: string;
+  avatarUrl?: string | null;
   role: UserRole;
   avatarText: string;
 }
@@ -19,7 +19,8 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<UserProfile>;
-  register: (data: { name: string; email: string; university: string; password: string }) => Promise<void>;
+  register: (data: { name: string; email: string; university?: string; password: string }) => Promise<void>;
+  updateProfile: (data: { name: string; email: string; avatarUrl?: string | null; university?: string | null }) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -53,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return profile;
   };
 
-  const register = async (data: { name: string; email: string; university: string; password: string }) => {
+  const register = async (data: { name: string; email: string; university?: string; password: string }) => {
     const response = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -62,6 +63,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Registrasi gagal.");
     setUser({ ...result, avatarText: result.name.slice(0, 2).toUpperCase() });
+  };
+
+  const updateProfile = async (data: {
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+    university?: string | null;
+  }) => {
+    const response = await fetch("/api/user/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Gagal memperbarui profil.");
+    setUser({
+      ...result,
+      avatarText: result.name ? result.name.slice(0, 2).toUpperCase() : "U",
+    });
   };
 
   const logout = async () => {
@@ -78,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         register,
+        updateProfile,
         logout,
       }}
     >

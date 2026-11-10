@@ -89,39 +89,39 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* Email Mahasiswa */}
+          {/* Email */}
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="email"
               className="text-xs font-bold text-[#29374A] uppercase tracking-wide"
             >
-              Email Mahasiswa
+              Email
             </label>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="contoh@mahasiswa.ui.ac.id"
+              placeholder="nama@email.com"
               required
               className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition"
             />
           </div>
 
-          {/* Universitas */}
+          {/* Universitas / Instansi */}
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="university"
               className="text-xs font-bold text-[#29374A] uppercase tracking-wide"
             >
-              Universitas / Perguruan Tinggi
+              Universitas / Instansi
             </label>
             <input
               id="university"
               type="text"
               value={university}
               onChange={(e) => setUniversity(e.target.value)}
-              placeholder="Contoh: Universitas Negeri Padang"
+              placeholder="Contoh: Universitas Indonesia / PT Telkom"
               required
               className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition"
             />

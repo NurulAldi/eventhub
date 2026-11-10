@@ -180,6 +180,7 @@ export async function initSchema(): Promise<void> {
         email VARCHAR(255) NOT NULL UNIQUE,
         university VARCHAR(255),
         nim VARCHAR(64),
+        avatar_url TEXT,
         password_hash TEXT NOT NULL,
         role VARCHAR(16) NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
         is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -187,6 +188,7 @@ export async function initSchema(): Promise<void> {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;`);
     await client.query(`ALTER TABLE users ALTER COLUMN university DROP NOT NULL;`);
     await client.query(`UPDATE users SET university = NULL WHERE role = 'admin';`);
     await client.query(`

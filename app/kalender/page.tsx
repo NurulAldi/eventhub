@@ -1,28 +1,66 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { apiGetEvents } from "@/lib/api";
 import { Event } from "@/types";
 
-export default function CalendarPage() {
-  // Keep the initial render deterministic, then sync the calendar to the browser date.
+/** Returns days until a date string (YYYY-MM-DD), or null */
+function getDaysUntil(dateStr: string | undefined, todayTime: number | null): number | null {
+  if (!dateStr || !todayTime) return null;
+  const target = new Date(`${dateStr}T00:00:00`);
+  const diff = Math.ceil((target.getTime() - todayTime) / (1000 * 60 * 60 * 24));
+  return diff;
+}
+
+const CATEGORY_DOT_COLOR: Record<string, string> = {
+  Lomba: "bg-red-500",
+  Seminar: "bg-purple-500",
+  Beasiswa: "bg-green-500",
+  Workshop: "bg-yellow-500",
+  Organisasi: "bg-blue-500",
+};
+
+const CATEGORY_TEXT_COLOR: Record<string, string> = {
+  Lomba: "text-red-700",
+  Seminar: "text-purple-700",
+  Beasiswa: "text-green-700",
+  Workshop: "text-yellow-700",
+  Organisasi: "text-blue-700",
+};
+
+const CATEGORY_BADGE_COLOR: Record<string, string> = {
+  Lomba: "bg-red-100 text-red-700",
+  Seminar: "bg-purple-100 text-purple-700",
+  Beasiswa: "bg-green-100 text-green-700",
+  Workshop: "bg-orange-100 text-orange-700",
+  Organisasi: "bg-blue-100 text-blue-700",
+};
+
+function CalendarPageContent() {
   const [currentYear, setCurrentYear] = useState<number | null>(null);
   const [currentMonth, setCurrentMonth] = useState<number | null>(null);
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
+  const [todayISO, setTodayISO] = useState<string>("");
+  const [todayTime, setTodayTime] = useState<number | null>(null);
+  const [activeView, setActiveView] = useState<"bulan" | "minggu" | "agenda">("bulan");
 
-  // Dynamic events from database API
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const todayStr = [
       today.getFullYear(),
       String(today.getMonth() + 1).padStart(2, "0"),
       String(today.getDate()).padStart(2, "0"),
     ].join("-");
+
+    setTodayISO(todayStr);
+    setTodayTime(today.getTime());
+
     async function loadCalendarEvents() {
       setIsLoading(true);
       setError(null);
@@ -47,350 +85,459 @@ export default function CalendarPage() {
   }, []);
 
   const monthNames = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember",
   ];
 
   const daysOfWeek = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
-  // Navigation handlers
   const handlePrevMonth = () => {
     if (currentYear === null || currentMonth === null) return;
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear(currentYear - 1);
-    } else {
-      setCurrentMonth(currentMonth - 1);
-    }
+    if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1); }
+    else setCurrentMonth(currentMonth - 1);
   };
 
   const handleNextMonth = () => {
     if (currentYear === null || currentMonth === null) return;
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear(currentYear + 1);
-    } else {
-      setCurrentMonth(currentMonth + 1);
-    }
+    if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(currentYear + 1); }
+    else setCurrentMonth(currentMonth + 1);
   };
 
-  // Calculate days in the current month
-  const firstDayOfMonth = currentYear === null || currentMonth === null
-    ? 0
-    : new Date(currentYear, currentMonth, 1).getDay();
-  const totalDays = currentYear === null || currentMonth === null
-    ? 0
-    : new Date(currentYear, currentMonth + 1, 0).getDate();
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentYear(today.getFullYear());
+    setCurrentMonth(today.getMonth());
+    setSelectedDateStr([
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0"),
+    ].join("-"));
+  };
 
-  // Create grid cells: leading blanks + days of month
+  const firstDayOfMonth = currentYear === null || currentMonth === null
+    ? 0 : new Date(currentYear, currentMonth, 1).getDay();
+  const totalDays = currentYear === null || currentMonth === null
+    ? 0 : new Date(currentYear, currentMonth + 1, 0).getDate();
+
   const daysArray = Array.from({ length: totalDays }, (_, i) => i + 1);
   const leadingBlanks = Array.from({ length: firstDayOfMonth }, (_, i) => i);
 
-  // Helper to format ISO date string: YYYY-MM-DD
   const formatISO = (day: number) => {
     const m = String((currentMonth ?? 0) + 1).padStart(2, "0");
     const d = String(day).padStart(2, "0");
     return `${currentYear ?? 0}-${m}-${d}`;
   };
 
-  // Get events on a specific date
-  const getEventsForDate = (dateStr: string): Event[] => {
-    return events.filter((e) => e.date === dateStr);
-  };
+  const getEventsForDate = (dateStr: string): Event[] =>
+    events.filter((e) => e.date === dateStr);
 
-  // Events on the currently selected date
   const selectedDayEvents = selectedDateStr ? getEventsForDate(selectedDateStr) : [];
 
-  // Formatted date label for selected date
   const [selectedYear, selectedMonth, selectedDay] = (selectedDateStr || "").split("-").map(Number);
   const selectedDateFormatted = selectedDateStr
     ? new Date(selectedYear, selectedMonth - 1, selectedDay).toLocaleDateString("id-ID", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    })
+        weekday: "long", day: "numeric", month: "long", year: "numeric",
+      })
     : "Tanggal belum dipilih";
+
+  // Deadline events sorted
+  const deadlineEvents = [...events]
+    .filter((e) => e.registrationDeadline)
+    .sort((a, b) => (a.registrationDeadline ?? "").localeCompare(b.registrationDeadline ?? ""))
+    .slice(0, 5);
+
+  // First event on selected date (for detail panel)
+  const detailEvent = selectedDayEvents[0] ?? null;
 
   if (isLoading) {
     return (
-      <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8">
-        <div className="animate-pulse">
-          <div className="h-8 w-64 rounded bg-[#E4DCCF]" />
-          <div className="mt-2 h-4 w-96 max-w-full rounded bg-[#F0E9DC]" />
-        </div>
-        <div className="flex flex-col lg:flex-row items-start gap-8 animate-pulse">
-          <div className="flex-1 w-full h-[620px] rounded-xl bg-[#F0E9DC] border border-[#E4DCCF]" />
-          <div className="w-full lg:w-96 h-80 rounded-xl bg-[#F0E9DC] border border-[#E4DCCF]" />
+      <div className="bg-gray-50 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 w-48 bg-gray-200 rounded" />
+            <div className="h-4 w-72 bg-gray-200 rounded" />
+            <div className="flex gap-6 mt-6">
+              <div className="flex-1 h-[560px] bg-gray-200 rounded-xl" />
+              <div className="w-72 h-[560px] bg-gray-200 rounded-xl" />
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-[#29374A] tracking-tight">
-          Kalender Event Kampus
-        </h1>
-        <p className="text-xs sm:text-sm text-[#6F7580] mt-1">
-          Pantau seluruh jadwal kegiatan, workshop, lomba, dan seminar berdasarkan tanggal pelaksanaan
-        </p>
-      </div>
+    <div className="bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
 
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center justify-between">
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="text-xs font-bold underline cursor-pointer"
-          >
-            Coba Lagi
-          </button>
+        {/* Page Header + Banner Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-2">
+            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Kalender Event</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Temukan dan ikuti berbagai lomba, seminar, beasiswa, dan workshop mahasiswa.
+            </p>
+          </div>
+          {/* Promo Banner */}
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-blue-700 flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2"/>
+                <path d="M16 2v4M8 2v4M3 10h18" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-blue-900">Jangan lewatkan kesempatan berharga untuk mengembangkan potensi dirimu!</p>
+              <p className="text-xs text-blue-600 mt-0.5">Simpan tanggal penting dan ikuti event favoritmu.</p>
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* Main 2-Column Grid matching kalender-event.html */}
-      <div className="flex flex-col lg:flex-row items-start gap-8">
-        {/* Left Column: Calendar Grid Box */}
-        <div className="flex-1 w-full card-royal border rounded-xl p-5 sm:p-6 shadow-sm flex flex-col gap-6">
-          {/* Calendar Header Controls */}
-          <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-4">
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl sm:text-2xl font-extrabold text-[#29374A]">
-                {currentMonth === null || currentYear === null
-                  ? "Kalender"
-                  : `${monthNames[currentMonth]} ${currentYear}`}
-              </h2>
-              <div className="flex items-center gap-1 bg-[#F0E9DC] p-1 rounded-md border border-[#E4DCCF]">
-                <button
-                  type="button"
-                  onClick={handlePrevMonth}
-                  className="p-1 text-[#6F7580] hover:text-[#29374A] hover:bg-[#FFFCF6] rounded transition cursor-pointer"
-                  aria-label="Bulan Sebelumnya"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNextMonth}
-                  className="p-1 text-[#6F7580] hover:text-[#29374A] hover:bg-[#FFFCF6] rounded transition cursor-pointer"
-                  aria-label="Bulan Berikutnya"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center justify-between">
+            <span>{error}</span>
+            <button type="button" onClick={() => window.location.reload()} className="text-xs font-bold underline cursor-pointer">
+              Coba Lagi
+            </button>
+          </div>
+        )}
+
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Calendar Column */}
+          <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            {/* Calendar Controls */}
+            <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center gap-3 justify-between">
+              <div className="flex items-center gap-3">
+                {/* Prev/Next */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={handlePrevMonth}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-700 transition cursor-pointer"
+                    aria-label="Bulan Sebelumnya"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextMonth}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-700 transition cursor-pointer"
+                    aria-label="Bulan Berikutnya"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {currentMonth !== null && currentYear !== null
+                    ? `${monthNames[currentMonth]} ${currentYear}`
+                    : "Kalender"}
+                  {" "}
+                  <span className="text-gray-400">▼</span>
+                </h2>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* View Tabs */}
+                <div className="flex items-center bg-gray-100 rounded-lg p-1 text-sm">
+                  {(["bulan", "minggu", "agenda"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setActiveView(v)}
+                      className={`px-3 py-1 rounded-md font-medium transition cursor-pointer capitalize ${
+                        activeView === v ? "bg-blue-700 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      {v.charAt(0).toUpperCase() + v.slice(1)}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Legend */}
+                <div className="hidden sm:flex items-center gap-3 text-xs text-gray-600">
+                  {Object.entries(CATEGORY_DOT_COLOR).slice(0, 4).map(([cat, dotClass]) => (
+                    <span key={cat} className="flex items-center gap-1">
+                      <span className={`w-2.5 h-2.5 rounded-full ${dotClass}`} />
+                      {cat}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                const today = new Date();
-                setCurrentYear(today.getFullYear());
-                setCurrentMonth(today.getMonth());
-                setSelectedDateStr([
-                  today.getFullYear(),
-                  String(today.getMonth() + 1).padStart(2, "0"),
-                  String(today.getDate()).padStart(2, "0"),
-                ].join("-"));
-              }}
-              className="text-xs font-semibold px-3 py-1.5 bg-[#F0E9DC] hover:bg-[#E4DCCF] text-[#29374A] rounded-md transition cursor-pointer"
-            >
-              Hari Ini
-            </button>
-          </div>
-
-          {/* Days of Week Header */}
-          <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-[#6F7580] uppercase tracking-wider">
-            {daysOfWeek.map((day, idx) => (
-              <div key={day} className={`py-1 ${idx === 0 ? "text-red-500" : ""}`}>
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Day Cells Grid */}
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
-            {/* Blank cells for padding */}
-            {leadingBlanks.map((blank) => (
-              <div key={`blank-${blank}`} className="h-20 sm:h-24 bg-[#F7F4EE]/50 rounded-md border border-transparent" />
-            ))}
-
-            {/* Days in current month */}
-            {daysArray.map((day) => {
-              const dateStr = formatISO(day);
-              const dayEvents = getEventsForDate(dateStr);
-              const isSelected = selectedDateStr === dateStr;
-              const hasEvents = dayEvents.length > 0;
-
-              return (
+            {/* Days of Week Header */}
+            <div className="grid grid-cols-7 border-b border-gray-100">
+              {daysOfWeek.map((day, idx) => (
                 <div
                   key={day}
-                  onClick={() => setSelectedDateStr(dateStr)}
-                  className={`h-20 sm:h-24 p-2 rounded-md border transition-all cursor-pointer flex flex-col justify-between ${
-                    isSelected
-                      ? "border-[#244777] bg-[#F0E9DC]/90 ring-2 ring-[#244777]"
-                      : hasEvents
-                      ? "border-[#B9B2A7] bg-[#FFFCF6] hover:border-[#244777] hover:shadow-xs"
-                      : "border-[#E4DCCF] bg-[#FFFCF6] hover:border-[#E4DCCF]"
+                  className={`py-2.5 text-center text-xs font-semibold uppercase tracking-wider ${
+                    idx === 0 ? "text-red-500" : "text-gray-500"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Grid */}
+            <div className="grid grid-cols-7">
+              {/* Leading blanks (prev month days) */}
+              {leadingBlanks.map((blank) => (
+                <div
+                  key={`blank-${blank}`}
+                  className="min-h-[90px] border-b border-r border-gray-50 bg-gray-50/50 p-2"
+                >
+                  {/* Show prev month day number dimmed */}
+                </div>
+              ))}
+
+              {/* Days in current month */}
+              {daysArray.map((day, idx) => {
+                const dateStr = formatISO(day);
+                const dayEvents = getEventsForDate(dateStr);
+                const isSelected = selectedDateStr === dateStr;
+                const isToday = dateStr === todayISO;
+                const hasEvents = dayEvents.length > 0;
+                const isLastRow = idx >= daysArray.length - 7;
+                const colIdx = (leadingBlanks.length + idx) % 7;
+
+                return (
+                  <div
+                    key={day}
+                    onClick={() => setSelectedDateStr(dateStr)}
+                    className={`min-h-[90px] border-r border-b border-gray-100 p-2 cursor-pointer transition-colors flex flex-col ${
+                      isSelected
+                        ? "bg-blue-50 ring-2 ring-inset ring-blue-500"
+                        : hasEvents
+                        ? "hover:bg-gray-50"
+                        : "hover:bg-gray-50"
+                    } ${isLastRow ? "border-b-0" : ""} ${colIdx === 6 ? "border-r-0" : ""}`}
+                  >
+                    {/* Day Number */}
                     <span
-                      className={`text-xs font-bold ${
-                        isSelected ? "text-[#29374A]" : hasEvents ? "text-[#29374A]" : "text-[#6F7580]"
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold mb-1 ${
+                        isToday
+                          ? "bg-blue-700 text-white"
+                          : isSelected
+                          ? "text-blue-700 font-bold"
+                          : colIdx === 0
+                          ? "text-red-500"
+                          : "text-gray-700"
                       }`}
                     >
                       {day}
                     </span>
+
+                    {/* Event dots + labels */}
                     {hasEvents && (
-                      <span className="w-2 h-2 rounded-full bg-[#315E9E] inline-block" />
+                      <div className="flex flex-col gap-0.5 overflow-hidden">
+                        {dayEvents.slice(0, 2).map((evt) => {
+                          const dotClass = CATEGORY_DOT_COLOR[evt.category] ?? "bg-gray-400";
+                          const textClass = CATEGORY_TEXT_COLOR[evt.category] ?? "text-gray-600";
+                          return (
+                            <div
+                              key={evt.id}
+                              className={`flex items-center gap-1 text-[10px] font-medium truncate ${textClass}`}
+                              title={evt.title}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
+                              <span className="truncate">{evt.title}</span>
+                            </div>
+                          );
+                        })}
+                        {dayEvents.length > 2 && (
+                          <span className="text-[10px] text-gray-400 font-medium">
+                            +{dayEvents.length - 2} lagi
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right Sidebar */}
+          <div className="flex flex-col gap-4">
+            {/* Deadline Terdekat */}
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" strokeWidth="2"/>
+                    <path d="M12 7v5l3 3" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  <h3 className="font-bold text-gray-900">Deadline Terdekat</h3>
+                </div>
+                <Link href="/event?sortBy=deadline-terdekat" className="text-xs font-semibold text-blue-700 hover:text-blue-800 transition">
+                  Lihat Semua →
+                </Link>
+              </div>
+
+              {deadlineEvents.length > 0 ? (
+                <div className="flex flex-col divide-y divide-gray-100">
+                  {deadlineEvents.map((evt) => {
+                    const daysLeft = getDaysUntil(evt.registrationDeadline, todayTime);
+                    const deadlineDate = evt.registrationDeadline
+                      ? new Date(`${evt.registrationDeadline}T00:00:00`)
+                      : null;
+                    const dayNum = deadlineDate
+                      ? deadlineDate.toLocaleDateString("id-ID", { day: "numeric" })
+                      : "--";
+                    const monthAbbr = deadlineDate
+                      ? deadlineDate.toLocaleDateString("id-ID", { month: "short" })
+                      : "";
+
+                    return (
+                      <Link
+                        key={evt.id}
+                        href={`/event/${evt.id}`}
+                        className="flex items-start gap-3 py-3 hover:bg-gray-50 rounded-lg px-1 transition group"
+                      >
+                        {/* Date Block */}
+                        <div className="w-11 shrink-0 flex flex-col items-center justify-center bg-amber-50 border border-amber-200 rounded-lg py-1.5 text-center">
+                          <span className="text-base font-extrabold text-amber-700 leading-none">{dayNum}</span>
+                          <span className="text-[9px] font-semibold text-amber-600 uppercase">{monthAbbr}</span>
+                        </div>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-700 transition leading-tight">
+                            {evt.title}
+                          </p>
+                          <p className="text-[11px] text-gray-500 truncate mt-0.5">{evt.organizer}</p>
+                          {daysLeft !== null && daysLeft > 0 && (
+                            <span className="mt-1 inline-block px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold">
+                              {daysLeft} hari lagi
+                            </span>
+                          )}
+                          {daysLeft !== null && daysLeft <= 0 && (
+                            <span className="mt-1 inline-block px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold">
+                              Sudah tutup
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 text-center py-6">Tidak ada deadline mendatang.</p>
+              )}
+            </div>
+
+            {/* Detail Event Panel */}
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-gray-900 text-sm">Detail Event</h3>
+                {detailEvent && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-50 text-green-700 text-[11px] font-semibold border border-green-100">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Terverifikasi
+                  </span>
+                )}
+              </div>
+
+              {selectedDayEvents.length > 0 && detailEvent ? (
+                <div>
+                  <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${CATEGORY_BADGE_COLOR[detailEvent.category] ?? "bg-gray-100 text-gray-700"}`}>
+                    {detailEvent.category}
+                  </span>
+                  <h4 className="mt-2 text-base font-bold text-gray-900 leading-snug">
+                    {detailEvent.title}
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-1">{detailEvent.organizer}</p>
+
+                  <div className="mt-3 space-y-2 text-xs text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2"/>
+                        <path d="M16 2v4M8 2v4M3 10h18" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                      <span>
+                        {new Date(detailEvent.date).toLocaleDateString("id-ID", {
+                          weekday: "long", day: "numeric", month: "long", year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                    {detailEvent.registrationDeadline && (
+                      <div className="flex items-center gap-2">
+                        <svg className="w-3.5 h-3.5 text-orange-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="9" strokeWidth="2"/>
+                          <path d="M12 7v5l3 3" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                        <span>
+                          Deadline pendaftaran:{" "}
+                          <strong className="text-orange-600">
+                            {new Date(`${detailEvent.registrationDeadline}T00:00:00`).toLocaleDateString("id-ID", {
+                              day: "numeric", month: "long", year: "numeric",
+                            })}
+                          </strong>
+                        </span>
+                      </div>
                     )}
                   </div>
 
-                  {/* Event Badges preview on date cell */}
-                  {hasEvents && (
-                    <div className="flex flex-col gap-1 overflow-hidden">
-                      {dayEvents.slice(0, 1).map((evt) => (
-                        <div
-                          key={evt.id}
-                          className="text-[10px] truncate px-1.5 py-0.5 rounded bg-[#315E9E] text-white font-medium"
-                          title={evt.title}
-                        >
-                          {evt.title}
-                        </div>
-                      ))}
-                      {dayEvents.length > 1 && (
-                        <span className="text-[9px] text-[#6F7580] font-bold">
-                          +{dayEvents.length - 1} event lagi
-                        </span>
-                      )}
-                    </div>
+                  <Link
+                    href={`/event/${detailEvent.id}`}
+                    className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-lg hover:bg-blue-800 transition"
+                  >
+                    Lihat Detail
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+
+                  {selectedDayEvents.length > 1 && (
+                    <p className="mt-2 text-center text-xs text-gray-500">
+                      +{selectedDayEvents.length - 1} event lain pada tanggal ini
+                    </p>
                   )}
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center gap-4 text-xs text-[#6F7580] pt-2 border-t border-[#ECE5DA]">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#315E9E]" />
-              <span>Ada Kegiatan Kampus</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded border-2 border-[#244777] bg-[#F0E9DC]" />
-              <span>Tanggal Terpilih</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Sidebar Event Pada Tanggal Terpilih */}
-        <aside className="w-full lg:w-96 card-sand border rounded-xl p-6 shadow-sm flex flex-col gap-5 shrink-0">
-          <div className="border-b border-[#E4DCCF] pb-3 flex flex-col gap-1">
-            <span className="text-[11px] font-bold text-[#92959C] uppercase tracking-wider">
-              EVENT PADA TANGGAL INI
-            </span>
-            <h3 className="text-base sm:text-lg font-bold text-[#29374A] capitalize">
-              {selectedDateFormatted}
-            </h3>
-          </div>
-
-          {/* List of events on this date */}
-          {isLoading ? (
-            <div className="p-8 text-center text-xs text-[#92959C] animate-pulse">
-              Memuat event kalender...
-            </div>
-          ) : selectedDayEvents.length > 0 ? (
-            <div className="flex flex-col gap-4">
-              {selectedDayEvents.map((evt) => (
-                <div
-                  key={evt.id}
-                  className="p-4 bg-[#F7F4EE] border border-[#E4DCCF] rounded-lg flex flex-col gap-3 hover:border-[#92959C] transition"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#FFFCF6] border border-[#E4DCCF] text-[#29374A]">
-                      {evt.category}
-                    </span>
-                    <span className="text-xs font-bold text-emerald-700">
-                      {evt.price === 0 ? "Gratis" : `Rp ${evt.price.toLocaleString("id-ID")}`}
-                    </span>
-                  </div>
-
-                  <h4 className="text-sm font-bold text-[#29374A] line-clamp-2">
-                    {evt.title}
-                  </h4>
-
-                  <div className="flex flex-col gap-1 text-xs text-[#6F7580] pt-2 border-t border-[#E4DCCF]">
-                    <div className="flex items-center gap-1.5">
-                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l2.5 2.5" /></svg>
-                      <span>{evt.time || "Waktu belum ditentukan"}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2" /></svg>
-                      <span className="truncate">{evt.location}</span>
-                    </div>
-                  </div>
-
-                  <Link
-                    href={`/event/${evt.id}`}
-                    className="mt-1 w-full py-2 bg-[#315E9E] text-white text-xs font-bold rounded-md hover:bg-[#244777] text-center transition block"
-                  >
-                    Detail Event &rarr;
-                  </Link>
+              ) : (
+                <div className="text-center py-6 flex flex-col items-center gap-2">
+                  <svg className="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="1.5"/>
+                    <path d="M16 2v4M8 2v4M3 10h18" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                  <p className="text-sm text-gray-500 font-medium">{selectedDateFormatted}</p>
+                  <p className="text-xs text-gray-400">Tidak ada event pada tanggal ini.<br/>Pilih tanggal lain di kalender.</p>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-8 text-center flex flex-col items-center gap-3 bg-[#F7F4EE] border border-dashed border-[#E4DCCF] rounded-lg">
-              <svg className="h-8 w-8 text-[#6D95CC]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16" /></svg>
-              <p className="text-xs text-[#6F7580]">
-                Tidak ada event yang terjadwal pada tanggal ini.
-              </p>
-            </div>
-          )}
-
-          {/* Quick List: Agenda Mendatang Bulan Ini */}
-          <div className="pt-4 border-t border-[#E4DCCF] flex flex-col gap-3">
-            <span className="text-xs font-bold text-[#29374A]">Agenda Lainnya di Bulan Ini:</span>
-            <div className="flex flex-col gap-2">
-              {events.slice(0, 3).map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedDateStr(item.date)}
-                  className="p-2.5 rounded-md hover:bg-[#F0E9DC] transition cursor-pointer flex items-center justify-between text-xs"
-                >
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-[#29374A] line-clamp-1">{item.title}</span>
-                    <span className="text-[11px] text-[#92959C]">{item.date}</span>
-                  </div>
-                  <span className="text-[11px] font-bold text-[#6F7580] shrink-0 ml-2">
-                    {item.category}
-                  </span>
-                </div>
-              ))}
-              {events.length === 0 && (
-                <span className="text-xs text-[#92959C]">Belum ada event terdaftar.</span>
               )}
             </div>
           </div>
-        </aside>
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-gray-50 min-h-screen">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="animate-pulse space-y-4">
+              <div className="h-8 w-48 bg-gray-200 rounded" />
+              <div className="h-4 w-72 bg-gray-200 rounded" />
+              <div className="flex gap-6 mt-6">
+                <div className="flex-1 h-[560px] bg-gray-200 rounded-xl" />
+                <div className="w-72 h-[560px] bg-gray-200 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <CalendarPageContent />
+    </Suspense>
   );
 }

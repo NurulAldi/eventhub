@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Event } from "@/types";
@@ -8,32 +11,46 @@ interface EventCardProps {
   showPrice?: boolean;
 }
 
-export default function EventCard({ event, showPrice = true }: EventCardProps) {
-  const popularityLabel = getPopularityLabel(event);
-  const categoryBadgeClass = {
-    Seminar: "bg-[#DBE8F8] text-[#244777]",
-    Lomba: "bg-[#FBE2D8] text-[#9A4F3A]",
-    Beasiswa: "bg-[#DDF2E8] text-[#246746]",
-  }[event.category] ?? "bg-[#E5ECF5] text-[#315E9E]";
-  // Format price display
-  const priceDisplay =
-    event.price === 0
-      ? "Gratis"
-      : `Rp ${event.price.toLocaleString("id-ID")}`;
+const CATEGORY_COLORS: Record<string, string> = {
+  Seminar: "bg-purple-100 text-purple-700",
+  Lomba: "bg-red-100 text-red-700",
+  Beasiswa: "bg-green-100 text-green-700",
+  Workshop: "bg-orange-100 text-orange-700",
+  Organisasi: "bg-blue-100 text-blue-700",
+};
 
-  // Format date display
+export default function EventCard({ event, showPrice = true }: EventCardProps) {
+  const [deadlineDays, setDeadlineDays] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!event.registrationDeadline) return;
+    const target = new Date(`${event.registrationDeadline}T00:00:00`);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    setDeadlineDays(diff);
+  }, [event.registrationDeadline]);
+
+  const popularityLabel = getPopularityLabel(event);
+  const categoryColorClass = CATEGORY_COLORS[event.category] ?? "bg-gray-100 text-gray-700";
+
+  const priceDisplay = event.price === 0
+    ? "Gratis"
+    : `Rp ${event.price.toLocaleString("id-ID")}`;
+
   const formattedDate = new Date(event.date).toLocaleDateString("id-ID", {
-    weekday: "short",
     day: "numeric",
     month: "short",
     year: "numeric",
   });
 
+  const isClosed = event.status === "completed" || event.status === "cancelled";
+
   return (
-    <div className="group card-royal border rounded-xl shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-lg hover:shadow-[#244777]/15 hover:-translate-y-1 transition-all duration-300">
+    <div className="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <Link href={`/event/${event.id}`} className="block flex-1 flex flex-col">
-        {/* Poster Image with next/image */}
-        <div className="relative w-full h-44 bg-[#EAE2D4] overflow-hidden">
+        {/* Poster Image */}
+        <div className="relative w-full h-40 bg-gray-100 overflow-hidden shrink-0">
           <Image
             src={event.image}
             alt={event.title}
@@ -41,65 +58,93 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
-          {(event.status === "completed" || event.status === "cancelled") && (
-            <span className="absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-md bg-[#6F7580] text-white shadow-xs">
-              Ditutup
-            </span>
-          )}
-          {showPrice && (
-            <span
-              className={`absolute top-3 right-3 text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xs ${
-                event.price === 0
-                  ? "bg-[#2F8A62] text-white"
-                  : "bg-[#244777] text-white"
-              }`}
-            >
-              {priceDisplay}
+          {/* Badges on image */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {!isClosed && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/90 backdrop-blur-sm text-green-700 text-[11px] font-semibold shadow-sm border border-green-100">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Terverifikasi
+              </span>
+            )}
+            {isClosed && (
+              <span className="px-2 py-0.5 rounded-md bg-gray-800/80 text-white text-[11px] font-semibold">
+                Ditutup
+              </span>
+            )}
+          </div>
+          {popularityLabel && (
+            <span className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-500 text-white text-[11px] font-semibold shadow-sm">
+              🔥 {popularityLabel}
             </span>
           )}
         </div>
 
-        {/* Content Body */}
-        <div className="p-4 flex-1 flex flex-col gap-2.5">
-          <div className="flex items-center gap-2">
-            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${categoryBadgeClass}`}>
+        {/* Content */}
+        <div className="p-3.5 flex-1 flex flex-col gap-2">
+          {/* Category + Price */}
+          <div className="flex items-center justify-between gap-2">
+            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${categoryColorClass}`}>
               {event.category}
             </span>
-            {popularityLabel && (
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#F7E5B8] text-[#8A6218]">
-                {popularityLabel}
+            {showPrice && (
+              <span className={`text-[11px] font-bold ${event.price === 0 ? "text-green-600" : "text-gray-700"}`}>
+                {priceDisplay}
               </span>
             )}
           </div>
 
-          <h3 className="text-base font-bold card-heading-royal group-hover:text-[#244777] transition line-clamp-2 leading-snug tracking-tight">
+          {/* Title */}
+          <h3 className="text-sm font-bold text-gray-900 group-hover:text-blue-700 transition line-clamp-2 leading-snug">
             {event.title}
           </h3>
 
-          <p className="text-xs card-text-royal line-clamp-2 mt-auto">
-            {event.description}
-          </p>
+          {/* Organizer */}
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <span className="truncate">{event.organizer}</span>
+          </div>
+
+          {/* Date & Deadline */}
+          <div className="flex flex-col gap-1 mt-auto">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2"/>
+                <path d="M16 2v4M8 2v4M3 10h18" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              <span>{formattedDate}</span>
+            </div>
+            {event.registrationDeadline && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <svg className="w-3.5 h-3.5 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" strokeWidth="2"/>
+                  <path d="M12 7v5l3 3" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                <span className="text-orange-600 font-semibold">
+                  Deadline {new Date(`${event.registrationDeadline}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                </span>
+                {deadlineDays !== null && deadlineDays > 0 && (
+                  <span className="ml-auto px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold shrink-0">
+                    {deadlineDays} hari lagi
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </Link>
 
-      {/* Card Footer */}
-      <div className="px-4 py-3 border-t border-[#CCD9EB] flex items-center justify-between text-xs bg-[#E5EDF8]/70">
-        <div className="flex flex-col">
-          <span className="font-medium card-heading-royal">{formattedDate}</span>
-          <span className="card-text-royal opacity-75 truncate max-w-[180px] sm:max-w-[200px]">
-            {event.organizer}
-          </span>
-        </div>
-
+      {/* Footer */}
+      <div className="px-3.5 pb-3.5">
         <Link
           href={`/event/${event.id}`}
-          className="text-xs font-semibold card-heading-royal group-hover:text-[#244777] flex items-center gap-1 hover:underline transition-colors"
+          className="block w-full py-2 text-center text-xs font-semibold text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
           aria-label={`Detail event ${event.title}`}
         >
-          <span>Detail</span>
-          <svg className="w-3.5 h-3.5 transition group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-          </svg>
+          Lihat Detail
         </Link>
       </div>
     </div>

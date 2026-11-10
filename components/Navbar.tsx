@@ -17,23 +17,12 @@ function NotificationBell({ role, userId, isHydrated }: { role: "user" | "admin"
   }, [isHydrated, role, userId]);
 
   return (
-    <Link href="/notifikasi" aria-label="Notifikasi" className="relative p-2 text-[#6F7580] hover:text-[#315E9E] transition-colors">
-      <svg
-        aria-hidden="true"
-        className="h-5 w-5 text-[#29374A]"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          d="M15 17H9m9-2V11a6 6 0 10-12 0v4l-2 2h16l-2-2zm-6 7a2.5 2.5 0 01-2.45-2h4.9A2.5 2.5 0 0112 22z"
-        />
+    <Link href="/notifikasi" aria-label="Notifikasi" className="relative p-2 text-gray-500 hover:text-blue-700 transition-colors">
+      <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17H9m9-2V11a6 6 0 10-12 0v4l-2 2h16l-2-2zm-6 7a2.5 2.5 0 01-2.45-2h4.9A2.5 2.5 0 0112 22z" />
       </svg>
       {isHydrated && unreadCount > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 min-w-4 h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
+        <span className="absolute -right-0.5 -top-0.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
           {unreadCount > 99 ? "99+" : unreadCount}
         </span>
       )}
@@ -52,66 +41,66 @@ export default function Navbar() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  // If on admin dashboard, don't show the standard public navbar
   const isDashboard = pathname.startsWith("/dashboard");
 
   const navLinks = [
     { label: "Beranda", href: "/" },
-    { label: "Daftar Event", href: "/event" },
+    { label: "Jelajahi Event", href: "/event" },
     { label: "Kalender", href: "/kalender" },
   ];
 
   if (isDashboard) {
     return (
-      <header className="h-16 bg-[#FFFCF6]/80 backdrop-blur-md border-b border-[#E4DCCF] px-6 flex items-center justify-between sticky top-0 z-50">
+      <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#244777] via-[#315E9E] to-[#E98268] text-white flex items-center justify-center font-bold text-sm shadow-sm">
-              E
-            </span>
-            <span className="font-bold text-base text-[#29374A]">EventHub Admin</span>
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-700 text-white flex items-center justify-center shadow-sm">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2"/>
+                <path d="M16 2v4M8 2v4M3 10h18" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <span className="font-bold text-base text-gray-900">EventHub Admin</span>
           </Link>
-          <span className="text-xs px-2 py-0.5 rounded bg-[#E5ECF5] text-[#244777] font-semibold">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">
             Mode Admin
           </span>
         </div>
-
         <div className="flex items-center gap-4">
           {user?.id && <NotificationBell role="admin" userId={user.id} isHydrated={isHydrated} />}
-          <Link
-            href="/"
-            className="text-xs font-semibold text-[#6F7580] hover:text-[#315E9E] transition flex items-center gap-1"
-          >
-            &larr; Lihat Website Utama
+          <Link href="/" className="text-xs font-semibold text-gray-500 hover:text-blue-700 transition flex items-center gap-1">
+            ← Lihat Website Utama
           </Link>
         </div>
-
       </header>
     );
   }
 
   return (
-    <header className="h-20 bg-[#FFFCF6]/80 backdrop-blur-md border-b border-[#E4DCCF] px-6 lg:px-16 flex items-center justify-between sticky top-0 z-50">
+    <header className="h-16 bg-white border-b border-gray-200 px-6 lg:px-8 flex items-center justify-between sticky top-0 z-50 shadow-sm">
       {/* Brand */}
-      <div className="flex items-center gap-8">
-        <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#244777] via-[#315E9E] to-[#E98268] text-white flex items-center justify-center font-extrabold text-sm shadow-sm">
-            E
-          </span>
-          <span className="font-bold text-lg text-[#29374A] tracking-tight">EventHub Kampus</span>
-        </Link>
-      </div>
+      <Link href="/" className="flex items-center gap-2.5 shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-blue-700 text-white flex items-center justify-center shadow-sm">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2"/>
+            <path d="M16 2v4M8 2v4M3 10h18" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <span className="font-bold text-lg text-gray-900 tracking-tight">EventHub Kampus</span>
+      </Link>
 
-      {/* Center Navigation Links */}
-      <nav className="hidden lg:flex items-center gap-8 text-sm font-medium">
+      {/* Center Navigation */}
+      <nav className="hidden lg:flex items-center gap-7 text-sm font-medium">
         {navLinks.map((link) => {
-          const isActive = pathname === link.href;
+          const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
           return (
             <Link
               key={link.href}
               href={link.href}
-              className={`transition hover:text-[#315E9E] ${
-                isActive ? "text-[#315E9E] font-semibold" : "text-[#6F7580]"
+              className={`pb-0.5 transition-colors border-b-2 ${
+                isActive
+                  ? "text-blue-700 border-blue-700 font-semibold"
+                  : "text-gray-600 border-transparent hover:text-blue-700 hover:border-blue-300"
               }`}
             >
               {link.label}
@@ -121,8 +110,10 @@ export default function Navbar() {
         {isHydrated && isLoggedIn && (
           <Link
             href="/profil"
-            className={`transition hover:text-[#315E9E] ${
-              pathname === "/profil" ? "text-[#315E9E] font-semibold" : "text-[#6F7580]"
+            className={`pb-0.5 transition-colors border-b-2 ${
+              pathname === "/profil"
+                ? "text-blue-700 border-blue-700 font-semibold"
+                : "text-gray-600 border-transparent hover:text-blue-700 hover:border-blue-300"
             }`}
           >
             Profil
@@ -130,25 +121,32 @@ export default function Navbar() {
         )}
       </nav>
 
-      {/* Right Auth Area */}
+      {/* Right Area */}
       <div className="flex items-center gap-3">
+        {/* Search icon */}
+        <Link href="/event" aria-label="Cari Event" className="hidden md:flex p-2 text-gray-500 hover:text-blue-700 transition-colors">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </Link>
+
         {isHydrated && isLoggedIn && user?.id && (
           <NotificationBell role={user.role === "admin" ? "admin" : "user"} userId={user.id} isHydrated={isHydrated} />
         )}
-        {/* Render Guest or Logged In Buttons */}
+
         {isLoading || !isLoggedIn ? (
           <>
             <Link
               href="/login"
-              className="px-4 py-2 text-xs sm:text-sm font-semibold text-[#29374A] bg-[#FFFCF6] border border-[#E4DCCF] rounded-lg hover:bg-[#F0E9DC] active:scale-95 transition-transform"
+              className="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-700 transition"
             >
               Masuk
             </Link>
             <Link
-              href="/register"
-              className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-[#315E9E] border border-[#315E9E] rounded-lg hover:bg-[#244777] active:scale-95 transition-transform"
+              href="/pengajuan-event"
+              className="px-4 py-2 text-sm font-semibold text-white bg-blue-700 rounded-lg hover:bg-blue-800 active:scale-95 transition-all shadow-sm"
             >
-              Daftar
+              Ajukan Event
             </Link>
           </>
         ) : (
@@ -156,34 +154,48 @@ export default function Navbar() {
             {user?.role === "admin" && (
               <Link
                 href="/dashboard"
-                className="px-3 py-1.5 text-xs font-semibold text-[#244777] bg-[#E5ECF5] border border-[#E4DCCF] rounded-md hover:bg-[#E5ECF5] active:scale-95 transition-transform"
+                className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition"
               >
                 Admin Panel
               </Link>
             )}
             <Link
-              href="/profil"
-              className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-[#C7D9F0] transition"
+              href="/pengajuan-event"
+              className="px-4 py-2 text-sm font-semibold text-white bg-blue-700 rounded-lg hover:bg-blue-800 active:scale-95 transition-all shadow-sm"
             >
-              <span className="w-8 h-8 rounded-full bg-[#315E9E] text-white font-bold text-xs flex items-center justify-center">
-                {user?.avatarText || "U"}
-              </span>
+              Ajukan Event
+            </Link>
+            <Link
+              href="/profil"
+              className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-blue-200 transition"
+              aria-label="Halaman Profil"
+            >
+              {user?.avatarUrl ? (
+                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-200 bg-blue-700 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <span className="w-8 h-8 rounded-full bg-blue-700 text-white font-bold text-xs flex items-center justify-center">
+                  {user?.avatarText || "U"}
+                </span>
+              )}
             </Link>
             <button
               type="button"
               onClick={() => void logout()}
-              className="hidden md:inline-block text-xs text-red-600 hover:text-red-700 font-medium ml-1"
+              className="hidden md:inline-block text-xs text-red-500 hover:text-red-700 font-medium ml-1"
             >
               Logout
             </button>
           </div>
         )}
 
-        {/* Mobile Hamburger Toggle */}
+        {/* Mobile Hamburger */}
         <button
           type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 text-[#6F7580] hover:text-[#315E9E]"
+          className="lg:hidden p-2 text-gray-500 hover:text-blue-700"
           aria-label="Toggle Navigation Menu"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,16 +208,16 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden absolute top-20 left-0 w-full bg-[#FFFCF6]/95 backdrop-blur-md border-b border-[#ECE5DA] p-6 flex flex-col gap-4 shadow-xl z-50">
+        <div className="lg:hidden absolute top-16 left-0 w-full bg-white border-b border-gray-200 p-6 flex flex-col gap-4 shadow-lg z-50">
           <nav className="flex flex-col gap-3 text-sm font-medium">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`py-1 ${pathname === link.href ? "text-[#315E9E] font-medium" : "text-[#6F7580]"}`}
+                className={`py-1 ${pathname === link.href ? "text-blue-700 font-semibold" : "text-gray-600"}`}
               >
                 {link.label}
               </Link>
@@ -215,7 +227,7 @@ export default function Navbar() {
                 <Link
                   href="/profil"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`py-1 ${pathname === "/profil" ? "text-[#315E9E] font-semibold" : "text-[#6F7580]"}`}
+                  className={`py-1 ${pathname === "/profil" ? "text-blue-700 font-semibold" : "text-gray-600"}`}
                 >
                   Profil Saya
                 </Link>
@@ -223,7 +235,7 @@ export default function Navbar() {
                   <Link
                     href="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="py-1 text-[#315E9E] font-medium"
+                    className="py-1 text-blue-700 font-medium"
                   >
                     Dashboard Admin
                   </Link>
@@ -231,12 +243,26 @@ export default function Navbar() {
               </>
             )}
           </nav>
-
-          {isLoggedIn && (
-            <button type="button" onClick={() => void logout()} className="text-xs text-red-600 font-medium">
-              Logout
-            </button>
-          )}
+          <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+            {!isLoggedIn ? (
+              <>
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm text-gray-700 font-medium">
+                  Masuk
+                </Link>
+                <Link
+                  href="/pengajuan-event"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2 px-4 bg-blue-700 text-white text-sm font-semibold rounded-lg text-center"
+                >
+                  Ajukan Event
+                </Link>
+              </>
+            ) : (
+              <button type="button" onClick={() => void logout()} className="text-xs text-red-500 font-medium text-left">
+                Logout
+              </button>
+            )}
+          </div>
         </div>
       )}
     </header>

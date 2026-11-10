@@ -1,37 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f4ee;
-  --foreground: #29374a;
-  --royal-blue: #315e9e;
-  --deep-blue: #244777;
-  --coral: #e98268;
-  --golden-sand: #e7bb70;
-  --warm-ivory: #f7f4ee;
-  --soft-sand: #f0e9dc;
-  --pale-beige: #eae2d4;
-  --card: #fffcf6;
-  --primary-text: #29374a;
-  --secondary-text: #6f7580;
-  --muted-text: #92959c;
-  --primary-border: #e4dccf;
-  --soft-border: #ece5da;
-  --card-royal-bg: #e5edf8;
-  --card-royal-border: #ccd9eb;
-  --card-royal-heading: #244777;
-  --card-royal-text: #315e9e;
-  --card-sand-bg: #f0e9dc;
-  --card-sand-border: #e4d7c2;
-  --card-sand-heading: #665239;
-  --card-sand-text: #806744;
-  --card-coral-bg: #fce9e3;
-  --card-coral-border: #f2cfc3;
-  --card-coral-heading: #a94d3b;
-  --card-coral-text: #c65e47;
-  --card-sage-bg: #e8efe9;
-  --card-sage-border: #d1e0d4;
-  --card-sage-heading: #365e47;
-  --card-sage-text: #47775b;
+  --background: #ffffff;
+  --foreground: #111827;
 }
 
 @theme inline {
@@ -41,39 +12,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@layer components {
-  .card-royal {
-    background: var(--card-royal-bg);
-    border-color: var(--card-royal-border);
-  }
-
-  .card-sand {
-    background: var(--card-sand-bg);
-    border-color: var(--card-sand-border);
-  }
-
-  .card-coral {
-    background: var(--card-coral-bg);
-    border-color: var(--card-coral-border);
-  }
-
-  .card-sage {
-    background: var(--card-sage-bg);
-    border-color: var(--card-sage-border);
-  }
-
-  .card-heading-royal { color: var(--card-royal-heading); }
-  .card-heading-sand { color: var(--card-sand-heading); }
-  .card-heading-coral { color: var(--card-coral-heading); }
-  .card-heading-sage { color: var(--card-sage-heading); }
-  .card-text-royal { color: var(--card-royal-text); }
-  .card-text-sand { color: var(--card-sand-text); }
-  .card-text-coral { color: var(--card-coral-text); }
-  .card-text-sage { color: var(--card-sage-text); }
-}
-
 body {
-  background: linear-gradient(135deg, #e9e1d4 0%, #f7f4ee 55%, #e5ecf5 100%);
+  background: #f9fafb;
   color: var(--foreground);
   min-height: 100vh;
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -92,6 +32,6 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgb(233 130 104 / 45%);
+  outline: 3px solid rgb(37 99 235 / 40%);
   outline-offset: 2px;
 }

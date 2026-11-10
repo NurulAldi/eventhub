@@ -13,7 +13,7 @@ interface UserRow {
   name: string;
   email: string;
   university: string | null;
-  nim: string | null;
+  avatar_url: string | null;
   role: "user";
   is_active: boolean;
   created_at: Date | string;
@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
     // Pastikan user ada dan role-nya 'user' (bukan admin)
     const existing = await queryOne<UserRow>(
-      "SELECT id, name, email, university, nim, role, is_active, created_at, updated_at FROM users WHERE id = $1 AND role = 'user'",
+      "SELECT id, name, email, university, avatar_url, role, is_active, created_at, updated_at FROM users WHERE id = $1 AND role = 'user'",
       [id]
     );
 
@@ -63,11 +63,6 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       values.push(typeof body.university === "string" ? body.university.trim() || null : null);
     }
 
-    if (body.nim !== undefined) {
-      updates.push(`nim = $${paramIndex++}`);
-      values.push(typeof body.nim === "string" ? body.nim.trim() || null : null);
-    }
-
     if (updates.length === 0) {
       return NextResponse.json({ error: "Tidak ada data perubahan yang dikirim." }, { status: 400 });
     }
@@ -79,7 +74,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       `UPDATE users
        SET ${updates.join(", ")}
        WHERE id = $${paramIndex} AND role = 'user'
-       RETURNING id, name, email, university, nim, role, is_active, created_at, updated_at`,
+       RETURNING id, name, email, university, avatar_url, role, is_active, created_at, updated_at`,
       values
     );
 
@@ -97,7 +92,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       name: updatedRow.name,
       email: updatedRow.email,
       university: updatedRow.university || null,
-      nim: updatedRow.nim || null,
+      avatarUrl: updatedRow.avatar_url || null,
       role: "user",
       isActive: Boolean(updatedRow.is_active),
       createdAt: typeof updatedRow.created_at === "string" ? updatedRow.created_at : updatedRow.created_at.toISOString(),

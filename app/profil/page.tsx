@@ -18,7 +18,7 @@ import { getSubmittedEvents } from "@/lib/submissions";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user: authUser, isLoading: isAuthLoading } = useAuth();
+  const { user: authUser, isLoading: isAuthLoading, updateProfile } = useAuth();
 
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>([]);
@@ -32,6 +32,17 @@ export default function ProfilePage() {
   const [showAllSubmissions, setShowAllSubmissions] = useState(false);
   const [reminders, setReminders] = useState<Record<string, ReminderTrigger>>({});
   const [registeredEventStatuses, setRegisteredEventStatuses] = useState<Record<string, Event["status"]>>({});
+
+  // Edit Profile States
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editUniversity, setEditUniversity] = useState("");
+  const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
+  const [editAvatarPreview, setEditAvatarPreview] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthLoading && !authUser) router.replace("/login");
@@ -195,6 +206,102 @@ export default function ProfilePage() {
   };
   const isSubmissionPublic = ["active", "completed", "cancelled"].includes(submissionStatus);
 
+  const openEditModal = () => {
+    if (!authUser) return;
+    setEditName(authUser.name || "");
+    setEditEmail(authUser.email || "");
+    setEditUniversity(authUser.university || "");
+    setEditAvatarFile(null);
+    setEditAvatarPreview(authUser.avatarUrl || "");
+    setProfileError(null);
+    setProfileSuccess(null);
+    setIsEditModalOpen(true);
+  };
+
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileError("Ukuran foto maksimal 5 MB.");
+      return;
+    }
+    setEditAvatarFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setEditAvatarPreview(objectUrl);
+    setProfileError(null);
+  };
+
+  const handleRemoveAvatar = () => {
+    setEditAvatarFile(null);
+    setEditAvatarPreview("");
+  };
+
+  const uploadOrConvertAvatar = async (file: File): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/uploads", { method: "POST", body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) return data.url;
+      }
+    } catch {
+      // Fallback ke data URL jika upload storage gagal / belum dikonfigurasi
+    }
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authUser) return;
+    if (!editName.trim()) {
+      setProfileError("Nama lengkap wajib diisi.");
+      return;
+    }
+    if (!editEmail.trim()) {
+      setProfileError("Email wajib diisi.");
+      return;
+    }
+
+    setIsSavingProfile(true);
+    setProfileError(null);
+
+    try {
+      let finalAvatarUrl: string | null = null;
+
+      if (editAvatarFile) {
+        finalAvatarUrl = await uploadOrConvertAvatar(editAvatarFile);
+      } else if (editAvatarPreview) {
+        finalAvatarUrl = authUser.avatarUrl || null;
+      } else {
+        finalAvatarUrl = null;
+      }
+
+      await updateProfile({
+        name: editName.trim(),
+        email: editEmail.trim(),
+        university: editUniversity.trim() || null,
+        avatarUrl: finalAvatarUrl,
+      });
+
+      setProfileSuccess("Profil berhasil diperbarui!");
+      setTimeout(() => {
+        setProfileSuccess(null);
+        setIsEditModalOpen(false);
+      }, 1000);
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "Gagal menyimpan perubahan profil.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   if (isAuthLoading || !authUser || isProfileLoading) {
     return (
       <div className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-16 py-10 flex flex-col gap-8 bg-[#F7F4EE]">
@@ -216,10 +323,19 @@ export default function ProfilePage() {
       {/* Profile Header Card - Matching profil.html */}
       <div className="card-royal border rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-sm">
         <div className="flex items-center gap-5 sm:gap-6">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#315E9E] text-white font-bold text-3xl flex items-center justify-center shrink-0">
-            <span>
-              {authUser.name.slice(0, 2).toUpperCase()}
-            </span>
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-[#E4DCCF] bg-[#315E9E] text-white font-bold text-3xl flex items-center justify-center shrink-0 relative shadow-sm">
+            {authUser.avatarUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={authUser.avatarUrl}
+                alt={authUser.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span>
+                {authUser.name.slice(0, 2).toUpperCase()}
+              </span>
+            )}
           </div>
 
           <div className="flex flex-col gap-1">
@@ -234,7 +350,7 @@ export default function ProfilePage() {
               )}
             </div>
             <p className="text-xs sm:text-sm text-[#6F7580]">
-              {authUser.email}{authUser.nim ? ` • NIM: ${authUser.nim}` : ""}
+              {authUser.email}
             </p>
             <p className="text-xs text-[#6F7580] font-medium">
               {authUser.university || "Universitas belum diisi"}
@@ -242,14 +358,27 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {authUser?.role === "admin" && (
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 bg-[#315E9E] text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-[#244777] transition cursor-pointer self-start sm:self-auto shadow-xs"
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={openEditModal}
+            className="px-4 py-2.5 bg-[#FFFCF6] border border-[#E4DCCF] hover:bg-[#F0E9DC] text-[#29374A] font-semibold text-xs sm:text-sm rounded-md transition cursor-pointer flex items-center gap-2 shadow-xs"
           >
-            Masuk ke Dashboard Admin &rarr;
-          </Link>
-        )}
+            <svg className="w-4 h-4 text-[#29374A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            Edit Profil
+          </button>
+
+          {authUser?.role === "admin" && (
+            <Link
+              href="/dashboard"
+              className="px-4 py-2.5 bg-[#315E9E] text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-[#244777] transition cursor-pointer shadow-xs"
+            >
+              Masuk ke Dashboard Admin &rarr;
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Main 2-Column Content Layout */}
@@ -547,6 +676,163 @@ export default function ProfilePage() {
             >
               Unduh / Cetak Tiket (PDF)
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Profil Pengguna */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl max-w-lg w-full p-6 sm:p-7 shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-3">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-[#315E9E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <h2 className="text-base font-bold text-[#29374A]">Edit Profil Pengguna</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-[#92959C] hover:text-[#29374A] cursor-pointer text-sm font-bold p-1"
+                aria-label="Tutup modal edit profil"
+              >
+                ✕
+              </button>
+            </div>
+
+            {profileError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-md">
+                {profileError}
+              </div>
+            )}
+
+            {profileSuccess && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-md">
+                {profileSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveProfile} className="flex flex-col gap-4 text-xs">
+              {/* Foto Profil */}
+              <div className="flex flex-col gap-2 p-3.5 bg-[#F7F4EE] border border-[#E4DCCF] rounded-lg">
+                <span className="font-bold text-[#29374A] uppercase tracking-wide text-[11px]">
+                  Foto Profil
+                </span>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#E4DCCF] bg-[#315E9E] text-white font-bold text-xl flex items-center justify-center shrink-0 relative shadow-xs">
+                    {editAvatarPreview ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={editAvatarPreview}
+                        alt="Preview Foto Profil"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{(editName || authUser.name).slice(0, 2).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 flex flex-col gap-2">
+                    <label className="cursor-pointer inline-flex items-center justify-center px-3 py-1.5 bg-[#FFFCF6] border border-[#E4DCCF] hover:bg-[#F0E9DC] text-[#29374A] font-semibold text-xs rounded-md transition w-fit shadow-xs">
+                      <span>Unggah Foto Baru</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        onChange={handleAvatarFileChange}
+                      />
+                    </label>
+                    <span className="text-[10px] text-[#6F7580]">
+                      Format JPG, PNG, WEBP, atau GIF (Maks. 5 MB).
+                    </span>
+                    {editAvatarPreview && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        className="text-[11px] text-red-600 hover:text-red-800 font-semibold w-fit text-left cursor-pointer"
+                      >
+                        Hapus Foto Profil
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Nama Lengkap */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="edit-name" className="font-bold text-[#29374A]">
+                  Nama Lengkap <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="edit-name"
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Masukkan nama lengkap"
+                  className="px-3.5 py-2.5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-md text-[#29374A] focus:outline-none focus:border-[#315E9E] transition"
+                />
+              </div>
+
+              {/* Email */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="edit-email" className="font-bold text-[#29374A]">
+                  Email Akun <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="edit-email"
+                  type="email"
+                  required
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="nama@email.com"
+                  className="px-3.5 py-2.5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-md text-[#29374A] focus:outline-none focus:border-[#315E9E] transition"
+                />
+              </div>
+
+              {/* Universitas / Instansi */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="edit-univ" className="font-bold text-[#29374A]">
+                  Universitas / Instansi
+                </label>
+                <input
+                  id="edit-univ"
+                  type="text"
+                  value={editUniversity}
+                  onChange={(e) => setEditUniversity(e.target.value)}
+                  placeholder="Contoh: Universitas Indonesia"
+                  className="px-3.5 py-2.5 bg-[#FFFCF6] border border-[#E4DCCF] rounded-md text-[#29374A] focus:outline-none focus:border-[#315E9E] transition"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E4DCCF]">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={isSavingProfile}
+                  className="px-4 py-2 bg-[#FFFCF6] border border-[#E4DCCF] text-[#6F7580] hover:text-[#29374A] rounded-md font-semibold text-xs transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="px-4 py-2 bg-[#315E9E] hover:bg-[#244777] text-white rounded-md font-bold text-xs transition cursor-pointer flex items-center gap-2 shadow-xs disabled:opacity-50"
+                >
+                  {isSavingProfile ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Menyimpan...
+                    </>
+                  ) : (
+                    "Simpan Perubahan"
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

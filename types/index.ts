@@ -76,8 +76,8 @@ export interface RegisteredEvent {
 export interface UserProfile {
   name: string;
   email: string;
-  avatar: string;
-  nim?: string;
+  avatar?: string;
+  avatarUrl?: string;
   major?: string;
   faculty?: string;
   phone?: string;
@@ -89,7 +89,7 @@ export interface AdminUser {
   name: string;
   email: string;
   university?: string | null;
-  nim?: string | null;
+  avatarUrl?: string | null;
   role: "user";
   isActive: boolean;
   createdAt: string;

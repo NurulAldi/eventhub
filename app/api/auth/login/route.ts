@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await queryOne<LoginRow>(
-      `SELECT id, name, email, university, nim, role, password_hash
+      `SELECT id, name, email, university, avatar_url AS "avatarUrl", role, password_hash
        FROM users
        WHERE email = $1 AND is_active = TRUE`,
       [email]
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       name: user.name,
       email: user.email,
       university: user.university,
-      nim: user.nim,
+      avatarUrl: user.avatarUrl || null,
       role: user.role,
     });
   } catch (error) {

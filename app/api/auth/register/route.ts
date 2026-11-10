@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const user = await queryOne<AuthUser>(
       `INSERT INTO users (name, email, university, password_hash, role)
        VALUES ($1, $2, $3, $4, 'user')
-       RETURNING id, name, email, university, nim, role`,
+       RETURNING id, name, email, university, avatar_url AS "avatarUrl", role`,
       [name, email, university, await hashPassword(password)]
     );
 

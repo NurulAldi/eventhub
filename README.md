@@ -116,7 +116,6 @@ eventhub/
 ├── lib/
 │   ├── api.ts                        # Client API wrapper pemanggilan fetch backend
 │   ├── db.ts                         # Connection pool PostgreSQL, SSL, init skema
-│   ├── mock-data.ts                  # Fixture event untuk automated integration test
 │   └── services/
 │       └── event-service.ts          # Business logic, query builder SQL, validasi DTO
 ├── scripts/

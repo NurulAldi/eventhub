@@ -96,8 +96,7 @@ export default function AdminUsersPage() {
         !query ||
         u.name.toLowerCase().includes(query) ||
         u.email.toLowerCase().includes(query) ||
-        (u.university && u.university.toLowerCase().includes(query)) ||
-        (u.nim && u.nim.toLowerCase().includes(query));
+        (u.university && u.university.toLowerCase().includes(query));
 
       const matchesStatus =
         selectedStatus === "semua" ||
@@ -165,7 +164,6 @@ export default function AdminUsersPage() {
       const updated = await apiUpdateAdminUser(editingUser.id, {
         name: editingUser.name,
         university: editingUser.university,
-        nim: editingUser.nim,
         isActive: editingUser.isActive,
       });
 
@@ -294,7 +292,7 @@ export default function AdminUsersPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari nama, email, univ, NIM..."
+                placeholder="Cari nama, email, universitas..."
                 className="px-3 py-1.5 text-xs bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] w-52 sm:w-64 transition"
               />
               {searchQuery && (
@@ -361,7 +359,7 @@ export default function AdminUsersPage() {
               <thead>
                 <tr className="bg-[#F7F4EE] border-b border-[#E4DCCF] text-[#6F7580] font-bold uppercase tracking-wider text-[11px]">
                   <th className="py-3 px-4">Pengguna</th>
-                  <th className="py-3 px-4">Universitas & NIM</th>
+                  <th className="py-3 px-4">Universitas</th>
                   <th className="py-3 px-4 text-center">Event Diajukan</th>
                   <th className="py-3 px-4">Bergabung</th>
                   <th className="py-3 px-4 text-center">Status</th>
@@ -389,9 +387,16 @@ export default function AdminUsersPage() {
                       {/* Name & Email */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#315E9E] text-white flex items-center justify-center font-bold text-xs shrink-0">
-                            {initials || "U"}
-                          </div>
+                          {u.avatarUrl ? (
+                            <div className="w-8 h-8 rounded-full overflow-hidden border border-[#E4DCCF] bg-[#315E9E] shrink-0">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={u.avatarUrl} alt={u.name} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-[#315E9E] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                              {initials || "U"}
+                            </div>
+                          )}
                           <div className="flex flex-col min-w-0">
                             <span className="font-semibold text-[#29374A] truncate max-w-[200px]">
                               {u.name}
@@ -403,16 +408,11 @@ export default function AdminUsersPage() {
                         </div>
                       </td>
 
-                      {/* University & NIM */}
+                      {/* University */}
                       <td className="py-3 px-4">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-[#29374A] truncate max-w-[240px]">
-                            {u.university || "Belum diisi"}
-                          </span>
-                          <span className="text-[11px] text-[#92959C]">
-                            {u.nim ? `NIM: ${u.nim}` : "NIM tidak dicantumkan"}
-                          </span>
-                        </div>
+                        <span className="font-medium text-[#29374A] truncate max-w-[240px]">
+                          {u.university || "Belum diisi"}
+                        </span>
                       </td>
 
                       {/* Created Events Count */}
@@ -534,20 +534,6 @@ export default function AdminUsersPage() {
                   value={editingUser.university || ""}
                   onChange={(e) => setEditingUser({ ...editingUser, university: e.target.value })}
                   placeholder="Contoh: Universitas Negeri Padang"
-                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md text-[#29374A] focus:outline-none focus:border-[#315E9E]"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="edit-nim" className="font-bold text-[#29374A]">
-                  Nomor Induk Mahasiswa (NIM)
-                </label>
-                <input
-                  id="edit-nim"
-                  type="text"
-                  value={editingUser.nim || ""}
-                  onChange={(e) => setEditingUser({ ...editingUser, nim: e.target.value })}
-                  placeholder="Contoh: 21076012"
                   className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md text-[#29374A] focus:outline-none focus:border-[#315E9E]"
                 />
               </div>

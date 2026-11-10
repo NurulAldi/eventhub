@@ -253,7 +253,7 @@ export async function apiGetAdminUsers(): Promise<AdminUser[]> {
  */
 export async function apiUpdateAdminUser(
   id: string,
-  payload: { isActive?: boolean; name?: string; university?: string | null; nim?: string | null }
+  payload: { isActive?: boolean; name?: string; university?: string | null }
 ): Promise<AdminUser> {
   const endpoint = typeof window !== "undefined"
     ? `/api/admin/users/${encodeURIComponent(id)}`
@@ -290,4 +290,38 @@ export async function apiDeleteAdminUser(id: string): Promise<void> {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || `Gagal menghapus pengguna (HTTP ${response.status})`);
   }
+}
+
+/**
+ * Memperbarui profil akun pengguna aktif
+ */
+export async function apiUpdateProfile(payload: {
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+  university?: string | null;
+}): Promise<{
+  id: string;
+  name: string;
+  email: string;
+  university?: string;
+  avatarUrl?: string | null;
+  role: "user" | "admin";
+}> {
+  const endpoint = typeof window !== "undefined"
+    ? "/api/user/profile"
+    : `${getBaseUrl()}/api/user/profile`;
+
+  const response = await fetch(endpoint, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal memperbarui profil (HTTP ${response.status})`);
+  }
+
+  return response.json();
 }

@@ -14,7 +14,7 @@ export interface AuthUser {
   name: string;
   email: string;
   university?: string;
-  nim?: string;
+  avatarUrl?: string | null;
   role: AuthRole;
 }
 
@@ -73,13 +73,18 @@ function readSessionToken(token: string): string | null {
 }
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  let token: string | undefined;
+  try {
+    token = (await cookies()).get(SESSION_COOKIE)?.value;
+  } catch {
+    return null;
+  }
   if (!token) return null;
   const userId = readSessionToken(token);
   if (!userId) return null;
 
   return queryOne<AuthUser>(
-    `SELECT id, name, email, university, nim, role
+    `SELECT id, name, email, university, avatar_url AS "avatarUrl", role
      FROM users
      WHERE id = $1 AND is_active = TRUE`,
     [userId]
