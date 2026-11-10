@@ -52,7 +52,7 @@ export async function PATCH(
   { params }: RouteContext
 ) {
   try {
-    await requireAdmin();
+    const user = await requireUser();
     const { id } = await params;
 
     if (!id) {
@@ -69,6 +69,16 @@ export async function PATCH(
         { error: "Payload request tidak valid." },
         { status: 400 }
       );
+    }
+
+    if (user.role === "user") {
+      const existing = await getEventById(id);
+      if (!existing || existing.organizer.trim().toLowerCase() !== user.name.trim().toLowerCase()) {
+        return NextResponse.json(
+          { error: "Anda hanya dapat mengubah pengajuan event milik sendiri." },
+          { status: 403 }
+        );
+      }
     }
 
     const updated = await updateEvent(id, body);
@@ -105,11 +115,26 @@ export async function POST(
   { params }: RouteContext
 ) {
   try {
-    await requireUser();
+    const user = await requireUser();
     const { id } = await params;
     const body = await request.json();
     if (!id || body?.action !== "register") {
       return NextResponse.json({ error: "Permintaan pendaftaran tidak valid." }, { status: 400 });
+    }
+
+    const event = await getEventById(id);
+    if (!event) {
+      return NextResponse.json({ error: `Event dengan ID '${id}' tidak ditemukan.` }, { status: 404 });
+    }
+
+    const isCreator =
+      event.createdBy === user.id ||
+      (!event.createdBy && event.organizer.trim().toLowerCase() === user.name.trim().toLowerCase());
+    if (isCreator) {
+      return NextResponse.json(
+        { error: "Pembuat event tidak dapat mendaftarkan diri pada event sendiri." },
+        { status: 403 }
+      );
     }
 
     const registered = await registerEvent(id);

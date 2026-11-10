@@ -29,6 +29,7 @@ export interface CreateEventDTO {
   image?: string;
   price?: number;
   organizer: string;
+  createdBy?: string;
   quota?: number;
   registeredCount?: number;
   status?: EventStatus;
@@ -61,6 +62,7 @@ export interface DatabaseEventRow {
   image: string;
   price: number;
   organizer: string;
+  created_by?: string | null;
   quota: number;
   registered_count: number;
   status: string;
@@ -125,6 +127,7 @@ export function mapRowToEvent(row: DatabaseEventRow): Event {
     image: row.image,
     price: Number(row.price) || 0,
     organizer: row.organizer,
+    createdBy: row.created_by || undefined,
     quota: row.quota !== null && row.quota !== undefined ? Number(row.quota) : undefined,
     registeredCount: row.registered_count !== null && row.registered_count !== undefined ? Number(row.registered_count) : 0,
     status: (row.status as EventStatus) || "active",
@@ -150,6 +153,22 @@ export function mapRowToEvent(row: DatabaseEventRow): Event {
  */
 export function validateEventInput(data: Partial<CreateEventDTO>, isUpdate = false): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  const parseDate = (value: string | undefined) => {
+    if (!value || !datePattern.test(value)) return null;
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+  const parseTimeRange = (value: string | undefined) => {
+    if (!value) return null;
+    const match = value.match(/^([01]\d|2[0-3]):([0-5]\d)\s*-\s*([01]\d|2[0-3]):([0-5]\d)(?:\s*WIB)?$/);
+    if (!match) return null;
+    if (Number(match[2]) % 5 !== 0 || Number(match[4]) % 5 !== 0) return null;
+    return {
+      start: Number(match[1]) * 60 + Number(match[2]),
+      end: Number(match[3]) * 60 + Number(match[4]),
+    };
+  };
 
   if (!isUpdate || data.title !== undefined) {
     if (!data.title || data.title.trim().length < 3) {
@@ -169,7 +188,7 @@ export function validateEventInput(data: Partial<CreateEventDTO>, isUpdate = fal
     }
   }
 
-  if (!isUpdate || data.location !== undefined) {
+  if ((!isUpdate || data.location !== undefined) && data.eventMode !== "online") {
     if (!data.location || !data.location.trim()) {
       errors.push("Lokasi event wajib diisi.");
     }
@@ -201,6 +220,27 @@ export function validateEventInput(data: Partial<CreateEventDTO>, isUpdate = fal
 
   if (data.descriptionBlocks !== undefined && data.descriptionBlocks.length > 10) {
     errors.push("Deskripsi event maksimal terdiri dari 10 blok konten.");
+  }
+
+  const eventDate = parseDate(data.date);
+  const deadline = parseDate(data.registrationDeadline);
+  if (data.date !== undefined && !eventDate) {
+    errors.push("Tanggal event harus menggunakan format yang valid.");
+  }
+  if (data.registrationDeadline !== undefined && !deadline) {
+    errors.push("Deadline pendaftaran harus menggunakan format yang valid.");
+  }
+  if (eventDate && deadline && deadline >= eventDate) {
+    errors.push("Deadline pendaftaran harus sebelum tanggal pelaksanaan.");
+  }
+
+  if (data.time !== undefined) {
+    const timeRange = parseTimeRange(data.time);
+    if (!timeRange) {
+      errors.push("Waktu event harus menggunakan format HH:mm - HH:mm.");
+    } else if (timeRange.end <= timeRange.start) {
+      errors.push("Waktu selesai harus setelah waktu mulai.");
+    }
   }
 
   return {
@@ -331,7 +371,7 @@ export async function getEventById(id: string): Promise<Event | null> {
 /**
  * Membuat event baru di database
  */
-export async function createEvent(data: CreateEventDTO): Promise<Event> {
+export async function createEvent(data: CreateEventDTO, createdBy?: string): Promise<Event> {
   const validation = validateEventInput(data, false);
   if (!validation.valid) {
     throw new Error(validation.errors.join(", "));
@@ -347,12 +387,12 @@ export async function createEvent(data: CreateEventDTO): Promise<Event> {
       category, image, price, organizer, quota,
       registered_count, status, requirements, contact_pic, is_popular,
       organizer_type, institution, organizer_contact, registration_deadline, registration_url,
-      purpose, target_participants, speakers, facilities, rejection_reason
+      purpose, target_participants, speakers, facilities, rejection_reason, created_by
     ) VALUES (
       $1, $2, $3, $4::jsonb, $5, $6, $7, $8,
       $9, $10, $11, $12, $13, $14,
       $15, $16, $17::jsonb, $18, $19,
-      $20, $21, $22, $23, $24, $25, $26, $27, $28, $29
+      $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30
     )
     RETURNING *;
   `;
@@ -365,7 +405,7 @@ export async function createEvent(data: CreateEventDTO): Promise<Event> {
     data.date.trim(),
     data.durationDays !== undefined ? Math.max(1, Math.floor(Number(data.durationDays))) : 1,
     data.time ? data.time.trim() : null,
-    data.location.trim(),
+    (data.location || (data.eventMode === "online" ? "Online" : "")).trim(),
     data.eventMode || "offline",
     data.category.trim(),
     data.image ? data.image.trim() : defaultImage,
@@ -387,6 +427,7 @@ export async function createEvent(data: CreateEventDTO): Promise<Event> {
     data.speakers || null,
     data.facilities ? JSON.stringify(data.facilities) : null,
     data.rejectionReason || null,
+    createdBy || null,
   ];
 
   const row = await queryOne<DatabaseEventRow>(sql, params);
@@ -407,6 +448,16 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
   if (!existing) return null;
   if (existing.status === "rejected") {
     throw new Error("Pengajuan event yang ditolak tidak dapat diedit.");
+  }
+
+  const mergedSchedule = {
+    date: data.date ?? existing.date,
+    registrationDeadline: data.registrationDeadline ?? existing.registrationDeadline,
+    time: data.time ?? existing.time,
+  };
+  const scheduleValidation = validateEventInput(mergedSchedule, true);
+  if (!scheduleValidation.valid) {
+    throw new Error(scheduleValidation.errors.join(", "));
   }
 
   const validation = validateEventInput(data, true);

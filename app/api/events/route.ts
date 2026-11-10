@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getAllEvents, createEvent, EventFilters } from "@/lib/services/event-service";
-import { authErrorResponse, requireAdmin } from "@/lib/auth";
+import { authErrorResponse, requireUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,7 +42,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    const user = await requireUser();
+    if (user.role !== "user") {
+      return NextResponse.json(
+        { error: "Pengajuan event hanya dapat dilakukan oleh user biasa." },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
 
     if (!body || typeof body !== "object") {
@@ -52,7 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newEvent = await createEvent(body);
+    const newEvent = await createEvent(body, user.id);
 
     return NextResponse.json(newEvent, { status: 201 });
   } catch (error) {

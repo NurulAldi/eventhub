@@ -37,6 +37,7 @@ function EventListContent() {
     "Beasiswa",
     "Konser & Musik",
     "Olahraga",
+    "Technopreneurship",
   ];
 
   useEffect(() => {

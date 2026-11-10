@@ -112,6 +112,7 @@ export default function HomePage() {
     { name: "Beasiswa", icon: "scholarship", count: getCategoryCount("Beasiswa") },
     { name: "Konser & Musik", icon: "music", count: getCategoryCount("Konser & Musik") },
     { name: "Olahraga", icon: "sports", count: getCategoryCount("Olahraga") },
+    { name: "Technopreneurship", icon: "workshop", count: getCategoryCount("Technopreneurship") },
   ];
 
   return (

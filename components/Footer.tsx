@@ -48,9 +48,6 @@ export default function Footer() {
                 <Link href="/profil" className="hover:text-[#315E9E] transition">
                   Profil Saya
                 </Link>
-                <Link href="/dashboard" className="hover:text-[#315E9E] transition">
-                  Dashboard Admin
-                </Link>
               </nav>
             </div>
 
@@ -71,6 +68,9 @@ export default function Footer() {
                 </Link>
                 <Link href="/event?category=beasiswa" className="hover:text-[#315E9E] transition">
                   Beasiswa Mahasiswa
+                </Link>
+                <Link href="/event?category=technopreneurship" className="hover:text-[#315E9E] transition">
+                  Technopreneurship
                 </Link>
               </div>
             </div>

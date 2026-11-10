@@ -8,14 +8,15 @@ import { generateNotifications } from "@/lib/notifications";
 export default function NotificationBootstrap() {
   const { user } = useAuth();
   const role = user?.role === "admin" ? "admin" : user?.role === "user" ? "user" : null;
+  const userId = user?.id;
 
   useEffect(() => {
-    if (!role) return;
+    if (!role || !userId) return;
     let active = true;
     const loadNotifications = async () => {
       try {
         const events = await apiGetEvents({ status: "Semua" });
-        if (active) generateNotifications(events, role);
+        if (active) generateNotifications(events, role, userId);
       } catch (error) {
         console.error("Gagal melakukan preload notifikasi:", error);
       }
@@ -25,7 +26,7 @@ export default function NotificationBootstrap() {
     return () => {
       active = false;
     };
-  }, [role]);
+  }, [role, userId]);
 
   return null;
 }

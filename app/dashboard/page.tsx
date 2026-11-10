@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiGetEvents, apiGetAdminStats, apiCreateEvent, apiUpdateEvent, apiDeleteEvent } from "@/lib/api";
+import { apiGetEvents, apiGetAdminStats, apiUpdateEvent, apiDeleteEvent } from "@/lib/api";
 import { Event } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 
@@ -20,18 +20,7 @@ export default function AdminDashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [selectedStatus, setSelectedStatus] = useState("Semua");
 
-  // Modal states
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-
-  // Form states for new event
-  const [newTitle, setNewTitle] = useState("");
-  const [newCategory, setNewCategory] = useState("Seminar");
-  const [newDate, setNewDate] = useState("");
-  const [newLocation, setNewLocation] = useState("Auditorium Kampus");
-  const [newPrice, setNewPrice] = useState("0");
-  const [newOrganizer, setNewOrganizer] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (user?.role !== "admin") {
@@ -97,40 +86,6 @@ export default function AdminDashboardPage() {
       } catch (err) {
         alert(err instanceof Error ? err.message : "Gagal menghapus event.");
       }
-    }
-  };
-
-  // Action: Add New Event (API)
-  const handleCreateEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-
-    setIsSubmitting(true);
-    try {
-      const created = await apiCreateEvent({
-        title: newTitle,
-        description: `Deskripsi kegiatan ${newTitle} yang diselenggarakan oleh ${newOrganizer} di ${newLocation}.`,
-        date: newDate,
-        time: undefined,
-        location: newLocation,
-        category: newCategory,
-        image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=800&q=80",
-        price: Number(newPrice) || 0,
-        organizer: newOrganizer,
-        quota: 100,
-        registeredCount: 0,
-        status: "active",
-        isPopular: false,
-      });
-
-      setEventList([created, ...eventList]);
-      setIsAddModalOpen(false);
-      setNewTitle("");
-      alert(`Event "${newTitle}" berhasil dibuat dan disimpan ke database!`);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menyimpan event baru.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -202,13 +157,6 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsAddModalOpen(true)}
-          className="px-4 py-2.5 bg-[#315E9E] text-white font-semibold text-xs sm:text-sm rounded-md hover:bg-[#244777] transition cursor-pointer self-start sm:self-auto shadow-xs flex items-center gap-2"
-        >
-          <span>+ Tambah Event Baru</span>
-        </button>
       </div>
 
       {error && (
@@ -311,6 +259,7 @@ export default function AdminDashboardPage() {
               <option value="Beasiswa">Beasiswa</option>
               <option value="Konser & Musik">Konser & Musik</option>
               <option value="Olahraga">Olahraga</option>
+              <option value="Technopreneurship">Technopreneurship</option>
             </select>
 
             <select
@@ -420,124 +369,6 @@ export default function AdminDashboardPage() {
           )}
         </div>
       </div>
-
-      {/* Modal Tambah Event Baru */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-3">
-              <h3 className="text-base font-bold text-[#29374A]">
-                Tambah Event Baru Kampus
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-[#92959C] hover:text-[#6F7580] cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateEvent} className="flex flex-col gap-3 text-xs sm:text-sm">
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-[#29374A]">Judul Event</label>
-                <input
-                  type="text"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Masukkan judul event"
-                  required
-                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-[#29374A]">Kategori</label>
-                  <select
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md cursor-pointer focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
-                  >
-                    <option value="Seminar">Seminar</option>
-                    <option value="Workshop">Workshop</option>
-                    <option value="Lomba">Lomba</option>
-                    <option value="Beasiswa">Beasiswa</option>
-                    <option value="Konser & Musik">Konser & Musik</option>
-                    <option value="Olahraga">Olahraga</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-[#29374A]">Tanggal Pelaksanaan</label>
-                  <input
-                    type="date"
-                    value={newDate}
-                    onChange={(e) => setNewDate(e.target.value)}
-                    required
-                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-[#29374A]">Penyelenggara</label>
-                  <input
-                    type="text"
-                    value={newOrganizer}
-                    onChange={(e) => setNewOrganizer(e.target.value)}
-                    placeholder="BEM / Himpunan"
-                    required
-                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-[#29374A]">Biaya (0 = Gratis)</label>
-                  <input
-                    type="number"
-                    value={newPrice}
-                    onChange={(e) => setNewPrice(e.target.value)}
-                    placeholder="0"
-                    min="0"
-                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-[#29374A]">Lokasi Kegiatan</label>
-                <input
-                  type="text"
-                  value={newLocation}
-                  onChange={(e) => setNewLocation(e.target.value)}
-                  placeholder="Auditorium / Gedung B / Zoom"
-                  required
-                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#ECE5DA]">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 border border-[#E4DCCF] rounded-md text-xs font-semibold text-[#29374A] hover:bg-[#F7F4EE] cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 bg-[#315E9E] text-white rounded-md text-xs font-bold hover:bg-[#244777] cursor-pointer shadow-xs disabled:opacity-50"
-                >
-                  {isSubmitting ? "Menyimpan..." : "Simpan Event"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Modal Edit Event */}
       {editingEvent && (

@@ -8,10 +8,7 @@ export default function AdminSidebar() {
 
   const menuItems = [
     { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-    { label: "Kelola Event", href: "/dashboard?tab=events", icon: "events" },
-    { label: "Kategori", href: "/dashboard?tab=categories", icon: "categories" },
-    { label: "Pengguna", href: "/dashboard?tab=users", icon: "users" },
-    { label: "Pengaturan", href: "/dashboard?tab=settings", icon: "settings" },
+    { label: "Pengguna", href: "/dashboard/pengguna", icon: "users" },
   ];
 
   const menuIconPaths: Record<string, string> = {
@@ -41,7 +38,10 @@ export default function AdminSidebar() {
         {/* Sidebar Nav Items */}
         <nav className="flex flex-col gap-1.5 text-xs sm:text-sm font-medium">
           {menuItems.map((item) => {
-            const isActive = pathname === item.href || (item.href === "/dashboard" && pathname === "/dashboard");
+            const isActive =
+              item.href === "/dashboard"
+                ? pathname === "/dashboard"
+                : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.label}

@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { DescriptionBlock, EventStatus } from "@/types";
 import { saveSubmittedEvent } from "@/lib/submissions";
 
-const categories = ["Seminar", "Workshop", "Lomba", "Beasiswa", "Konser & Musik", "Olahraga"];
+const categories = ["Seminar", "Workshop", "Lomba", "Beasiswa", "Konser & Musik", "Olahraga", "Technopreneurship"];
 const organizerTypes = ["Individu", "Organisasi mahasiswa", "Unit kampus", "Perusahaan", "Komunitas"];
 const participantTargets = [
   "Mahasiswa umum",
@@ -16,6 +16,12 @@ const participantTargets = [
   "Pelajar dan mahasiswa",
   "Umum",
 ];
+const timeOptions = Array.from({ length: 24 * 12 }, (_, index) => {
+  const hour = Math.floor(index / 12);
+  const minute = (index % 12) * 5;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+});
+const timeOptionsId = "event-time-options";
 const makeBlock = (type: DescriptionBlock["type"] = "paragraph", id = `block-${type}`): DescriptionBlock => ({
   id,
   type,
@@ -228,9 +234,11 @@ export default function EventSubmissionPage() {
       ["registrationDeadline", "Deadline pendaftaran wajib diisi."],
       ["time", "Waktu mulai wajib diisi."],
       ["endTime", "Waktu selesai wajib diisi."],
-      ["location", "Lokasi atau link online wajib diisi."],
       ["contactPic", "Kontak panitia wajib diisi."],
     ];
+    if (form.eventMode === "offline") {
+      requiredFields.push(["location", "Lokasi event wajib diisi."]);
+    }
     if (form.organizerType !== "Individu") {
       requiredFields.splice(2, 0, ["institution", "Institusi/organisasi wajib diisi."]);
     }
@@ -285,6 +293,12 @@ export default function EventSubmissionPage() {
       showValidationError("Waktu selesai harus setelah waktu mulai.");
       return;
     }
+    if (![form.time, form.endTime].every((value) => /^\d{2}:\d{2}$/.test(value) && Number(value.slice(3)) % 5 === 0)) {
+      nextFieldErrors.time = "Gunakan format HH:mm dengan interval 5 menit.";
+      nextFieldErrors.endTime = "Gunakan format HH:mm dengan interval 5 menit.";
+      showValidationError("Waktu harus menggunakan format 24 jam dengan interval 5 menit.");
+      return;
+    }
     if (!Number.isInteger(Number(form.durationDays)) || Number(form.durationDays) < 1) {
       nextFieldErrors.durationDays = "Durasi event minimal 1 hari.";
       showValidationError(nextFieldErrors.durationDays);
@@ -314,7 +328,7 @@ export default function EventSubmissionPage() {
         date: form.date,
         durationDays: Number(form.durationDays),
         time: `${form.time} - ${form.endTime}`,
-        location: form.location,
+        location: form.eventMode === "online" ? "Online" : form.location,
         eventMode: form.eventMode,
         category: form.category,
         price: Number(form.price),
@@ -334,7 +348,7 @@ export default function EventSubmissionPage() {
       const submittedEvent = editingEventId
         ? await apiUpdateEvent(editingEventId, payload)
         : await apiCreateEvent(payload);
-      saveSubmittedEvent(submittedEvent);
+      if (user?.id) saveSubmittedEvent(user.id, submittedEvent);
       router.push("/profil?submission=success");
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Pengajuan event gagal dikirim.");
@@ -404,7 +418,7 @@ export default function EventSubmissionPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <label className="sm:col-span-2 flex flex-col gap-1">{requiredLabel("Judul event")}<input required minLength={3} value={form.title} onChange={(e) => update("title", e.target.value)} className={getFieldClass("title")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Kategori")}<select required value={form.category} onChange={(e) => update("category", e.target.value)} className={fieldClass}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Mode event")}<select required value={form.eventMode} onChange={(e) => update("eventMode", e.target.value as "online" | "offline")} className={getFieldClass("eventMode")}><option value="offline">Offline</option><option value="online">Online</option></select></label>
+            <label className="flex flex-col gap-1">{requiredLabel("Mode event")}<select required value={form.eventMode} onChange={(e) => { const mode = e.target.value as "online" | "offline"; update("eventMode", mode); if (mode === "online") update("location", "Online"); else if (form.location === "Online") update("location", ""); }} className={getFieldClass("eventMode")}><option value="offline">Offline</option><option value="online">Online</option></select></label>
             <label className="flex flex-col gap-1">{requiredLabel("Target peserta")}<select required value={form.targetParticipants} onChange={(e) => update("targetParticipants", e.target.value)} className={getFieldClass("targetParticipants")}>{participantTargets.map((target) => <option key={target}>{target}</option>)}</select></label>
             <div className="sm:col-span-2 flex flex-col gap-3">
               <div className="flex items-center justify-between">
@@ -471,9 +485,10 @@ export default function EventSubmissionPage() {
             <label className="flex flex-col gap-1">{requiredLabel("Tanggal pelaksanaan")}<input required type="date" value={form.date} onChange={(e) => update("date", e.target.value)} className={getFieldClass("date")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Durasi pelaksanaan (hari)")}<input required type="number" min="1" step="1" value={form.durationDays} onChange={(e) => update("durationDays", e.target.value)} className={getFieldClass("durationDays")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Deadline pendaftaran")}<input required type="date" value={form.registrationDeadline} onChange={(e) => update("registrationDeadline", e.target.value)} className={getFieldClass("registrationDeadline")} /></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Waktu mulai")}<input required type="time" value={form.time} onChange={(e) => update("time", e.target.value)} className={getFieldClass("time")} /></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Waktu selesai")}<input required type="time" value={form.endTime} onChange={(e) => update("endTime", e.target.value)} className={getFieldClass("endTime")} /></label>
-            <label className="flex flex-col gap-1">{requiredLabel(form.eventMode === "online" ? "Link meeting online" : "Lokasi event")}<input required value={form.location} onChange={(e) => update("location", e.target.value)} placeholder={form.eventMode === "online" ? "https://..." : "Gedung atau ruangan"} className={getFieldClass("location")} /></label>
+            <label className="flex flex-col gap-1">{requiredLabel("Waktu mulai")}<input required type="text" inputMode="numeric" list={timeOptionsId} placeholder="--:--" maxLength={5} pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" value={form.time} onChange={(e) => update("time", e.target.value)} className={getFieldClass("time")} /></label>
+            <label className="flex flex-col gap-1">{requiredLabel("Waktu selesai")}<input required type="text" inputMode="numeric" list={timeOptionsId} placeholder="--:--" maxLength={5} pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" value={form.endTime} onChange={(e) => update("endTime", e.target.value)} className={getFieldClass("endTime")} /></label>
+            <datalist id={timeOptionsId}>{timeOptions.map((time) => <option key={time} value={time} />)}</datalist>
+            <label className="flex flex-col gap-1">{requiredLabel("Lokasi event")}<input required={form.eventMode === "offline"} disabled={form.eventMode === "online"} value={form.eventMode === "online" ? "Online" : form.location} onChange={(e) => update("location", e.target.value)} placeholder="Gedung atau ruangan" className={`${getFieldClass("location")} disabled:cursor-not-allowed disabled:bg-[#EAE2D4] disabled:text-[#92959C]`} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Kapasitas peserta")}<input required type="number" min="1" value={form.quota} onChange={(e) => update("quota", e.target.value)} className={fieldClass} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Biaya pendaftaran")}<input required type="number" min="0" value={form.price} onChange={(e) => update("price", e.target.value)} className={fieldClass} /></label>
             {(["facilities", "requirements"] as const).map((field) => (

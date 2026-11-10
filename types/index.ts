@@ -8,7 +8,8 @@ export type EventCategory =
   | "Lomba"
   | "Beasiswa"
   | "Konser & Musik"
-  | "Olahraga";
+  | "Olahraga"
+  | "Technopreneurship";
 
 export type EventStatus =
   | "active"
@@ -39,6 +40,7 @@ export interface Event {
   descriptionBlocks?: DescriptionBlock[];
   price: number; // 0 for free events
   organizer: string;
+  createdBy?: string;
   quota?: number;
   registeredCount?: number;
   status?: EventStatus;
@@ -80,4 +82,17 @@ export interface UserProfile {
   faculty?: string;
   phone?: string;
   registeredEvents: RegisteredEvent[];
+}
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  university?: string | null;
+  nim?: string | null;
+  role: "user";
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  createdEventsCount?: number;
 }

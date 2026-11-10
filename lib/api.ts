@@ -3,7 +3,7 @@
  * Menyediakan fungsi-fungsi konsisten untuk mengambil dan mengubah data melalui Backend REST API.
  */
 
-import { DescriptionBlock, Event, EventCategory, EventStatus } from "@/types";
+import { AdminUser, DescriptionBlock, Event, EventCategory, EventStatus } from "@/types";
 
 export interface EventQueryParams {
   category?: string;
@@ -223,5 +223,71 @@ export async function apiDeleteEvent(id: string): Promise<void> {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || `Gagal menghapus event (HTTP ${response.status})`);
+  }
+}
+
+/**
+ * Mengambil daftar seluruh pengguna (role 'user') untuk portal Admin
+ */
+export async function apiGetAdminUsers(): Promise<AdminUser[]> {
+  const endpoint = typeof window !== "undefined"
+    ? "/api/admin/users"
+    : `${getBaseUrl()}/api/admin/users`;
+
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal memuat pengguna (HTTP ${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Memperbarui status / informasi pengguna oleh Admin
+ */
+export async function apiUpdateAdminUser(
+  id: string,
+  payload: { isActive?: boolean; name?: string; university?: string | null; nim?: string | null }
+): Promise<AdminUser> {
+  const endpoint = typeof window !== "undefined"
+    ? `/api/admin/users/${encodeURIComponent(id)}`
+    : `${getBaseUrl()}/api/admin/users/${encodeURIComponent(id)}`;
+
+  const response = await fetch(endpoint, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal memperbarui pengguna (HTTP ${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Menghapus pengguna (role 'user') oleh Admin
+ */
+export async function apiDeleteAdminUser(id: string): Promise<void> {
+  const endpoint = typeof window !== "undefined"
+    ? `/api/admin/users/${encodeURIComponent(id)}`
+    : `${getBaseUrl()}/api/admin/users/${encodeURIComponent(id)}`;
+
+  const response = await fetch(endpoint, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal menghapus pengguna (HTTP ${response.status})`);
   }
 }

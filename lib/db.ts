@@ -235,6 +235,7 @@ export async function initSchema(): Promise<void> {
         speakers TEXT,
         facilities TEXT,
         rejection_reason TEXT,
+        created_by UUID REFERENCES users(id),
         activated_at TIMESTAMP WITH TIME ZONE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -254,6 +255,7 @@ export async function initSchema(): Promise<void> {
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS facilities TEXT;`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS rejection_reason TEXT;`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS activated_at TIMESTAMP WITH TIME ZONE;`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id);`);
 
     // 2. Buat indeks performa
     await client.query(`CREATE INDEX IF NOT EXISTS idx_events_category ON events(category);`);

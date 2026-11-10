@@ -246,7 +246,7 @@ Backend API Next.js Route Handlers tersedia pada basis rute `/api/events`.
 ### 1. `GET /api/events`
 * **Fungsi:** Mengambil daftar event dengan dukungan pemfilteran dan pencarian.
 * **Query Parameters (Opsional):**
-  * `category` *(string)*: Filter kategori (misal: `Seminar`, `Workshop`, `Lomba`, dll.).
+  * `category` *(string)*: Filter kategori (misal: `Seminar`, `Workshop`, `Lomba`, `Technopreneurship`, dll.).
   * `search` *(string)*: Pencarian kata kunci pada judul, deskripsi, atau penyelenggara.
   * `price` *(string)*: `gratis` (harga = 0) atau `berbayar` (harga > 0).
   * `location` *(string)*: `online` (daring) atau `offline` (luring).

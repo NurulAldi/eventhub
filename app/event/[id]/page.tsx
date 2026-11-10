@@ -11,7 +11,7 @@ import EventCard from "@/components/EventCard";
 import { Event, RegisteredEvent } from "@/types";
 import { isEventInWishlist, subscribeToWishlist, toggleWishlist } from "@/lib/wishlist";
 import { getPopularityLabel } from "@/lib/event-popularity";
-import { addRegisteredTicket, getRegisteredTickets, isEventRegistered, subscribeToTickets } from "@/lib/tickets";
+import { addRegisteredTicket, getRegisteredTickets, isEventRegistered, removeRegisteredTickets, subscribeToTickets } from "@/lib/tickets";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -50,7 +50,7 @@ function EventDetailContent({ params }: Props) {
         const fetchedEvent = await apiGetEventById(id);
         if (!isMounted) return;
         setEvent(fetchedEvent);
-        setIsSaved(isEventInWishlist(fetchedEvent.id));
+        if (user?.id) setIsSaved(isEventInWishlist(user.id, fetchedEvent.id));
         setIsRegistered(user ? isEventRegistered(user.id, fetchedEvent.id) : false);
         setRegisteredTicket(
           user
@@ -103,11 +103,26 @@ function EventDetailContent({ params }: Props) {
   useEffect(() => {
     const unsubscribe = subscribeToWishlist(() => {
       if (event) {
-        setIsSaved(isEventInWishlist(event.id));
+        if (user?.id) setIsSaved(isEventInWishlist(user.id, event.id));
       }
     });
     return unsubscribe;
-  }, [event]);
+  }, [event, user?.id]);
+
+  const isEventCreator = Boolean(
+    user &&
+      event && (
+        event.createdBy === user.id ||
+        (!event.createdBy && event.organizer.trim().toLowerCase() === user.name.trim().toLowerCase())
+      )
+  );
+
+  useEffect(() => {
+    if (!event || !user) return;
+    if (isEventCreator && isEventRegistered(user.id, event.id)) {
+      removeRegisteredTickets(user.id, [event.id]);
+    }
+  }, [event, user, isEventCreator]);
 
   if (isLoading) {
     return (
@@ -199,7 +214,7 @@ function EventDetailContent({ params }: Props) {
 
   const handleOpenRegistration = () => {
     if (isClosed) return;
-    if (isRegistered) return;
+    if (isRegistered || isEventCreator) return;
     if (!isLoggedIn) {
       router.push("/login");
       return;
@@ -445,7 +460,22 @@ function EventDetailContent({ params }: Props) {
             {/* Action Buttons */}
             {!isClosed && (
               <div className="flex flex-col gap-2.5">
-                {isLoggedIn && isRegistered ? (
+                {isEventCreator ? (
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      disabled
+                      aria-disabled="true"
+                      className="w-full py-3 bg-[#E4DCCF] text-[#92959C] font-bold text-sm rounded-md cursor-not-allowed text-center select-none shadow-none border border-[#D7CEBF]"
+                      title="Penyelenggara tidak dapat mendaftar event sendiri"
+                    >
+                      Daftar Event
+                    </button>
+                    <p className="text-xs text-center text-[#6F7580] bg-[#F0E9DC]/70 py-2 px-3 rounded-md border border-[#E4DCCF]">
+                      Anda adalah penyelenggara event ini, sehingga tidak dapat mendaftar.
+                    </p>
+                  </div>
+                ) : isLoggedIn && isRegistered ? (
                   <button
                     type="button"
                     onClick={() => setShowTicketModal(true)}
@@ -466,7 +496,7 @@ function EventDetailContent({ params }: Props) {
                 {isLoggedIn && (
                   <button
                     type="button"
-                    onClick={() => toggleWishlist(event.id)}
+                    onClick={() => { if (user?.id) setIsSaved(toggleWishlist(user.id, event.id)); }}
                     className={`w-full py-2.5 border text-xs font-semibold rounded-md transition cursor-pointer flex items-center justify-center gap-1.5 ${
                       isSaved
                         ? "bg-[#F0E9DC] border-[#B9B2A7] text-[#29374A]"

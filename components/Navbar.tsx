@@ -6,15 +6,15 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getUnreadCount, subscribeToNotifications } from "@/lib/notifications";
 
-function NotificationBell({ role, isHydrated }: { role: "user" | "admin"; isHydrated: boolean }) {
+function NotificationBell({ role, userId, isHydrated }: { role: "user" | "admin"; userId: string; isHydrated: boolean }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!isHydrated) return;
-    const refresh = () => setUnreadCount(getUnreadCount(role));
+    const refresh = () => setUnreadCount(getUnreadCount(userId, role));
     refresh();
     return subscribeToNotifications(refresh);
-  }, [isHydrated, role]);
+  }, [isHydrated, role, userId]);
 
   return (
     <Link href="/notifikasi" aria-label="Notifikasi" className="relative p-2 text-[#6F7580] hover:text-[#315E9E] transition-colors">
@@ -77,7 +77,7 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
-          <NotificationBell role="admin" isHydrated={isHydrated} />
+          {user?.id && <NotificationBell role="admin" userId={user.id} isHydrated={isHydrated} />}
           <Link
             href="/"
             className="text-xs font-semibold text-[#6F7580] hover:text-[#315E9E] transition flex items-center gap-1"
@@ -132,8 +132,8 @@ export default function Navbar() {
 
       {/* Right Auth Area */}
       <div className="flex items-center gap-3">
-        {isHydrated && isLoggedIn && (
-          <NotificationBell role={user?.role === "admin" ? "admin" : "user"} isHydrated={isHydrated} />
+        {isHydrated && isLoggedIn && user?.id && (
+          <NotificationBell role={user.role === "admin" ? "admin" : "user"} userId={user.id} isHydrated={isHydrated} />
         )}
         {/* Render Guest or Logged In Buttons */}
         {isLoading || !isLoggedIn ? (

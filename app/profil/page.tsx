@@ -45,7 +45,7 @@ export default function ProfilePage() {
     const submissionOrganizer = authenticatedUser.name;
     async function loadProfileEvents() {
       try {
-        const storedSubmissions = getSubmittedEvents();
+        const storedSubmissions = getSubmittedEvents(userId);
         const allEvents = await apiGetEvents({ status: "Semua" });
         const databaseSubmissions = allEvents.filter(
           (event) => event.organizer.trim().toLowerCase() === submissionOrganizer.trim().toLowerCase()
@@ -75,22 +75,40 @@ export default function ProfilePage() {
         if (removedTicketIds.length > 0) {
           removeRegisteredTickets(userId, removedTicketIds);
         }
+
+        // Hapus tiket jika event diselenggarakan oleh pengguna itu sendiri
+        const ownEventTicketIds = validTicketEntries
+          .filter(
+            ({ event }) =>
+              event.createdBy === userId ||
+              (!event.createdBy && event.organizer.trim().toLowerCase() === submissionOrganizer.trim().toLowerCase())
+          )
+          .map(({ ticket }) => ticket.eventId);
+
+        if (ownEventTicketIds.length > 0) {
+          removeRegisteredTickets(userId, ownEventTicketIds);
+        }
+
+        const allowedTicketEntries = validTicketEntries.filter(
+          (entry) => !ownEventTicketIds.includes(entry.ticket.eventId)
+        );
+
         if (isMounted) {
-          setRegisteredEvents(validTicketEntries.map((entry) => entry.ticket));
+          setRegisteredEvents(allowedTicketEntries.map((entry) => entry.ticket));
           setRegisteredEventStatuses(
             Object.fromEntries(
-              validTicketEntries.map(({ ticket, event }) => [ticket.eventId, event.status])
+              allowedTicketEntries.map(({ ticket, event }) => [ticket.eventId, event.status])
             )
           );
         }
 
         const wishlistEvents = await Promise.all(
-          getWishlistIds().map(async (eventId) => {
+          getWishlistIds(userId).map(async (eventId) => {
             try {
               return await apiGetEventById(eventId);
             } catch (err) {
               if (err instanceof Error && err.message === "Event tidak ditemukan.") {
-                toggleWishlist(eventId);
+                toggleWishlist(userId, eventId);
                 return null;
               }
               throw err;
@@ -100,7 +118,7 @@ export default function ProfilePage() {
         if (isMounted) {
           const validWishlistEvents = wishlistEvents.filter((event): event is Event => event !== null);
           setSavedEvents(validWishlistEvents);
-          setReminders(getReminderPreferences());
+          setReminders(getReminderPreferences(userId));
         }
 
         const latestSubmissions = await Promise.all(
@@ -153,8 +171,9 @@ export default function ProfilePage() {
   }, [authUser, isAuthLoading]);
 
   const toggleReminder = (event: Event, trigger: ReminderTrigger | null) => {
-    setReminderPreference(event.id, trigger);
-    setReminders(getReminderPreferences());
+    if (!authUser?.id) return;
+    setReminderPreference(authUser.id, event.id, trigger);
+    setReminders(getReminderPreferences(authUser.id));
   };
 
   const submissionStatus = submittedEvent?.status || "pending_review";
@@ -442,7 +461,7 @@ export default function ProfilePage() {
                     </Link>
                     <button
                       type="button"
-                      onClick={() => toggleWishlist(evt.id)}
+                      onClick={() => { if (authUser?.id) toggleWishlist(authUser.id, evt.id); }}
                       className="px-3 py-2 border border-[#E4DCCF] text-[#29374A] font-semibold text-xs rounded-md hover:bg-[#F7F4EE] transition"
                     >
                       Hapus

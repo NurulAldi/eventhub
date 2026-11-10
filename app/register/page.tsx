@@ -17,24 +17,12 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const universities = [
-    "Universitas Indonesia",
-    "Institut Teknologi Bandung",
-    "Universitas Gadjah Mada",
-    "Universitas Airlangga",
-    "Institut Teknologi Sepuluh Nopember",
-    "Universitas Diponegoro",
-    "Universitas Brawijaya",
-    "Binus University",
-    "Lainnya",
-  ];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
 
-    if (!name || !email || !password) {
-      setErrorMsg("Mohon lengkapi seluruh formulir registrasi.");
+    if (!name.trim() || !email.trim() || !university.trim() || !password) {
+      setErrorMsg("Mohon lengkapi seluruh formulir registrasi termasuk universitas.");
       return;
     }
 
@@ -50,7 +38,7 @@ export default function RegisterPage() {
 
     setIsLoading(true);
     try {
-      await register({ name, email, university, password });
+      await register({ name: name.trim(), email: email.trim(), university: university.trim(), password });
       setIsLoading(false);
       router.push("/profil");
     } catch (error) {
@@ -128,21 +116,15 @@ export default function RegisterPage() {
             >
               Universitas / Perguruan Tinggi
             </label>
-            <select
+            <input
               id="university"
+              type="text"
               value={university}
               onChange={(e) => setUniversity(e.target.value)}
-              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition cursor-pointer text-[#29374A]"
-            >
-              <option value="" disabled>
-                Pilih universitas
-              </option>
-              {universities.map((univ) => (
-                <option key={univ} value={univ}>
-                  {univ}
-                </option>
-              ))}
-            </select>
+              placeholder="Contoh: Universitas Negeri Padang"
+              required
+              className="w-full px-3.5 py-3 text-xs sm:text-sm bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] transition"
+            />
           </div>
 
           {/* Password */}

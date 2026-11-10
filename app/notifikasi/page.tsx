@@ -30,11 +30,14 @@ export default function NotificationsPage() {
       return;
     }
     const authenticatedRole = role;
+    const userId = user?.id;
+    if (!userId) return;
+    const authenticatedUserId = userId;
     let mounted = true;
-    const refresh = () => setNotifications(readNotifications().filter((item) => item.role === authenticatedRole));
+    const refresh = () => setNotifications(readNotifications(authenticatedUserId).filter((item) => item.role === authenticatedRole));
     async function load() {
       const events = await apiGetEvents({ status: "Semua" });
-      generateNotifications(events, authenticatedRole);
+      generateNotifications(events, authenticatedRole, authenticatedUserId);
       if (mounted) {
         refresh();
         setIsLoading(false);
@@ -57,7 +60,7 @@ export default function NotificationsPage() {
       unsubscribe();
       window.clearInterval(timer);
     };
-  }, [role, router]);
+  }, [role, router, user?.id]);
 
   if (!role) return null;
 
@@ -84,7 +87,7 @@ export default function NotificationsPage() {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#29374A]">Notifikasi</h1>
           <p className="mt-1 text-sm text-[#6F7580]">Informasi penting berdasarkan aktivitas dan pengingat Anda.</p>
         </div>
-        <button type="button" onClick={() => { markAllNotificationsRead(role); setNotifications(readNotifications().filter((item) => item.role === role)); }} className="text-xs font-semibold underline">
+        <button type="button" onClick={() => { if (!user?.id) return; markAllNotificationsRead(user.id, role); setNotifications(readNotifications(user.id).filter((item) => item.role === role)); }} className="text-xs font-semibold underline">
           Tandai semua dibaca
         </button>
       </div>
@@ -99,9 +102,9 @@ export default function NotificationsPage() {
                   {formatNotificationTime(notification.createdAt, currentTime)}
                 </time>
                 <p className="mt-1 text-sm text-[#6F7580]">{notification.message}</p>
-                {notification.href && <Link href={notification.href} onClick={() => markNotificationRead(notification.id)} className="inline-block mt-2 text-xs font-semibold underline">Lihat detail</Link>}
+                {notification.href && <Link href={notification.href} onClick={() => { if (user?.id) markNotificationRead(user.id, notification.id); }} className="inline-block mt-2 text-xs font-semibold underline">Lihat Detail</Link>}
               </div>
-              {!notification.read && <button type="button" onClick={() => { markNotificationRead(notification.id); setNotifications(readNotifications().filter((item) => item.role === role)); }} className="text-[11px] font-semibold text-blue-700">Tandai dibaca</button>}
+              {!notification.read && <button type="button" onClick={() => { if (!user?.id) return; markNotificationRead(user.id, notification.id); setNotifications(readNotifications(user.id).filter((item) => item.role === role)); }} className="text-[11px] font-semibold text-blue-700">Tandai dibaca</button>}
             </div>
           </div>
         ))}
