@@ -19,6 +19,7 @@ const CATEGORY_DOT_COLOR: Record<string, string> = {
   Beasiswa: "bg-green-500",
   Workshop: "bg-yellow-500",
   Organisasi: "bg-blue-500",
+  Technopreneurship: "bg-cyan-500",
 };
 
 const CATEGORY_TEXT_COLOR: Record<string, string> = {
@@ -27,6 +28,7 @@ const CATEGORY_TEXT_COLOR: Record<string, string> = {
   Beasiswa: "text-green-700",
   Workshop: "text-yellow-700",
   Organisasi: "text-blue-700",
+  Technopreneurship: "text-cyan-700",
 };
 
 const CATEGORY_BADGE_COLOR: Record<string, string> = {
@@ -35,14 +37,32 @@ const CATEGORY_BADGE_COLOR: Record<string, string> = {
   Beasiswa: "bg-green-100 text-green-700",
   Workshop: "bg-orange-100 text-orange-700",
   Organisasi: "bg-blue-100 text-blue-700",
+  Technopreneurship: "bg-cyan-100 text-cyan-700",
 };
 
+function getInitialToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, "0"),
+    String(today.getDate()).padStart(2, "0"),
+  ].join("-");
+  return {
+    year: today.getFullYear(),
+    month: today.getMonth(),
+    iso: todayStr,
+    time: today.getTime(),
+  };
+}
+
 function CalendarPageContent() {
-  const [currentYear, setCurrentYear] = useState<number | null>(null);
-  const [currentMonth, setCurrentMonth] = useState<number | null>(null);
-  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
-  const [todayISO, setTodayISO] = useState<string>("");
-  const [todayTime, setTodayTime] = useState<number | null>(null);
+  const [initialToday] = useState(getInitialToday);
+  const [currentYear, setCurrentYear] = useState<number>(initialToday.year);
+  const [currentMonth, setCurrentMonth] = useState<number>(initialToday.month);
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(initialToday.iso);
+  const todayISO = initialToday.iso;
+  const todayTime = initialToday.time;
   const [activeView, setActiveView] = useState<"bulan" | "minggu" | "agenda">("bulan");
 
   const [events, setEvents] = useState<Event[]>([]);
@@ -50,38 +70,30 @@ function CalendarPageContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = [
-      today.getFullYear(),
-      String(today.getMonth() + 1).padStart(2, "0"),
-      String(today.getDate()).padStart(2, "0"),
-    ].join("-");
-
-    setTodayISO(todayStr);
-    setTodayTime(today.getTime());
-
+    let isMounted = true;
     async function loadCalendarEvents() {
-      setIsLoading(true);
-      setError(null);
       try {
-        const [data] = await Promise.all([
-          apiGetEvents(),
-          new Promise<void>((resolve) => window.setTimeout(resolve, 0)),
-        ]);
-        setCurrentYear(today.getFullYear());
-        setCurrentMonth(today.getMonth());
-        setSelectedDateStr(todayStr);
-        setEvents(data);
+        const data = await apiGetEvents();
+        if (isMounted) {
+          setEvents(data);
+          setError(null);
+        }
       } catch (err) {
-        console.error("Gagal memuat event untuk kalender:", err);
-        setError("Gagal memuat event dari database.");
+        if (isMounted) {
+          console.error("Gagal memuat event untuk kalender:", err);
+          setError("Gagal memuat event dari database.");
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
 
-    loadCalendarEvents();
+    void loadCalendarEvents();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const monthNames = [
@@ -230,6 +242,13 @@ function CalendarPageContent() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                     </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goToToday}
+                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-200 text-gray-700 hover:border-blue-300 hover:text-blue-700 transition cursor-pointer ml-1"
+                  >
+                    Hari Ini
                   </button>
                 </div>
                 <h2 className="text-xl font-bold text-gray-900">

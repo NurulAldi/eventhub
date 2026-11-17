@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllEvents, createEvent, EventFilters } from "@/lib/services/event-service";
 import { authErrorResponse, requireUser } from "@/lib/auth";
+import { createEventSchema, formatZodError } from "@/lib/validations";
 
 export async function GET(request: NextRequest) {
   try {
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
 
     if (!body || typeof body !== "object") {
       return NextResponse.json(
@@ -58,7 +59,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newEvent = await createEvent(body, user.id);
+    const validation = createEventSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: formatZodError(validation.error) },
+        { status: 400 }
+      );
+    }
+
+    const newEvent = await createEvent(validation.data, user.id);
 
     return NextResponse.json(newEvent, { status: 201 });
   } catch (error) {

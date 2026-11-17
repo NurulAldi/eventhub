@@ -12,6 +12,7 @@ import {
   markNotificationRead,
   readNotifications,
   subscribeToNotifications,
+  syncNotificationsWithServer,
   formatNotificationTime,
 } from "@/lib/notifications";
 
@@ -36,6 +37,9 @@ export default function NotificationsPage() {
     let mounted = true;
     const refresh = () => setNotifications(readNotifications(authenticatedUserId).filter((item) => item.role === authenticatedRole));
     async function load() {
+      if (mounted) setCurrentTime(Date.now());
+      // Sinkronkan notifikasi dari PostgreSQL Server
+      await syncNotificationsWithServer(authenticatedUserId, authenticatedRole);
       const events = await apiGetEvents({ status: "Semua" });
       generateNotifications(events, authenticatedRole, authenticatedUserId);
       if (mounted) {
@@ -52,11 +56,9 @@ export default function NotificationsPage() {
       }
     });
     const unsubscribe = subscribeToNotifications(refresh);
-    const initialTimeTimer = window.setTimeout(() => setCurrentTime(Date.now()), 0);
     const timer = window.setInterval(() => setCurrentTime(Date.now()), 60_000);
     return () => {
       mounted = false;
-      window.clearTimeout(initialTimeTimer);
       unsubscribe();
       window.clearInterval(timer);
     };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EventCard from "@/components/EventCard";
@@ -43,6 +43,11 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
     </svg>
   ),
+  Technopreneurship: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  ),
   Lainnya: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -67,21 +72,22 @@ function EventGridSkeleton() {
   );
 }
 
-export default function HomePage() {
+function HomePageContent() {
   const router = useRouter();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [events, setEvents] = useState<Event[]>([]);
-  const [todayTime, setTodayTime] = useState<number | null>(null);
+  const [todayTime] = useState<number>(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now.getTime();
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    setTodayTime(now.getTime());
     apiGetEvents({ sortBy: "terbaru" })
       .then((data) => {
         if (isMounted) { setEvents(data); setError(null); setIsLoading(false); }
@@ -123,6 +129,7 @@ export default function HomePage() {
     { name: "Beasiswa", href: "/event?category=Beasiswa" },
     { name: "Workshop", href: "/event?category=Workshop" },
     { name: "Organisasi", href: "/event?category=Organisasi" },
+    { name: "Technopreneurship", href: "/event?category=Technopreneurship" },
     { name: "Lainnya", href: "/event" },
   ];
 
@@ -384,5 +391,22 @@ export default function HomePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-gray-50 min-h-screen">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10 animate-pulse">
+            <div className="h-10 bg-gray-200 rounded w-1/3 mb-6" />
+            <div className="h-64 bg-gray-200 rounded-2xl" />
+          </div>
+        </div>
+      }
+    >
+      <HomePageContent />
+    </Suspense>
   );
 }

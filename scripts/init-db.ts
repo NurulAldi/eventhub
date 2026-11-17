@@ -29,16 +29,27 @@ async function main() {
     const tables = await query<{ table_name: string }>(
       `SELECT table_name
        FROM information_schema.tables
-       WHERE table_schema = 'public' AND table_name IN ('users', 'events')
+       WHERE table_schema = 'public' AND table_name IN (
+         'users', 'events', 'event_registrations', 'user_wishlists', 'notification_preferences', 'user_notifications'
+       )
        ORDER BY table_name`
     );
     const tableNames = new Set(tables.map((table) => table.table_name));
-    if (!tableNames.has("users") || !tableNames.has("events")) {
+    const requiredTables = [
+      "users",
+      "events",
+      "event_registrations",
+      "user_wishlists",
+      "notification_preferences",
+      "user_notifications",
+    ];
+    const missingTables = requiredTables.filter((t) => !tableNames.has(t));
+    if (missingTables.length > 0) {
       throw new Error(
-        `Verifikasi skema gagal. Tabel tersedia: ${Array.from(tableNames).join(", ") || "(tidak ada)"}`
+        `Verifikasi skema gagal. Tabel belum ada: ${missingTables.join(", ")}. Tabel tersedia: ${Array.from(tableNames).join(", ") || "(tidak ada)"}`
       );
     }
-    console.log("✓ Tabel 'users' dan 'events' beserta indeks berhasil diinisialisasi.");
+    console.log("✓ Seluruh tabel (users, events, registrations, wishlists, notifications) berhasil diinisialisasi.");
     console.log("Inisialisasi selesai tanpa error.");
     await getPool().end();
     process.exit(0);

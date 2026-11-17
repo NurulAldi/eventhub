@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Event } from "@/types";
@@ -17,19 +16,17 @@ const CATEGORY_COLORS: Record<string, string> = {
   Beasiswa: "bg-green-100 text-green-700",
   Workshop: "bg-orange-100 text-orange-700",
   Organisasi: "bg-blue-100 text-blue-700",
+  Technopreneurship: "bg-cyan-100 text-cyan-700",
 };
 
 export default function EventCard({ event, showPrice = true }: EventCardProps) {
-  const [deadlineDays, setDeadlineDays] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!event.registrationDeadline) return;
+  const deadlineDays = (() => {
+    if (!event.registrationDeadline) return null;
     const target = new Date(`${event.registrationDeadline}T00:00:00`);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const diff = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    setDeadlineDays(diff);
-  }, [event.registrationDeadline]);
+    return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  })();
 
   const popularityLabel = getPopularityLabel(event);
   const categoryColorClass = CATEGORY_COLORS[event.category] ?? "bg-gray-100 text-gray-700";

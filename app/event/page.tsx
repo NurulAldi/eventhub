@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import EventCard from "@/components/EventCard";
@@ -40,7 +40,6 @@ const RELATED_KEYWORDS = [
 ];
 
 function EventListContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category") || "Semua";
   const initialSearch = searchParams.get("search") || "";
@@ -56,7 +55,6 @@ function EventListContent() {
   const [sortBy, setSortBy] = useState<"terbaru" | "populer" | "deadline-terdekat" | "harga-rendah">(
     initialSort as "terbaru" | "populer" | "deadline-terdekat" | "harga-rendah"
   );
-  const [searchTerm, setSearchTerm] = useState<string>(initialSearch);
   const [pendingSearch, setPendingSearch] = useState<string>(initialSearch);
 
   // Top search bar state (untuk mode pencarian Gambar 4)
@@ -78,14 +76,12 @@ function EventListContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 8;
 
-  const categories = ["Semua Kategori", "Lomba", "Seminar", "Beasiswa", "Workshop", "Organisasi", "Kegiatan Kampus"];
+  const categories = ["Semua Kategori", "Lomba", "Seminar", "Beasiswa", "Workshop", "Organisasi", "Technopreneurship", "Kegiatan Kampus"];
   const eventTypes = ["Semua Jenis", "Online", "Offline", "Hybrid"];
   const eventStatuses = ["Semua Status", "Terverifikasi", "Pendaftaran Segera Ditutup"];
 
   useEffect(() => {
     let isMounted = true;
-    setIsLoading(true);
-
     const categoryParam = appliedCategories.length === 0 ? "Semua" : appliedCategories[0];
 
     apiGetEvents({
@@ -114,6 +110,7 @@ function EventListContent() {
 
   const handleApplyFilters = () => {
     setCurrentPage(1);
+    setIsLoading(true);
     setAppliedCategories(selectedCategories);
     setAppliedPriceFilter(selectedPriceFilter);
   };
@@ -121,25 +118,25 @@ function EventListContent() {
   const handleKeywordSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setCurrentPage(1);
+    setIsLoading(true);
     setAppliedSearch(pendingSearch.trim());
-    setSearchTerm(pendingSearch.trim());
   };
 
   const handleClearSearch = () => {
     setPendingSearch("");
+    setIsLoading(true);
     setAppliedSearch("");
-    setSearchTerm("");
     setCurrentPage(1);
   };
 
   const handleResetFilters = () => {
     setCurrentPage(1);
+    setIsLoading(true);
     setSelectedCategories([]);
     setSelectedTypes([]);
     setSelectedStatus([]);
     setSelectedPriceFilter("semua");
     setPendingSearch("");
-    setSearchTerm("");
     setSearchBarInput("");
     setAppliedCategories([]);
     setAppliedPriceFilter("semua");
@@ -150,16 +147,16 @@ function EventListContent() {
   const handleTopSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setCurrentPage(1);
+    setIsLoading(true);
     setAppliedSearch(searchBarInput);
-    setSearchTerm(searchBarInput);
     setPendingSearch(searchBarInput);
   };
 
   const handleKeywordClick = (kw: string) => {
     setCurrentPage(1);
+    setIsLoading(true);
     setSearchBarInput(kw);
     setAppliedSearch(kw);
-    setSearchTerm(kw);
     setPendingSearch(kw);
   };
 
@@ -251,7 +248,10 @@ function EventListContent() {
                 <select
                   aria-label="Urutkan Hasil Pencarian"
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as "terbaru" | "populer" | "deadline-terdekat" | "harga-rendah")}
+                  onChange={(e) => {
+                    setIsLoading(true);
+                    setSortBy(e.target.value as "terbaru" | "populer" | "deadline-terdekat" | "harga-rendah");
+                  }}
                   className="text-xs font-semibold bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 outline-none cursor-pointer hover:border-blue-300"
                 >
                   <option value="terbaru">Paling Relevan</option>
@@ -664,7 +664,11 @@ function EventListContent() {
                     <select
                       aria-label="Urutkan Event"
                       value={sortBy}
-                      onChange={(e) => { setSortBy(e.target.value as "terbaru" | "populer" | "deadline-terdekat" | "harga-rendah"); setCurrentPage(1); }}
+                      onChange={(e) => {
+                        setIsLoading(true);
+                        setSortBy(e.target.value as "terbaru" | "populer" | "deadline-terdekat" | "harga-rendah");
+                        setCurrentPage(1);
+                      }}
                       className="text-xs font-semibold bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-700 outline-none cursor-pointer hover:border-blue-300 transition"
                     >
                       <option value="terbaru">Terbaru</option>

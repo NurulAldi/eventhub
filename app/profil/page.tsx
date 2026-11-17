@@ -4,16 +4,28 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiGetEventById, apiGetEvents } from "@/lib/api";
+import {
+  apiGetEventById,
+  apiGetEvents,
+  apiGetUserRegistrations,
+  apiGetWishlist,
+  apiGetNotificationPreferences,
+  apiUpdateNotificationPreferences,
+} from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { RegisteredEvent, Event } from "@/types";
-import { getWishlistIds, subscribeToWishlist, toggleWishlist } from "@/lib/wishlist";
+import { getWishlistIds, subscribeToWishlist, toggleWishlist, writeWishlistIds } from "@/lib/wishlist";
 import {
   getReminderPreferences,
   ReminderTrigger,
   setReminderPreference,
 } from "@/lib/notifications";
-import { getRegisteredTickets, removeRegisteredTickets, subscribeToTickets } from "@/lib/tickets";
+import {
+  getRegisteredTickets,
+  removeRegisteredTickets,
+  saveRegisteredTickets,
+  subscribeToTickets,
+} from "@/lib/tickets";
 import { getSubmittedEvents } from "@/lib/submissions";
 
 export default function ProfilePage() {
@@ -32,6 +44,17 @@ export default function ProfilePage() {
   const [showAllSubmissions, setShowAllSubmissions] = useState(false);
   const [reminders, setReminders] = useState<Record<string, ReminderTrigger>>({});
   const [registeredEventStatuses, setRegisteredEventStatuses] = useState<Record<string, Event["status"]>>({});
+
+  // Notification Preferences State (Persistensi PostgreSQL)
+  const [notificationPrefs, setNotificationPrefs] = useState<{
+    reminderEvent: boolean;
+    updateEvent: boolean;
+    generalInfo: boolean;
+  }>({
+    reminderEvent: true,
+    updateEvent: true,
+    generalInfo: false,
+  });
 
   // Edit Profile States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -66,7 +89,12 @@ export default function ProfilePage() {
         );
         const submissions = Array.from(submissionMap.values());
         const submissionIds = submissions.map((submission) => submission.id);
-        const tickets = getRegisteredTickets(userId);
+
+        // Ambil tiket resmi dari PostgreSQL
+        const serverTickets = await apiGetUserRegistrations().catch(() => getRegisteredTickets(userId));
+        saveRegisteredTickets(userId, serverTickets);
+        const tickets = serverTickets;
+
         const ticketEvents = await Promise.all(
           tickets.map(async (ticket) => {
             try {
@@ -113,22 +141,41 @@ export default function ProfilePage() {
           );
         }
 
-        const wishlistEvents = await Promise.all(
-          getWishlistIds(userId).map(async (eventId) => {
-            try {
-              return await apiGetEventById(eventId);
-            } catch (err) {
-              if (err instanceof Error && err.message === "Event tidak ditemukan.") {
-                toggleWishlist(userId, eventId);
-                return null;
+        // Ambil wishlist dari PostgreSQL
+        const wishlistRes = await apiGetWishlist().catch(() => null);
+        if (wishlistRes && isMounted) {
+          writeWishlistIds(userId, wishlistRes.ids);
+          setSavedEvents(wishlistRes.events);
+        } else {
+          const wishlistEvents = await Promise.all(
+            getWishlistIds(userId).map(async (eventId) => {
+              try {
+                return await apiGetEventById(eventId);
+              } catch (err) {
+                if (err instanceof Error && err.message === "Event tidak ditemukan.") {
+                  toggleWishlist(userId, eventId);
+                  return null;
+                }
+                throw err;
               }
-              throw err;
-            }
-          })
-        );
-        if (isMounted) {
-          const validWishlistEvents = wishlistEvents.filter((event): event is Event => event !== null);
-          setSavedEvents(validWishlistEvents);
+            })
+          );
+          if (isMounted) {
+            const validWishlistEvents = wishlistEvents.filter((event): event is Event => event !== null);
+            setSavedEvents(validWishlistEvents);
+          }
+        }
+
+        // Ambil preferensi notifikasi dari PostgreSQL
+        const prefs = await apiGetNotificationPreferences().catch(() => null);
+        if (prefs && isMounted) {
+          setNotificationPrefs({
+            reminderEvent: prefs.reminderEvent,
+            updateEvent: prefs.updateEvent,
+            generalInfo: prefs.generalInfo,
+          });
+          setReminders(prefs.eventReminders || {});
+        } else if (isMounted) {
           setReminders(getReminderPreferences(userId));
         }
 
@@ -185,6 +232,17 @@ export default function ProfilePage() {
     if (!authUser?.id) return;
     setReminderPreference(authUser.id, event.id, trigger);
     setReminders(getReminderPreferences(authUser.id));
+  };
+
+  const handleTogglePref = async (key: "reminderEvent" | "updateEvent" | "generalInfo") => {
+    const nextVal = !notificationPrefs[key];
+    setNotificationPrefs((prev) => ({ ...prev, [key]: nextVal }));
+    try {
+      await apiUpdateNotificationPreferences({ [key]: nextVal });
+    } catch (err) {
+      console.error("Gagal memperbarui preferensi notifikasi:", err);
+      setNotificationPrefs((prev) => ({ ...prev, [key]: !nextVal }));
+    }
   };
 
   const submissionStatus = submittedEvent?.status || "pending_review";
@@ -602,9 +660,82 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Right Column: Informasi pengguna */}
-        <aside className="w-full lg:w-80 bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 shadow-xs flex flex-col gap-5 shrink-0">
-          <div className="pt-2">
+        {/* Right Column: Pengaturan Notifikasi & Navigasi */}
+        <aside className="w-full lg:w-80 flex flex-col gap-5 shrink-0">
+          {/* Card Pengaturan Notifikasi (Sesuai behaviour.txt) */}
+          <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-5 shadow-xs flex flex-col gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-[#29374A]">Pengaturan Notifikasi</h3>
+              <p className="text-[11px] text-[#6F7580] mt-0.5">Preferensi tersimpan di server PostgreSQL.</p>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-1">
+              {/* Reminder Event */}
+              <div className="flex items-start justify-between gap-3 p-3 rounded-lg border border-[#E4DCCF] bg-[#F7F4EE]/50">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-[#29374A]">Reminder event</span>
+                  <span className="text-[10px] text-[#6F7580] leading-snug mt-0.5">
+                    Pengingat event yang sudah disimpan atau didaftarkan.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTogglePref("reminderEvent")}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition cursor-pointer shrink-0 ${
+                    notificationPrefs.reminderEvent
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  {notificationPrefs.reminderEvent ? "Aktif" : "Nonaktif"}
+                </button>
+              </div>
+
+              {/* Update Event */}
+              <div className="flex items-start justify-between gap-3 p-3 rounded-lg border border-[#E4DCCF] bg-[#F7F4EE]/50">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-[#29374A]">Update event</span>
+                  <span className="text-[10px] text-[#6F7580] leading-snug mt-0.5">
+                    Informasi perubahan tanggal, waktu, atau lokasi.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTogglePref("updateEvent")}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition cursor-pointer shrink-0 ${
+                    notificationPrefs.updateEvent
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  {notificationPrefs.updateEvent ? "Aktif" : "Nonaktif"}
+                </button>
+              </div>
+
+              {/* Informasi Umum */}
+              <div className="flex items-start justify-between gap-3 p-3 rounded-lg border border-[#E4DCCF] bg-[#F7F4EE]/50">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-[#29374A]">Informasi umum</span>
+                  <span className="text-[10px] text-[#6F7580] leading-snug mt-0.5">
+                    Pengumuman dan informasi dari platform.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTogglePref("generalInfo")}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition cursor-pointer shrink-0 ${
+                    notificationPrefs.generalInfo
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  {notificationPrefs.generalInfo ? "Aktif" : "Nonaktif"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-5 shadow-xs">
             <Link
               href="/event"
               className="w-full py-2.5 bg-[#315E9E] text-white text-xs font-bold rounded-md hover:bg-[#244777] transition block text-center"

@@ -1,21 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryOne } from "@/lib/db";
 import { hashPassword, setSession, type AuthUser } from "@/lib/auth";
+import { registerSchema, formatZodError } from "@/lib/validations";
+import { checkRateLimit, createRateLimitErrorResponse, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const name = typeof body?.name === "string" ? body.name.trim() : "";
-    const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
-    const university = typeof body?.university === "string" ? body.university.trim() : "";
-    const password = typeof body?.password === "string" ? body.password : "";
+    // 1. Rate limiting: Maksimal 5 percobaan pendaftaran per menit per IP
+    const clientIp = getClientIp(request);
+    const rateLimit = checkRateLimit(`auth:register:${clientIp}`, 5, 60_000);
+    if (!rateLimit.success) {
+      return createRateLimitErrorResponse(rateLimit);
+    }
 
-    if (name.length < 2 || !email || !university || password.length < 8) {
+    // 2. Validasi input menggunakan Zod
+    const body = await request.json().catch(() => null);
+    const validation = registerSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: "Nama, email, universitas user, dan kata sandi minimal 8 karakter wajib diisi." },
+        { error: formatZodError(validation.error) },
         { status: 400 }
       );
     }
+
+    const { name, email, university, password } = validation.data;
 
     const existing = await queryOne<{ id: string }>("SELECT id FROM users WHERE email = $1", [email]);
     if (existing) {

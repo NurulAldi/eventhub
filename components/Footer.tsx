@@ -51,6 +51,7 @@ export default function Footer() {
               <Link href="/event?category=Beasiswa" className="hover:text-white transition">Beasiswa</Link>
               <Link href="/event?category=Workshop" className="hover:text-white transition">Workshop</Link>
               <Link href="/event?category=Organisasi" className="hover:text-white transition">Organisasi</Link>
+              <Link href="/event?category=Technopreneurship" className="hover:text-white transition">Technopreneurship</Link>
             </div>
           </div>
 

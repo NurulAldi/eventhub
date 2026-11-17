@@ -1,6 +1,14 @@
 import type { Event } from "@/types";
 import { getWishlistIds } from "@/lib/wishlist";
 import { getSubmittedEvents, saveSubmittedEvent } from "@/lib/submissions";
+import {
+  apiGetNotificationPreferences,
+  apiUpdateNotificationPreferences,
+  apiGetNotifications,
+  apiSyncNotifications,
+  apiMarkNotificationRead,
+  apiMarkAllNotificationsRead,
+} from "./api";
 
 export type NotificationRole = "user" | "admin";
 export type ReminderTrigger = "7d" | "3d" | "1d";
@@ -26,6 +34,7 @@ function getReminderPreferencesKey(userId: string): string {
 }
 
 export function readNotifications(userId: string): AppNotification[] {
+  if (typeof window === "undefined" || !userId) return [];
   try {
     const value = JSON.parse(localStorage.getItem(getNotificationsKey(userId)) || "[]");
     return Array.isArray(value) ? value : [];
@@ -35,6 +44,7 @@ export function readNotifications(userId: string): AppNotification[] {
 }
 
 export function writeNotifications(userId: string, notifications: AppNotification[]) {
+  if (typeof window === "undefined" || !userId) return;
   localStorage.setItem(getNotificationsKey(userId), JSON.stringify(notifications));
   window.dispatchEvent(new Event(notificationChangeEvent));
 }
@@ -49,6 +59,7 @@ export function addNotification(userId: string, notification: Omit<AppNotificati
 }
 
 export function getReminderPreferences(userId: string): Record<string, ReminderTrigger> {
+  if (typeof window === "undefined" || !userId) return {};
   try {
     const value = JSON.parse(localStorage.getItem(getReminderPreferencesKey(userId)) || "{}");
     if (!value || typeof value !== "object") return {};
@@ -65,14 +76,46 @@ export function getReminderPreferences(userId: string): Record<string, ReminderT
 }
 
 export function setReminderPreference(userId: string, eventId: string, trigger: ReminderTrigger | null) {
+  if (!userId || !eventId) return;
   const preferences = getReminderPreferences(userId);
   if (trigger) preferences[eventId] = trigger;
   else delete preferences[eventId];
+
   localStorage.setItem(getReminderPreferencesKey(userId), JSON.stringify(preferences));
   window.dispatchEvent(new Event(notificationChangeEvent));
+
+  // Persist ke server
+  void apiUpdateNotificationPreferences({
+    eventReminders: preferences,
+  }).catch((err) => {
+    console.error("Gagal menyimpan preferensi pengingat ke database:", err);
+  });
+}
+
+/**
+ * Sinkronisasi notifikasi dan preferensi dari PostgreSQL
+ */
+export async function syncNotificationsWithServer(userId: string, role: NotificationRole): Promise<void> {
+  if (!userId) return;
+  try {
+    const [prefs, notifs] = await Promise.all([
+      apiGetNotificationPreferences().catch(() => null),
+      apiSyncNotifications(role).catch(() => apiGetNotifications(role).catch(() => [])),
+    ]);
+
+    if (prefs && prefs.eventReminders) {
+      localStorage.setItem(getReminderPreferencesKey(userId), JSON.stringify(prefs.eventReminders));
+    }
+    if (Array.isArray(notifs)) {
+      writeNotifications(userId, notifs);
+    }
+  } catch (error) {
+    console.error("Gagal sinkronisasi notifikasi dengan server:", error);
+  }
 }
 
 export function subscribeToNotifications(listener: () => void) {
+  if (typeof window === "undefined") return () => {};
   window.addEventListener("storage", listener);
   window.addEventListener(notificationChangeEvent, listener);
   return () => {
@@ -103,10 +146,16 @@ export function formatNotificationTime(createdAt: string, now = Date.now()): str
 
 export function markNotificationRead(userId: string, id: string) {
   writeNotifications(userId, readNotifications(userId).map((item) => item.id === id ? { ...item, read: true } : item));
+  void apiMarkNotificationRead(id).catch((err) => {
+    console.error("Gagal menandai notifikasi dibaca di server:", err);
+  });
 }
 
 export function markAllNotificationsRead(userId: string, role: NotificationRole) {
   writeNotifications(userId, readNotifications(userId).map((item) => item.role === role ? { ...item, read: true } : item));
+  void apiMarkAllNotificationsRead().catch((err) => {
+    console.error("Gagal menandai semua notifikasi dibaca di server:", err);
+  });
 }
 
 function daysUntil(date: string) {

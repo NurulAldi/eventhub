@@ -259,11 +259,65 @@ export async function initSchema(): Promise<void> {
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS activated_at TIMESTAMP WITH TIME ZONE;`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id);`);
 
-    // 2. Buat indeks performa
+    // 2. Buat indeks performa events
     await client.query(`CREATE INDEX IF NOT EXISTS idx_events_category ON events(category);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_events_date ON events(date);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_events_is_popular ON events(is_popular);`);
+
+    // 3. Tabel event_registrations (Persistensi Registrasi Tiket)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS event_registrations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        event_id VARCHAR(64) NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        ticket_code VARCHAR(64) NOT NULL UNIQUE,
+        ticket_status VARCHAR(32) NOT NULL DEFAULT 'active',
+        qr_code_mock TEXT,
+        registered_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT uq_event_registrations_user_event UNIQUE (user_id, event_id)
+      );
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_event_reg_user ON event_registrations(user_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_event_reg_event ON event_registrations(event_id);`);
+
+    // 4. Tabel user_wishlists (Persistensi Wishlist / Bookmark)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_wishlists (
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        event_id VARCHAR(64) NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, event_id)
+      );
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_wishlists_user ON user_wishlists(user_id);`);
+
+    // 5. Tabel notification_preferences (Persistensi Preferensi Notifikasi)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS notification_preferences (
+        user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        reminder_event BOOLEAN NOT NULL DEFAULT TRUE,
+        update_event BOOLEAN NOT NULL DEFAULT TRUE,
+        general_info BOOLEAN NOT NULL DEFAULT FALSE,
+        event_reminders JSONB NOT NULL DEFAULT '{}'::jsonb,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 6. Tabel user_notifications (Persistensi Notifikasi Terpusat)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_notifications (
+        id VARCHAR(128) PRIMARY KEY,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        role VARCHAR(16) NOT NULL DEFAULT 'user',
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        href TEXT,
+        read BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_notifications_user_role ON user_notifications(user_id, role);`);
 
     await client.query("COMMIT;");
   } catch (error) {

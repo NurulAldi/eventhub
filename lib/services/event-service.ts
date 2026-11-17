@@ -24,7 +24,7 @@ export interface CreateEventDTO {
   durationDays?: number;
   time?: string;
   location: string;
-  eventMode?: "online" | "offline";
+  eventMode?: "online" | "offline" | "hybrid";
   category: EventCategory | string;
   image?: string;
   price?: number;
@@ -249,7 +249,7 @@ export function validateEventInput(data: Partial<CreateEventDTO>, isUpdate = fal
   };
 }
 
-async function syncEventStatuses(): Promise<void> {
+export async function syncEventStatuses(): Promise<void> {
   await query(`
     UPDATE events
     SET

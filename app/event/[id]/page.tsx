@@ -4,7 +4,7 @@ import { use, useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiGetEventById, apiGetEvents, apiRegisterEvent } from "@/lib/api";
+import { apiGetEventById, apiGetEvents, apiRegisterEvent, apiGetUserRegistrations } from "@/lib/api";
 import type { DescriptionBlock } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import EventCard from "@/components/EventCard";
@@ -54,13 +54,27 @@ function EventDetailContent({ params }: Props) {
         const fetchedEvent = await apiGetEventById(id);
         if (!isMounted) return;
         setEvent(fetchedEvent);
-        if (user?.id) setIsSaved(isEventInWishlist(user.id, fetchedEvent.id));
-        setIsRegistered(user ? isEventRegistered(user.id, fetchedEvent.id) : false);
-        setRegisteredTicket(
-          user
-            ? getRegisteredTickets(user.id).find((ticket) => ticket.eventId === fetchedEvent.id) || null
-            : null
-        );
+        if (user?.id) {
+          setIsSaved(isEventInWishlist(user.id, fetchedEvent.id));
+          const userTickets = getRegisteredTickets(user.id);
+          const found = userTickets.find((ticket) => ticket.eventId === fetchedEvent.id);
+          if (found) {
+            setIsRegistered(true);
+            setRegisteredTicket(found);
+          } else {
+            apiGetUserRegistrations()
+              .then((serverTickets) => {
+                if (isMounted) {
+                  const sFound = serverTickets.find((t) => t.eventId === fetchedEvent.id);
+                  if (sFound) {
+                    setIsRegistered(true);
+                    setRegisteredTicket(sFound);
+                  }
+                }
+              })
+              .catch(() => {});
+          }
+        }
 
         try {
           const all = await apiGetEvents({ category: fetchedEvent.category });
@@ -110,16 +124,18 @@ function EventDetailContent({ params }: Props) {
     user &&
       event && (
         event.createdBy === user.id ||
-        (!event.createdBy && event.organizer.trim().toLowerCase() === user.name.trim().toLowerCase())
+        event.organizer.trim().toLowerCase() === user.name.trim().toLowerCase()
       )
   );
 
+  const isAdmin = user?.role === "admin";
+
   useEffect(() => {
     if (!event || !user) return;
-    if (isEventCreator && isEventRegistered(user.id, event.id)) {
+    if ((isEventCreator || isAdmin) && isEventRegistered(user.id, event.id)) {
       removeRegisteredTickets(user.id, [event.id]);
     }
-  }, [event, user, isEventCreator]);
+  }, [event, user, isEventCreator, isAdmin]);
 
   if (isLoading) {
     return (
@@ -200,6 +216,7 @@ function EventDetailContent({ params }: Props) {
 
   const quota = event.quota || 1000;
   const registered = event.registeredCount || 0;
+  const isQuotaFull = quota > 0 && registered >= quota;
   const registrationPercentage = Math.min(100, Math.round((registered / quota) * 100));
 
   const deadlineDaysLeft = (() => {
@@ -212,19 +229,18 @@ function EventDetailContent({ params }: Props) {
 
   const handleOpenRegistration = () => {
     if (isClosed) return;
-    if (isRegistered || isEventCreator) return;
+    if (isRegistered || isEventCreator || isAdmin) return;
     if (!isLoggedIn) { router.push("/login"); return; }
     setShowModal(true);
     setRegistrationSuccess(false);
   };
 
   const handleConfirmRegistration = async () => {
-    if (isRegistered) return;
+    if (isRegistered || isEventCreator || isAdmin) return;
     try {
-      const updatedEvent = await apiRegisterEvent(event.id);
-      const generatedTicket = `EVT-${Math.floor(100000 + Math.random() * 900000)}`;
-      const ticket: RegisteredEvent = {
-        ticketId: generatedTicket,
+      const response = await apiRegisterEvent(event.id);
+      const ticket: RegisteredEvent = response.ticket || {
+        ticketId: `EVT-${Math.floor(100000 + Math.random() * 900000)}`,
         eventId: event.id,
         eventTitle: event.title,
         category: event.category,
@@ -233,11 +249,13 @@ function EventDetailContent({ params }: Props) {
         location: event.location,
         registeredAt: new Date().toISOString().slice(0, 10),
         ticketStatus: "active",
-        qrCodeMock: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${generatedTicket}`,
+        qrCodeMock: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=EVT-TICKET`,
       };
-      if (!user || !addRegisteredTicket(user.id, ticket)) return;
-      setEvent(updatedEvent);
-      setTicketCode(generatedTicket);
+      if (user) {
+        addRegisteredTicket(user.id, ticket);
+      }
+      setEvent(response);
+      setTicketCode(ticket.ticketId);
       setRegisteredTicket(ticket);
       setIsRegistered(true);
       setRegistrationSuccess(true);
@@ -466,30 +484,54 @@ function EventDetailContent({ params }: Props) {
 
             {/* Tombol Aksi - Sesuai Gambar 3 */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              {isEventCreator ? (
+              {isAdmin ? (
                 <div className="w-full">
                   <button
                     type="button"
                     disabled
+                    aria-disabled="true"
+                    className="w-full py-3 bg-gray-100 text-gray-400 font-bold text-sm rounded-xl cursor-not-allowed text-center select-none border border-gray-200"
+                    title="Akun dengan role Admin tidak dapat mendaftar event apapun"
+                  >
+                    Daftar Sekarang
+                  </button>
+                  <p className="text-xs text-center text-gray-500 mt-1.5">
+                    Akun dengan role Admin tidak dapat mendaftar event apapun.
+                  </p>
+                </div>
+              ) : isEventCreator ? (
+                <div className="w-full">
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
                     className="w-full py-3 bg-gray-100 text-gray-400 font-bold text-sm rounded-xl cursor-not-allowed text-center select-none border border-gray-200"
                     title="Penyelenggara tidak dapat mendaftar event sendiri"
                   >
                     Daftar Sekarang
                   </button>
                   <p className="text-xs text-center text-gray-500 mt-1.5">
-                    Anda adalah penyelenggara event ini.
+                    Anda adalah penyelenggara event ini (tidak dapat mendaftar).
                   </p>
                 </div>
               ) : isLoggedIn && isRegistered ? (
                 <button
                   type="button"
                   onClick={() => setShowTicketModal(true)}
-                  className="flex-1 py-3 px-6 bg-blue-700 text-white font-bold text-sm rounded-xl hover:bg-blue-800 transition shadow-sm flex items-center justify-center gap-2"
+                  className="flex-1 py-3 px-6 bg-blue-700 text-white font-bold text-sm rounded-xl hover:bg-blue-800 transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                   </svg>
-                  Lihat E-Ticket QR
+                  Lihat E-Ticket QR (Terdaftar)
+                </button>
+              ) : isQuotaFull ? (
+                <button
+                  type="button"
+                  disabled
+                  className="flex-1 py-3 px-6 bg-gray-200 text-gray-500 font-bold text-sm rounded-xl cursor-not-allowed select-none text-center"
+                >
+                  Kuota Penuh
                 </button>
               ) : (
                 <button

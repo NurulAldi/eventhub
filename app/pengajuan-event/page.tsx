@@ -77,6 +77,7 @@ function ImageUploadField({
     <div className={className}>
       {preview ? (
         <div className="relative overflow-hidden rounded-xl border border-[#D7E1EF] bg-[#F7F4EE] p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={preview} alt="Pratinjau gambar yang dipilih" className="max-h-64 w-full rounded-lg object-cover" />
           <button
             type="button"
@@ -126,7 +127,7 @@ export default function EventSubmissionPage() {
     institution: "",
     title: "",
     category: "Seminar",
-    eventMode: "offline" as "online" | "offline",
+    eventMode: "offline" as "online" | "offline" | "hybrid",
     description: "",
     image: "",
     descriptionBlocks: [makeBlock()],

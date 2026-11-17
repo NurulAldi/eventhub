@@ -3,7 +3,9 @@
 import { useEffect } from "react";
 import { apiGetEvents } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { generateNotifications } from "@/lib/notifications";
+import { generateNotifications, syncNotificationsWithServer } from "@/lib/notifications";
+import { syncWishlistWithServer } from "@/lib/wishlist";
+import { syncTicketsWithServer } from "@/lib/tickets";
 
 export default function NotificationBootstrap() {
   const { user } = useAuth();
@@ -13,8 +15,15 @@ export default function NotificationBootstrap() {
   useEffect(() => {
     if (!role || !userId) return;
     let active = true;
-    const loadNotifications = async () => {
+    const loadData = async () => {
       try {
+        // Sync wishlist, tickets, and notifications with PostgreSQL server
+        await Promise.allSettled([
+          syncWishlistWithServer(userId),
+          syncTicketsWithServer(userId),
+          syncNotificationsWithServer(userId, role),
+        ]);
+
         const events = await apiGetEvents({ status: "Semua" });
         if (active) generateNotifications(events, role, userId);
       } catch (error) {
@@ -22,7 +31,7 @@ export default function NotificationBootstrap() {
       }
     };
 
-    void loadNotifications();
+    void loadData();
     return () => {
       active = false;
     };

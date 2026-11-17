@@ -1,25 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryOne } from "@/lib/db";
 import { authErrorResponse, requireUser, type AuthUser } from "@/lib/auth";
+import { updateProfileSchema, formatZodError } from "@/lib/validations";
 
 export async function PATCH(request: NextRequest) {
   try {
     const currentUser = await requireUser();
-    const body = await request.json().catch(() => null);
+    const rawBody = await request.json().catch(() => null);
 
-    if (!body || typeof body !== "object") {
+    if (!rawBody || typeof rawBody !== "object") {
       return NextResponse.json({ error: "Payload data tidak valid." }, { status: 400 });
     }
 
-    const name = typeof body.name === "string" ? body.name.trim() : currentUser.name;
-    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : currentUser.email;
-    const university = typeof body.university === "string" ? body.university.trim() || null : currentUser.university || null;
-    const avatarUrl =
-      typeof body.avatarUrl === "string"
-        ? body.avatarUrl.trim() || null
-        : body.avatarUrl === null
-        ? null
-        : currentUser.avatarUrl || null;
+    const validation = updateProfileSchema.safeParse(rawBody);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: formatZodError(validation.error) },
+        { status: 400 }
+      );
+    }
+
+    const body = validation.data;
+    const name = body.name ?? currentUser.name;
+    const email = body.email ?? currentUser.email;
+    const university = body.university !== undefined ? body.university : currentUser.university || null;
+    const avatarUrl = body.avatarUrl !== undefined ? body.avatarUrl : currentUser.avatarUrl || null;
 
     if (!name || name.length < 2) {
       return NextResponse.json({ error: "Nama lengkap minimal 2 karakter." }, { status: 400 });

@@ -3,7 +3,7 @@
  * Menyediakan fungsi-fungsi konsisten untuk mengambil dan mengubah data melalui Backend REST API.
  */
 
-import { AdminUser, DescriptionBlock, Event, EventCategory, EventStatus } from "@/types";
+import { AdminUser, DescriptionBlock, Event, EventCategory, EventStatus, RegisteredEvent } from "@/types";
 
 export interface EventQueryParams {
   category?: string;
@@ -22,7 +22,7 @@ export interface CreateEventPayload {
   durationDays?: number;
   time?: string;
   location: string;
-  eventMode?: "online" | "offline";
+  eventMode?: "online" | "offline" | "hybrid";
   category: EventCategory | string;
   image?: string;
   descriptionBlocks?: DescriptionBlock[];
@@ -192,7 +192,7 @@ export async function apiUpdateEvent(id: string, payload: Partial<CreateEventPay
   return response.json();
 }
 
-export async function apiRegisterEvent(id: string): Promise<Event> {
+export async function apiRegisterEvent(id: string): Promise<Event & { ticket?: RegisteredEvent }> {
   const endpoint = typeof window !== "undefined"
     ? `/api/events/${encodeURIComponent(id)}`
     : `${getBaseUrl()}/api/events/${encodeURIComponent(id)}`;
@@ -206,6 +206,186 @@ export async function apiRegisterEvent(id: string): Promise<Event> {
     throw new Error(errorData.error || `Gagal mendaftarkan peserta (HTTP ${response.status})`);
   }
   return response.json();
+}
+
+/**
+ * Mengambil daftar seluruh tiket event yang didaftarkan oleh pengguna yang login
+ */
+export async function apiGetUserRegistrations(): Promise<RegisteredEvent[]> {
+  const endpoint = typeof window !== "undefined"
+    ? `/api/user/registrations`
+    : `${getBaseUrl()}/api/user/registrations`;
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal memuat tiket terdaftar (HTTP ${response.status})`);
+  }
+  return response.json();
+}
+
+/**
+ * Mengambil data wishlist pengguna (array of ID dan array of Event)
+ */
+export async function apiGetWishlist(): Promise<{ ids: string[]; events: Event[] }> {
+  const endpoint = typeof window !== "undefined"
+    ? `/api/user/wishlist`
+    : `${getBaseUrl()}/api/user/wishlist`;
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal memuat wishlist (HTTP ${response.status})`);
+  }
+  return response.json();
+}
+
+/**
+ * Toggle bookmark/wishlist suatu event untuk pengguna yang login
+ */
+export async function apiToggleWishlist(
+  eventId: string
+): Promise<{ success: boolean; isInWishlist: boolean; ids: string[] }> {
+  const endpoint = typeof window !== "undefined"
+    ? `/api/user/wishlist`
+    : `${getBaseUrl()}/api/user/wishlist`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ eventId }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal mengubah status wishlist (HTTP ${response.status})`);
+  }
+  return response.json();
+}
+
+export interface NotificationPreferencesData {
+  reminderEvent: boolean;
+  updateEvent: boolean;
+  generalInfo: boolean;
+  eventReminders: Record<string, "7d" | "3d" | "1d">;
+  updatedAt?: string;
+}
+
+/**
+ * Mengambil preferensi notifikasi pengguna dari server
+ */
+export async function apiGetNotificationPreferences(): Promise<NotificationPreferencesData> {
+  const endpoint = typeof window !== "undefined"
+    ? `/api/user/preferences`
+    : `${getBaseUrl()}/api/user/preferences`;
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal memuat preferensi notifikasi (HTTP ${response.status})`);
+  }
+  return response.json();
+}
+
+/**
+ * Memperbarui preferensi notifikasi pengguna di server
+ */
+export async function apiUpdateNotificationPreferences(
+  payload: Partial<NotificationPreferencesData>
+): Promise<NotificationPreferencesData> {
+  const endpoint = typeof window !== "undefined"
+    ? `/api/user/preferences`
+    : `${getBaseUrl()}/api/user/preferences`;
+  const response = await fetch(endpoint, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal menyimpan preferensi notifikasi (HTTP ${response.status})`);
+  }
+  return response.json();
+}
+
+export interface ApiNotificationItem {
+  id: string;
+  role: "user" | "admin";
+  title: string;
+  message: string;
+  href?: string;
+  createdAt: string;
+  read: boolean;
+}
+
+export async function apiGetNotifications(role?: string): Promise<ApiNotificationItem[]> {
+  const query = role ? `?role=${encodeURIComponent(role)}` : "";
+  const endpoint = typeof window !== "undefined"
+    ? `/api/notifications${query}`
+    : `${getBaseUrl()}/api/notifications${query}`;
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal mengambil notifikasi (HTTP ${response.status})`);
+  }
+  return response.json();
+}
+
+export async function apiSyncNotifications(role?: string): Promise<ApiNotificationItem[]> {
+  const query = role ? `?role=${encodeURIComponent(role)}` : "";
+  const endpoint = typeof window !== "undefined"
+    ? `/api/notifications${query}`
+    : `${getBaseUrl()}/api/notifications${query}`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal menyinkronkan notifikasi (HTTP ${response.status})`);
+  }
+  return response.json();
+}
+
+export async function apiMarkNotificationRead(id: string): Promise<void> {
+  const endpoint = typeof window !== "undefined"
+    ? `/api/notifications`
+    : `${getBaseUrl()}/api/notifications`;
+  const response = await fetch(endpoint, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal menandai notifikasi dibaca (HTTP ${response.status})`);
+  }
+}
+
+export async function apiMarkAllNotificationsRead(): Promise<void> {
+  const endpoint = typeof window !== "undefined"
+    ? `/api/notifications`
+    : `${getBaseUrl()}/api/notifications`;
+  const response = await fetch(endpoint, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ all: true }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal menandai semua notifikasi dibaca (HTTP ${response.status})`);
+  }
 }
 
 /**

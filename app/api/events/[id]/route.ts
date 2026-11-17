@@ -4,8 +4,10 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getEventById, updateEvent, registerEvent, deleteEvent } from "@/lib/services/event-service";
+import { getEventById, updateEvent, deleteEvent, type CreateEventDTO } from "@/lib/services/event-service";
+import { registerUserForEvent, RegistrationError } from "@/lib/services/registration-service";
 import { authErrorResponse, requireAdmin, requireUser } from "@/lib/auth";
+import { updateEventSchema, registerTicketSchema, formatZodError } from "@/lib/validations";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -62,14 +64,24 @@ export async function PATCH(
       );
     }
 
-    const body = await request.json();
+    const rawBody = await request.json().catch(() => null);
 
-    if (!body || typeof body !== "object") {
+    if (!rawBody || typeof rawBody !== "object") {
       return NextResponse.json(
         { error: "Payload request tidak valid." },
         { status: 400 }
       );
     }
+
+    const validation = updateEventSchema.safeParse(rawBody);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: formatZodError(validation.error) },
+        { status: 400 }
+      );
+    }
+
+    const body = validation.data;
 
     if (user.role === "user") {
       const existing = await getEventById(id);
@@ -81,7 +93,7 @@ export async function PATCH(
       }
     }
 
-    const updated = await updateEvent(id, body);
+    const updated = await updateEvent(id, body as Partial<CreateEventDTO>);
 
     if (!updated) {
       return NextResponse.json(
@@ -117,38 +129,44 @@ export async function POST(
   try {
     const user = await requireUser();
     const { id } = await params;
-    const body = await request.json();
-    if (!id || body?.action !== "register") {
-      return NextResponse.json({ error: "Permintaan pendaftaran tidak valid." }, { status: 400 });
+
+    if (!id) {
+      return NextResponse.json({ error: "Parameter ID event tidak valid." }, { status: 400 });
     }
 
-    const event = await getEventById(id);
-    if (!event) {
-      return NextResponse.json({ error: `Event dengan ID '${id}' tidak ditemukan.` }, { status: 404 });
-    }
-
-    const isCreator =
-      event.createdBy === user.id ||
-      (!event.createdBy && event.organizer.trim().toLowerCase() === user.name.trim().toLowerCase());
-    if (isCreator) {
+    if (user.role === "admin") {
       return NextResponse.json(
-        { error: "Pembuat event tidak dapat mendaftarkan diri pada event sendiri." },
+        { error: "Akun dengan role admin tidak dapat mendaftar event." },
         { status: 403 }
       );
     }
 
-    const registered = await registerEvent(id);
-    if (!registered) {
+    const body = await request.json().catch(() => null);
+    const validation = registerTicketSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: "Pendaftaran gagal. Event sudah penuh, tidak aktif, atau tidak ditemukan." },
-        { status: 409 }
+        { error: formatZodError(validation.error) },
+        { status: 400 }
       );
     }
-    return NextResponse.json(registered, { status: 200 });
+
+    const result = await registerUserForEvent(user.id, id);
+    return NextResponse.json(
+      {
+        ...result.event,
+        ticket: result.ticket,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("[API_REGISTER_EVENT_ERROR]:", error);
     const authError = authErrorResponse(error);
     if (authError) return NextResponse.json({ error: authError.error }, { status: authError.status });
+
+    if (error instanceof RegistrationError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Gagal mendaftarkan peserta." },
       { status: 500 }

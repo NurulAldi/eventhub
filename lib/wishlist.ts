@@ -1,3 +1,5 @@
+import { apiGetWishlist, apiToggleWishlist } from "./api";
+
 const WISHLIST_CHANGE_EVENT = "eventhub-wishlist-change";
 
 function getWishlistStorageKey(userId: string): string {
@@ -5,7 +7,7 @@ function getWishlistStorageKey(userId: string): string {
 }
 
 function readWishlistIds(userId: string): string[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined" || !userId) return [];
 
   try {
     const saved = JSON.parse(localStorage.getItem(getWishlistStorageKey(userId)) || "[]");
@@ -15,7 +17,8 @@ function readWishlistIds(userId: string): string[] {
   }
 }
 
-function writeWishlistIds(userId: string, ids: string[]) {
+export function writeWishlistIds(userId: string, ids: string[]) {
+  if (typeof window === "undefined" || !userId) return;
   localStorage.setItem(getWishlistStorageKey(userId), JSON.stringify(ids));
   window.dispatchEvent(new Event(WISHLIST_CHANGE_EVENT));
 }
@@ -28,14 +31,52 @@ export function isEventInWishlist(userId: string, eventId: string): boolean {
   return readWishlistIds(userId).includes(eventId);
 }
 
+/**
+ * Sinkronisasi wishlist pengguna dari PostgreSQL ke penyimpanan lokal
+ */
+export async function syncWishlistWithServer(userId: string): Promise<string[]> {
+  if (!userId) return [];
+  try {
+    const data = await apiGetWishlist();
+    writeWishlistIds(userId, data.ids);
+    return data.ids;
+  } catch (error) {
+    console.error("Gagal menyinkronkan wishlist dari server:", error);
+    return readWishlistIds(userId);
+  }
+}
+
+/**
+ * Toggle bookmark/wishlist dengan persistensi database PostgreSQL
+ */
 export function toggleWishlist(userId: string, eventId: string): boolean {
+  if (!userId || !eventId) return false;
+
   const ids = readWishlistIds(userId);
   const isSaved = ids.includes(eventId);
-  writeWishlistIds(userId, isSaved ? ids.filter((id) => id !== eventId) : [...ids, eventId]);
+  const nextIds = isSaved ? ids.filter((id) => id !== eventId) : [...ids, eventId];
+
+  // Optimistic update
+  writeWishlistIds(userId, nextIds);
+
+  // Kirim ke PostgreSQL Server
+  apiToggleWishlist(eventId)
+    .then((res) => {
+      if (res && Array.isArray(res.ids)) {
+        writeWishlistIds(userId, res.ids);
+      }
+    })
+    .catch((err) => {
+      console.error("Gagal menyimpan wishlist ke database:", err);
+      // Rollback jika terjadi error
+      writeWishlistIds(userId, ids);
+    });
+
   return !isSaved;
 }
 
 export function subscribeToWishlist(listener: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
   window.addEventListener("storage", listener);
   window.addEventListener(WISHLIST_CHANGE_EVENT, listener);
   return () => {
