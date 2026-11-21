@@ -131,7 +131,7 @@ async function runTests() {
       const evt1 = await createEvent({
         title: "Test Event Seminar AI",
         description: "Deskripsi seminar AI pengujian sistem database.",
-        date: "2026-11-20",
+        date: "2027-11-20",
         time: "09:00 - 12:00 WIB",
         location: "Gedung Uji A",
         category: "Seminar",
@@ -145,7 +145,7 @@ async function runTests() {
       const evt2 = await createEvent({
         title: "Test Event Workshop Web",
         description: "Deskripsi workshop web pengujian sistem database.",
-        date: "2026-11-25",
+        date: "2027-11-25",
         time: "13:00 - 16:00 WIB",
         location: "Lab Komputer Uji",
         category: "Workshop",
@@ -160,7 +160,7 @@ async function runTests() {
       const evtLimited = await createEvent({
         title: "Test Event Kuota Terbatas",
         description: "Deskripsi event kuota 1 peserta.",
-        date: "2026-11-28",
+        date: "2027-11-28",
         time: "10:00 - 12:00 WIB",
         location: "Ruang Rapat",
         category: "Lomba",
@@ -253,7 +253,7 @@ async function runTests() {
       const ownEvent = await createEvent({
         title: "Event Buatan Sendiri",
         description: "Event yang dibuat oleh testUserId.",
-        date: "2026-11-30",
+        date: "2027-11-30",
         location: "UNP",
         category: "Seminar",
         organizer: "User Uji 1",

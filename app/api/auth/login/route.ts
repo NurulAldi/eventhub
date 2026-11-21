@@ -6,6 +6,7 @@ import { checkRateLimit, createRateLimitErrorResponse, getClientIp } from "@/lib
 
 interface LoginRow extends AuthUser {
   password_hash: string;
+  isActive: boolean;
 }
 
 export async function POST(request: NextRequest) {
@@ -30,14 +31,23 @@ export async function POST(request: NextRequest) {
     const { email, password } = validation.data;
 
     const user = await queryOne<LoginRow>(
-      `SELECT id, name, email, university, avatar_url AS "avatarUrl", role, password_hash
+      `SELECT id, name, email, university, avatar_url AS "avatarUrl", role, password_hash,
+              is_active AS "isActive"
        FROM users
-       WHERE email = $1 AND is_active = TRUE`,
+       WHERE email = $1`,
       [email]
     );
 
-    if (!user || !(await verifyPassword(password, user.password_hash))) {
-      return NextResponse.json({ error: "Email atau kata sandi salah." }, { status: 401 });
+    if (!user) {
+      return NextResponse.json({ error: "Email belum terdaftar." }, { status: 404 });
+    }
+
+    if (!user.isActive) {
+      return NextResponse.json({ error: "Akun pengguna tidak aktif." }, { status: 403 });
+    }
+
+    if (!(await verifyPassword(password, user.password_hash))) {
+      return NextResponse.json({ error: "Kata sandi salah." }, { status: 401 });
     }
 
     await setSession(user.id);

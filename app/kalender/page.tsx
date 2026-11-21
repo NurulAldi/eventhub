@@ -73,7 +73,7 @@ function CalendarPageContent() {
     let isMounted = true;
     async function loadCalendarEvents() {
       try {
-        const data = await apiGetEvents();
+        const data = await apiGetEvents({ sortBy: "deadline-terdekat" });
         if (isMounted) {
           setEvents(data);
           setError(null);
@@ -155,6 +155,12 @@ function CalendarPageContent() {
   // Deadline events sorted
   const deadlineEvents = [...events]
     .filter((e) => e.registrationDeadline)
+    .filter((e) => !["completed", "cancelled"].includes(e.status || ""))
+    .filter((e) => {
+      if (!e.registrationDeadline) return false;
+      const deadline = new Date(`${e.registrationDeadline}T23:59:59`);
+      return deadline.getTime() >= todayTime;
+    })
     .sort((a, b) => (a.registrationDeadline ?? "").localeCompare(b.registrationDeadline ?? ""))
     .slice(0, 5);
 

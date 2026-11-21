@@ -65,6 +65,8 @@ function EventListContent() {
   const [appliedCategories, setAppliedCategories] = useState<string[]>(
     initialCategory === "Semua" ? [] : [initialCategory]
   );
+  const [appliedTypes, setAppliedTypes] = useState<string[]>([]);
+  const [appliedStatus, setAppliedStatus] = useState<string[]>([]);
   const [appliedPriceFilter, setAppliedPriceFilter] = useState<"semua" | "gratis" | "berbayar">("semua");
   const [appliedSearch, setAppliedSearch] = useState<string>(initialSearch);
 
@@ -78,21 +80,58 @@ function EventListContent() {
 
   const categories = ["Semua Kategori", "Lomba", "Seminar", "Beasiswa", "Workshop", "Organisasi", "Technopreneurship", "Kegiatan Kampus"];
   const eventTypes = ["Semua Jenis", "Online", "Offline", "Hybrid"];
-  const eventStatuses = ["Semua Status", "Terverifikasi", "Pendaftaran Segera Ditutup"];
+  const eventStatuses = ["Semua Status", "Terverifikasi"];
 
   useEffect(() => {
     let isMounted = true;
-    const categoryParam = appliedCategories.length === 0 ? "Semua" : appliedCategories[0];
-
     apiGetEvents({
-      category: categoryParam,
+      category: "Semua",
       price: appliedPriceFilter,
       sortBy: sortBy,
       search: appliedSearch,
     })
       .then((data) => {
         if (isMounted) {
-          setEvents(data);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          let openEvents = sortBy === "deadline-terdekat"
+            ? data
+                .filter((event) => !["completed", "cancelled"].includes(event.status || ""))
+                .filter((event) => {
+                  if (!event.registrationDeadline) return true;
+                  const deadline = new Date(`${event.registrationDeadline}T23:59:59`);
+                  return deadline >= today;
+                })
+            : [...data];
+
+          if (appliedCategories.length > 0) {
+            openEvents = openEvents.filter((event) =>
+              appliedCategories.some((category) => event.category === category)
+            );
+          }
+
+          if (appliedTypes.length > 0) {
+            openEvents = openEvents.filter((event) =>
+              appliedTypes.some((type) => event.eventMode?.toLowerCase() === type.toLowerCase())
+            );
+          }
+
+          if (appliedStatus.includes("Terverifikasi")) {
+            openEvents = openEvents.filter((event) =>
+              ["active", "published"].includes(event.status || "")
+            );
+          }
+
+          if (sortBy === "deadline-terdekat") {
+            openEvents.sort((a, b) => {
+              if (!a.registrationDeadline && !b.registrationDeadline) return 0;
+              if (!a.registrationDeadline) return 1;
+              if (!b.registrationDeadline) return -1;
+              return new Date(a.registrationDeadline).getTime() - new Date(b.registrationDeadline).getTime();
+            });
+          }
+
+          setEvents(openEvents);
           setError(null);
           setIsLoading(false);
         }
@@ -106,14 +145,7 @@ function EventListContent() {
       });
 
     return () => { isMounted = false; };
-  }, [appliedCategories, appliedPriceFilter, sortBy, appliedSearch, refreshKey]);
-
-  const handleApplyFilters = () => {
-    setCurrentPage(1);
-    setIsLoading(true);
-    setAppliedCategories(selectedCategories);
-    setAppliedPriceFilter(selectedPriceFilter);
-  };
+  }, [appliedCategories, appliedTypes, appliedStatus, appliedPriceFilter, sortBy, appliedSearch, refreshKey]);
 
   const handleKeywordSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -135,6 +167,8 @@ function EventListContent() {
     setSelectedCategories([]);
     setSelectedTypes([]);
     setSelectedStatus([]);
+    setAppliedTypes([]);
+    setAppliedStatus([]);
     setSelectedPriceFilter("semua");
     setPendingSearch("");
     setSearchBarInput("");
@@ -163,11 +197,19 @@ function EventListContent() {
   const toggleCategory = (cat: string) => {
     if (cat === "Semua Kategori") {
       setSelectedCategories([]);
+      setAppliedCategories([]);
+      setCurrentPage(1);
+      setIsLoading(true);
       return;
     }
-    setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
+
+    const nextCategories = selectedCategories.includes(cat)
+      ? selectedCategories.filter((category) => category !== cat)
+      : [...selectedCategories, cat];
+    setSelectedCategories(nextCategories);
+    setAppliedCategories(nextCategories);
+    setCurrentPage(1);
+    setIsLoading(true);
   };
 
   const isCategoryChecked = (cat: string) => {
@@ -179,7 +221,7 @@ function EventListContent() {
   const visibleEvents = events.slice((currentPage - 1) * eventsPerPage, currentPage * eventsPerPage);
 
   const isSearchMode = isSearchModeActive && Boolean(appliedSearch.trim());
-  const hasActiveFilters = appliedCategories.length > 0 || appliedPriceFilter !== "semua" || Boolean(appliedSearch.trim());
+  const hasActiveFilters = appliedCategories.length > 0 || appliedTypes.length > 0 || appliedStatus.length > 0 || appliedPriceFilter !== "semua" || Boolean(appliedSearch.trim());
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -548,10 +590,18 @@ function EventListContent() {
                           key={type}
                           checked={type === "Semua Jenis" ? selectedTypes.length === 0 : selectedTypes.includes(type)}
                           onChange={() => {
-                            if (type === "Semua Jenis") setSelectedTypes([]);
-                            else setSelectedTypes((prev) =>
-                              prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-                            );
+                            let nextTypes: string[];
+                            if (type === "Semua Jenis") {
+                              nextTypes = [];
+                            } else {
+                              nextTypes = selectedTypes.includes(type)
+                                ? selectedTypes.filter((item) => item !== type)
+                                : [...selectedTypes, type];
+                            }
+                            setSelectedTypes(nextTypes);
+                            setAppliedTypes(nextTypes);
+                            setCurrentPage(1);
+                            setIsLoading(true);
                           }}
                           label={type}
                         />
@@ -566,17 +616,22 @@ function EventListContent() {
                     <span className="text-xs font-bold text-gray-900 uppercase tracking-wider">Status Event</span>
                     <div className="flex flex-col gap-2">
                       {eventStatuses.map((status) => (
-                        <FilterCheckbox
-                          key={status}
-                          checked={status === "Semua Status" ? selectedStatus.length === 0 : selectedStatus.includes(status)}
-                          onChange={() => {
-                            if (status === "Semua Status") setSelectedStatus([]);
-                            else setSelectedStatus((prev) =>
-                              prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
-                            );
-                          }}
-                          label={status}
-                        />
+                        <label key={status} className="flex items-center gap-2.5 text-sm text-gray-700 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="statusFilter"
+                            checked={status === "Semua Status" ? selectedStatus.length === 0 : selectedStatus.includes(status)}
+                            onChange={() => {
+                              const nextStatus = status === "Semua Status" ? [] : [status];
+                              setSelectedStatus(nextStatus);
+                              setAppliedStatus(nextStatus);
+                              setCurrentPage(1);
+                              setIsLoading(true);
+                            }}
+                            className="w-4 h-4 accent-blue-600"
+                          />
+                          <span>{status}</span>
+                        </label>
                       ))}
                     </div>
                   </div>
@@ -597,7 +652,13 @@ function EventListContent() {
                             type="radio"
                             name="priceFilter"
                             checked={selectedPriceFilter === opt.value}
-                            onChange={() => setSelectedPriceFilter(opt.value as "semua" | "gratis" | "berbayar")}
+                            onChange={() => {
+                              const nextPrice = opt.value as "semua" | "gratis" | "berbayar";
+                              setSelectedPriceFilter(nextPrice);
+                              setAppliedPriceFilter(nextPrice);
+                              setCurrentPage(1);
+                              setIsLoading(true);
+                            }}
                             className="w-4 h-4 accent-blue-600"
                           />
                           <span>{opt.label}</span>
@@ -605,14 +666,6 @@ function EventListContent() {
                       ))}
                     </div>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={handleApplyFilters}
-                    className="w-full py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 active:scale-95 transition-all cursor-pointer shadow-sm mt-1"
-                  >
-                    Terapkan Filter
-                  </button>
                 </div>
               </aside>
 

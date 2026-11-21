@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,6 +19,7 @@ import {
   getReminderPreferences,
   ReminderTrigger,
   setReminderPreference,
+  subscribeToNotifications,
 } from "@/lib/notifications";
 import {
   getRegisteredTickets,
@@ -36,7 +37,7 @@ export default function ProfilePage() {
   const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>([]);
 
   // State Tabs
-  const [activeTab, setActiveTab] = useState<"registered" | "saved">("registered");
+  const [activeTab, setActiveTab] = useState<"registered" | "saved">("saved");
   const [selectedTicket, setSelectedTicket] = useState<RegisteredEvent | null>(null);
   const [savedEvents, setSavedEvents] = useState<Event[]>([]);
   const [submittedEvent, setSubmittedEvent] = useState<Event | null>(null);
@@ -66,10 +67,87 @@ export default function ProfilePage() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+  const profileLoadInFlight = useRef(false);
+  const profileRefreshPending = useRef(false);
 
   useEffect(() => {
     if (!isAuthLoading && !authUser) router.replace("/login");
   }, [authUser, isAuthLoading, router]);
+
+  useEffect(() => {
+    if (isAuthLoading || !authUser) return;
+
+    let isMounted = true;
+    const userId = authUser.id;
+
+    async function loadSavedEvents() {
+      try {
+        const wishlistRes = await apiGetWishlist();
+        if (!isMounted) return;
+
+        writeWishlistIds(userId, wishlistRes.ids);
+
+        const serverEvents = new Map(
+          wishlistRes.events.map((event) => [event.id, event])
+        );
+
+        if (serverEvents.size > 0) {
+          setSavedEvents(
+            wishlistRes.ids
+              .map((eventId) => serverEvents.get(eventId))
+              .filter((event): event is Event => event !== undefined)
+          );
+        }
+
+        await Promise.all(
+          wishlistRes.ids.map(async (eventId) => {
+            if (serverEvents.has(eventId)) return;
+            try {
+              const event = await apiGetEventById(eventId);
+              serverEvents.set(event.id, event);
+            } catch {
+              // Event yang tidak lagi tersedia tidak ditampilkan.
+            }
+          })
+        );
+
+        if (isMounted) {
+          setSavedEvents(
+            wishlistRes.ids
+              .map((eventId) => serverEvents.get(eventId))
+              .filter((event): event is Event => event !== undefined)
+          );
+        }
+      } catch (error) {
+        console.error("Gagal memuat event tersimpan:", error);
+
+        const localWishlistIds = getWishlistIds(userId);
+        const localEvents = await Promise.all(
+          localWishlistIds.map(async (eventId) => {
+            try {
+              return await apiGetEventById(eventId);
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        if (isMounted) {
+          setSavedEvents(localEvents.filter((event): event is Event => event !== null));
+        }
+      }
+    }
+
+    void loadSavedEvents();
+    const unsubscribeWishlist = subscribeToWishlist(() => {
+      void loadSavedEvents();
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribeWishlist();
+    };
+  }, [authUser, isAuthLoading]);
 
   useEffect(() => {
     const authenticatedUser = authUser;
@@ -78,9 +156,50 @@ export default function ProfilePage() {
     const userId = authenticatedUser.id;
     const submissionOrganizer = authenticatedUser.name;
     async function loadProfileEvents() {
+      if (profileLoadInFlight.current) {
+        profileRefreshPending.current = true;
+        return;
+      }
+      profileLoadInFlight.current = true;
+
+      function withTimeout<T>(promise: Promise<T>, timeoutMs = 8000): Promise<T> {
+        return Promise.race([
+          promise,
+          new Promise<T>((_, reject) => {
+            window.setTimeout(() => reject(new Error("Permintaan data profil terlalu lama.")), timeoutMs);
+          }),
+        ]);
+      }
+
       try {
         const storedSubmissions = getSubmittedEvents(userId);
-        const allEvents = await apiGetEvents({ status: "Semua" });
+        const storedTickets = getRegisteredTickets(userId);
+        if (isMounted) {
+          setRegisteredEvents(storedTickets);
+          setSubmittedEvents(storedSubmissions);
+          setSubmittedEvent(storedSubmissions[0] || null);
+          setReminders(getReminderPreferences(userId));
+          setIsProfileLoading(false);
+        }
+
+        // Muat wishlist lokal terlebih dahulu agar tab Disimpan langsung terisi saat profil dibuka.
+        const initialWishlistIds = getWishlistIds(userId);
+        const localWishlistEvents = await Promise.all(
+          initialWishlistIds.map(async (eventId) => {
+            try {
+              return await withTimeout(apiGetEventById(eventId));
+            } catch {
+              return null;
+            }
+          })
+        );
+        if (isMounted) {
+          setSavedEvents(
+            localWishlistEvents.filter((event): event is Event => event !== null)
+          );
+        }
+
+        const allEvents = await withTimeout(apiGetEvents({ status: "Semua" }));
         const databaseSubmissions = allEvents.filter(
           (event) => event.organizer.trim().toLowerCase() === submissionOrganizer.trim().toLowerCase()
         );
@@ -91,14 +210,14 @@ export default function ProfilePage() {
         const submissionIds = submissions.map((submission) => submission.id);
 
         // Ambil tiket resmi dari PostgreSQL
-        const serverTickets = await apiGetUserRegistrations().catch(() => getRegisteredTickets(userId));
+        const serverTickets = await withTimeout(apiGetUserRegistrations()).catch(() => getRegisteredTickets(userId));
         saveRegisteredTickets(userId, serverTickets);
         const tickets = serverTickets;
 
         const ticketEvents = await Promise.all(
           tickets.map(async (ticket) => {
             try {
-              return await apiGetEventById(ticket.eventId);
+              return await withTimeout(apiGetEventById(ticket.eventId));
             } catch (err) {
               if (err instanceof Error && err.message === "Event tidak ditemukan.") return null;
               throw err;
@@ -141,33 +260,47 @@ export default function ProfilePage() {
           );
         }
 
-        // Ambil wishlist dari PostgreSQL
-        const wishlistRes = await apiGetWishlist().catch(() => null);
+        // Sinkronisasi wishlist server (pemuatannya awal ditangani effect khusus).
+        const wishlistRes = await withTimeout(apiGetWishlist()).catch(() => null);
+        const serverWishlistEvents = wishlistRes?.events || [];
+        const serverWishlistIds = wishlistRes?.ids || [];
+        const localWishlistIds = getWishlistIds(userId);
+
+        const wishlistIds = Array.from(new Set([...serverWishlistIds, ...localWishlistIds]));
         if (wishlistRes && isMounted) {
-          writeWishlistIds(userId, wishlistRes.ids);
-          setSavedEvents(wishlistRes.events);
-        } else {
-          const wishlistEvents = await Promise.all(
-            getWishlistIds(userId).map(async (eventId) => {
-              try {
-                return await apiGetEventById(eventId);
-              } catch (err) {
-                if (err instanceof Error && err.message === "Event tidak ditemukan.") {
-                  toggleWishlist(userId, eventId);
-                  return null;
-                }
-                throw err;
+          writeWishlistIds(userId, wishlistIds);
+        }
+
+        const wishlistEventMap = new Map(
+          serverWishlistEvents.map((event) => [event.id, event])
+        );
+
+        await Promise.all(
+          wishlistIds.map(async (eventId) => {
+            if (wishlistEventMap.has(eventId)) return;
+            try {
+              const event = await withTimeout(apiGetEventById(eventId));
+              wishlistEventMap.set(event.id, event);
+            } catch (err) {
+              if (err instanceof Error && err.message === "Event tidak ditemukan.") {
+                toggleWishlist(userId, eventId);
+                return;
               }
-            })
+              throw err;
+            }
+          })
+        );
+
+        if (isMounted) {
+          setSavedEvents(
+            wishlistIds
+              .map((eventId) => wishlistEventMap.get(eventId))
+              .filter((event): event is Event => event !== undefined)
           );
-          if (isMounted) {
-            const validWishlistEvents = wishlistEvents.filter((event): event is Event => event !== null);
-            setSavedEvents(validWishlistEvents);
-          }
         }
 
         // Ambil preferensi notifikasi dari PostgreSQL
-        const prefs = await apiGetNotificationPreferences().catch(() => null);
+        const prefs = await withTimeout(apiGetNotificationPreferences()).catch(() => null);
         if (prefs && isMounted) {
           setNotificationPrefs({
             reminderEvent: prefs.reminderEvent,
@@ -182,7 +315,7 @@ export default function ProfilePage() {
         const latestSubmissions = await Promise.all(
           submissionIds.map(async (submissionId) => {
             try {
-              return await apiGetEventById(submissionId);
+              return await withTimeout(apiGetEventById(submissionId));
             } catch (err) {
               if (err instanceof Error && err.message === "Event tidak ditemukan.") return null;
               throw err;
@@ -201,32 +334,51 @@ export default function ProfilePage() {
       } catch (err) {
         console.error("Gagal memuat data profil:", err);
       } finally {
+        profileLoadInFlight.current = false;
         if (isMounted) setIsProfileLoading(false);
+
+        if (profileRefreshPending.current && isMounted) {
+          profileRefreshPending.current = false;
+          window.setTimeout(() => void loadProfileEvents(), 100);
+        }
       }
     }
 
     const refreshProfileEvents = () => {
-      void loadProfileEvents();
+      if (document.visibilityState === "visible") {
+        void loadProfileEvents();
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadProfileEvents();
+      }
     }
 
     loadProfileEvents();
     const unsubscribeTickets = subscribeToTickets(() => {
       void loadProfileEvents();
     });
-    const unsubscribeWishlist = subscribeToWishlist(() => {
-      void loadProfileEvents();
-    });
     window.addEventListener("focus", refreshProfileEvents);
-    document.addEventListener("visibilitychange", refreshProfileEvents);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       isMounted = false;
       unsubscribeTickets();
-      unsubscribeWishlist();
       window.removeEventListener("focus", refreshProfileEvents);
-      document.removeEventListener("visibilitychange", refreshProfileEvents);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [authUser, isAuthLoading]);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    const syncReminders = () => {
+      setReminders(getReminderPreferences(authUser.id));
+    };
+    syncReminders();
+    return subscribeToNotifications(syncReminders);
+  }, [authUser?.id]);
 
   const toggleReminder = (event: Event, trigger: ReminderTrigger | null) => {
     if (!authUser?.id) return;
@@ -518,7 +670,7 @@ export default function ProfilePage() {
                   : "border-transparent text-[#6F7580] hover:text-[#29374A]"
               }`}
             >
-              Event Diikuti ({registeredEvents.length})
+              Event yang Diikuti ({registeredEvents.length})
             </button>
             <button
               type="button"

@@ -120,6 +120,12 @@ function HomePageContent() {
     .slice(0, 3);
   const deadlineEvents = [...events]
     .filter((e) => e.registrationDeadline)
+    .filter((e) => !["completed", "cancelled"].includes(e.status || ""))
+    .filter((e) => {
+      if (!e.registrationDeadline) return false;
+      const deadline = new Date(`${e.registrationDeadline}T23:59:59`);
+      return deadline.getTime() >= todayTime;
+    })
     .sort((a, b) => (a.registrationDeadline ?? "").localeCompare(b.registrationDeadline ?? ""))
     .slice(0, 4);
 
@@ -202,6 +208,14 @@ function HomePageContent() {
                   </Link>
                 ))}
               </div>
+            </div>
+
+            {/* Verified Info Notice */}
+            <div className="flex items-center gap-2 min-h-11 text-xs leading-5 text-gray-500 bg-white border border-gray-200 rounded-xl px-4 py-3">
+              <svg className="w-4 h-4 text-green-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>Semua event telah melalui proses kurasi untuk memastikan keabsahan dan relevansinya bagi mahasiswa.</span>
             </div>
 
             {/* Event Terbaru */}
@@ -366,13 +380,6 @@ function HomePageContent() {
                 <p className="text-xs text-gray-500 text-center py-4">Tidak ada deadline mendatang.</p>
               )}
 
-              {/* Verified Info Notice */}
-              <div className="mt-4 pt-4 border-t border-gray-100 flex items-start gap-2 text-xs text-gray-500">
-                <svg className="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span>Semua event telah melalui proses kurasi untuk memastikan keabsahan dan relevansinya bagi mahasiswa.</span>
-              </div>
             </div>
 
             {/* CTA Ajukan Event */}

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(events, {
       status: 200,
       headers: {
-        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=59",
+        "Cache-Control": "no-store, max-age=0",
       },
     });
   } catch (error) {

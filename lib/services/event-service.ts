@@ -328,21 +328,41 @@ export async function getAllEvents(filters: EventFilters = {}): Promise<Event[]>
   }
 
   // Clause WHERE
+  const publicStatusClause = "status IN ('active', 'published', 'completed', 'cancelled')";
+  const deadlineStatusClause = `status IN ('active', 'published')
+    AND (
+      CASE
+        WHEN registration_deadline IS NULL THEN TRUE
+        WHEN registration_deadline ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+          THEN registration_deadline::date >= CURRENT_DATE
+        ELSE TRUE
+      END
+    )`;
+  const baseStatusClause = filters.sortBy === "deadline-terdekat"
+    ? deadlineStatusClause
+    : publicStatusClause;
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const publicStatusClause = filters.status === undefined
-    ? "WHERE status IN ('active', 'published', 'completed', 'cancelled')"
+  const defaultPublicStatusClause = filters.status === undefined
+    ? `WHERE ${baseStatusClause}`
     : "";
   const combinedWhereClause = whereClause
-    ? `${whereClause} AND status IN ('active', 'published', 'completed', 'cancelled')`
-    : publicStatusClause;
+    ? `${whereClause} AND ${baseStatusClause}`
+    : defaultPublicStatusClause;
 
   // Sorting
-  const openStatusFirst = "CASE WHEN status IN ('completed', 'cancelled') THEN 1 ELSE 0 END ASC";
+  const openStatusFirst = "CASE WHEN status IN ('active', 'published') THEN 0 ELSE 1 END ASC";
   let orderClause = `ORDER BY ${openStatusFirst}, COALESCE(activated_at, updated_at, created_at) DESC NULLS LAST, date DESC`;
   if (filters.sortBy === "populer") {
     orderClause = `ORDER BY ${openStatusFirst}, CASE WHEN quota > 0 THEN registered_count::numeric / quota ELSE 0 END DESC, registered_count DESC, date DESC`;
   } else if (filters.sortBy === "deadline-terdekat") {
-    orderClause = `ORDER BY ${openStatusFirst}, date ASC, created_at DESC`;
+    orderClause = `ORDER BY ${openStatusFirst},
+      CASE
+        WHEN registration_deadline ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+          THEN registration_deadline::date
+        ELSE NULL
+      END ASC NULLS LAST,
+      date ASC,
+      created_at DESC`;
   } else if (filters.sortBy === "harga-rendah") {
     orderClause = `ORDER BY ${openStatusFirst}, price ASC, date DESC`;
   } else if (filters.sortBy === "terbaru") {

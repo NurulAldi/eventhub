@@ -4,7 +4,7 @@ import { use, useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiGetEventById, apiGetEvents, apiRegisterEvent, apiGetUserRegistrations } from "@/lib/api";
+import { apiGetEventById, apiGetEvents, apiRegisterEvent, apiGetUserRegistrations, apiGetNotificationPreferences } from "@/lib/api";
 import type { DescriptionBlock } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import EventCard from "@/components/EventCard";
@@ -12,6 +12,12 @@ import { Event, RegisteredEvent } from "@/types";
 import { isEventInWishlist, subscribeToWishlist, toggleWishlist } from "@/lib/wishlist";
 import { getPopularityLabel } from "@/lib/event-popularity";
 import { addRegisteredTicket, getRegisteredTickets, isEventRegistered, removeRegisteredTickets, subscribeToTickets } from "@/lib/tickets";
+import {
+  getReminderPreferences,
+  setReminderPreference,
+  subscribeToNotifications,
+  type ReminderTrigger,
+} from "@/lib/notifications";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -41,6 +47,8 @@ function EventDetailContent({ params }: Props) {
   const [registeredTicket, setRegisteredTicket] = useState<RegisteredEvent | null>(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [reminderSet, setReminderSet] = useState(false);
+  const [showReminderOptions, setShowReminderOptions] = useState(false);
+  const [reminderTrigger, setReminderTrigger] = useState<ReminderTrigger | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -115,8 +123,44 @@ function EventDetailContent({ params }: Props) {
 
   useEffect(() => {
     const unsubscribe = subscribeToWishlist(() => {
-      if (event && user?.id) setIsSaved(isEventInWishlist(user.id, event.id));
+      if (event && user?.id) {
+        const saved = isEventInWishlist(user.id, event.id);
+        setIsSaved(saved);
+        if (!saved) {
+          setReminderSet(false);
+          setReminderTrigger(null);
+          setShowReminderOptions(false);
+          setReminderPreference(user.id, event.id, null);
+        }
+      }
     });
+    return unsubscribe;
+  }, [event, user?.id]);
+
+  useEffect(() => {
+    if (!event || !user?.id) return;
+
+    const syncReminder = () => {
+      const trigger = getReminderPreferences(user.id)[event.id] || null;
+      setReminderTrigger(trigger);
+      setReminderSet(Boolean(trigger));
+    };
+
+    syncReminder();
+    const unsubscribe = subscribeToNotifications(syncReminder);
+
+    apiGetNotificationPreferences()
+      .then((preferences) => {
+        const trigger = preferences.eventReminders?.[event.id] || null;
+        localStorage.setItem(
+          `eventhub_reminder_preferences_${user.id}`,
+          JSON.stringify(preferences.eventReminders || {})
+        );
+        setReminderTrigger(trigger);
+        setReminderSet(Boolean(trigger));
+      })
+      .catch(() => {});
+
     return unsubscribe;
   }, [event, user?.id]);
 
@@ -552,23 +596,49 @@ function EventDetailContent({ params }: Props) {
               )}
 
               {/* Tombol Ingatkan Saya */}
-              <button
-                type="button"
-                onClick={() => {
-                  setReminderSet(!reminderSet);
-                  alert(reminderSet ? "Pengingat dibatalkan." : "Pengingat berhasil diaktifkan! Anda akan menerima notifikasi sebelum pendaftaran ditutup.");
-                }}
-                className={`py-3 px-5 border rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
-                  reminderSet
-                    ? "border-amber-300 bg-amber-50 text-amber-800"
-                    : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
-                }`}
-              >
-                <svg className={`w-4 h-4 ${reminderSet ? "text-amber-600 fill-amber-500" : "text-gray-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                {reminderSet ? "Diingatkan" : "Ingatkan Saya"}
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  disabled={!isSaved}
+                  onClick={() => setShowReminderOptions((current) => !current)}
+                  className={`py-3 px-5 border rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 ${
+                    !isSaved
+                      ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : reminderSet
+                        ? "border-amber-300 bg-amber-50 text-amber-800 cursor-pointer"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 cursor-pointer"
+                  }`}
+                  title={!isSaved ? "Simpan event terlebih dahulu untuk mengatur pengingat" : "Atur pengingat event"}
+                >
+                  <svg className={`w-4 h-4 ${reminderSet ? "text-amber-600 fill-amber-500" : "text-gray-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                  {reminderSet ? "Pengingat Aktif" : "Ingatkan Saya"}
+                </button>
+
+                {showReminderOptions && isSaved && (
+                  <select
+                    autoFocus
+                    value={reminderTrigger || ""}
+                    onChange={(changeEvent) => {
+                      if (!user?.id) return;
+                      const value = changeEvent.target.value;
+                      const trigger = value ? value as ReminderTrigger : null;
+                      setReminderPreference(user.id, event.id, trigger);
+                      setReminderTrigger(trigger);
+                      setReminderSet(Boolean(trigger));
+                      setShowReminderOptions(false);
+                    }}
+                    className="absolute right-0 mt-2 z-20 w-44 px-3 py-2 border border-gray-200 bg-white text-gray-700 text-xs font-semibold rounded-lg shadow-lg outline-none"
+                    aria-label="Pilih pengingat event"
+                  >
+                    <option value="">Tanpa Pengingat</option>
+                    <option value="7d">7 hari sebelum</option>
+                    <option value="3d">3 hari sebelum</option>
+                    <option value="1d">1 hari sebelum</option>
+                  </select>
+                )}
+              </div>
 
               {/* Tombol Simpan Event (Wishlist) */}
               <button
