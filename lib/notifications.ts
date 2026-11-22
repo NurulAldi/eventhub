@@ -1,6 +1,8 @@
 import type { Event } from "@/types";
 import { getWishlistIds } from "@/lib/wishlist";
 import { getSubmittedEvents, saveSubmittedEvent } from "@/lib/submissions";
+import { getRegisteredTickets } from "@/lib/tickets";
+import { getCalendarDaysDiff } from "@/lib/event-lifecycle";
 import {
   apiGetNotificationPreferences,
   apiUpdateNotificationPreferences,
@@ -24,6 +26,7 @@ export interface AppNotification {
 }
 
 const notificationChangeEvent = "eventhub-notification-change";
+const MAX_NOTIFICATIONS = 100;
 
 function getNotificationsKey(userId: string): string {
   return `eventhub_notifications_${userId}`;
@@ -55,7 +58,7 @@ export function addNotification(userId: string, notification: Omit<AppNotificati
   writeNotifications(userId, [
     { ...notification, createdAt: new Date().toISOString(), read: false },
     ...notifications,
-  ].slice(0, 100));
+  ].slice(0, MAX_NOTIFICATIONS));
 }
 
 export function getReminderPreferences(userId: string): Record<string, ReminderTrigger> {
@@ -95,6 +98,27 @@ export function setReminderPreference(userId: string, eventId: string, trigger: 
 /**
  * Sinkronisasi notifikasi dan preferensi dari PostgreSQL
  */
+function getNotifiedSubmissionsKey(userId: string): string {
+  return `eventhub_notified_submissions_${userId}`;
+}
+
+export function getNotifiedSubmissionStatuses(userId: string): Record<string, string> {
+  if (typeof window === "undefined" || !userId) return {};
+  try {
+    const value = JSON.parse(localStorage.getItem(getNotifiedSubmissionsKey(userId)) || "{}");
+    return value && typeof value === "object" ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveNotifiedSubmissionStatus(userId: string, eventId: string, status: string) {
+  if (typeof window === "undefined" || !userId || !eventId) return;
+  const current = getNotifiedSubmissionStatuses(userId);
+  current[eventId] = status;
+  localStorage.setItem(getNotifiedSubmissionsKey(userId), JSON.stringify(current));
+}
+
 export async function syncNotificationsWithServer(userId: string, role: NotificationRole): Promise<void> {
   if (!userId) return;
   try {
@@ -107,7 +131,23 @@ export async function syncNotificationsWithServer(userId: string, role: Notifica
       localStorage.setItem(getReminderPreferencesKey(userId), JSON.stringify(prefs.eventReminders));
     }
     if (Array.isArray(notifs)) {
-      writeNotifications(userId, notifs);
+      const localNotifs = readNotifications(userId);
+
+      // Pertahankan status 'read' jika di lokal pengguna sudah menandai dibaca
+      const mergedServerNotifs = notifs.map((n) => {
+        const local = localNotifs.find((l) => l.id === n.id);
+        return local?.read ? { ...n, read: true } : n;
+      });
+
+      // Server adalah sumber kebenaran untuk notifikasi yang sudah tersimpan di
+      // PostgreSQL. Notifikasi lokal hanya dipertahankan jika server memang belum
+      // punya notifikasi untuk role ini, agar notifikasi yang sudah dibersihkan di
+      // server tidak muncul kembali sebagai duplikat.
+      const combined = mergedServerNotifs.length > 0
+        ? mergedServerNotifs
+        : [...mergedServerNotifs, ...localNotifs].slice(0, MAX_NOTIFICATIONS);
+
+      writeNotifications(userId, combined.slice(0, MAX_NOTIFICATIONS));
     }
   } catch (error) {
     console.error("Gagal sinkronisasi notifikasi dengan server:", error);
@@ -172,7 +212,7 @@ export function generateNotifications(events: Event[], role: NotificationRole, u
   if (role === "admin") {
     events.filter((event) => event.status === "pending_review").forEach((event) => {
       addNotification(userId, {
-        id: `admin-submission-${event.id}-${event.status}-${event.updatedAt || "pending"}`,
+        id: `admin-submission-${event.id}`,
         role,
         title: "Pengajuan baru",
         message: `Pengajuan event ${event.title} telah dikirim atau diperbarui dan menunggu review.`,
@@ -183,8 +223,9 @@ export function generateNotifications(events: Event[], role: NotificationRole, u
   }
 
   const wishlistIds = new Set(getWishlistIds(userId));
-  const preferences = getReminderPreferences(userId);
-  events.filter((event) => wishlistIds.has(event.id)).forEach((event) => {
+  const registeredEventIds = new Set(getRegisteredTickets(userId).map((t) => t.eventId));
+
+  events.filter((event) => wishlistIds.has(event.id) || registeredEventIds.has(event.id)).forEach((event) => {
     if (event.status === "cancelled") {
       addNotification(userId, {
         id: `cancelled-${event.id}`,
@@ -193,29 +234,46 @@ export function generateNotifications(events: Event[], role: NotificationRole, u
         message: `Event ${event.title} telah dibatalkan oleh penyelenggara.`,
         href: `/event/${event.id}`,
       });
+      return;
     }
-    const trigger = preferences[event.id];
-    if (!trigger) return;
-    const remaining = daysUntil(event.date);
-    const triggerDays = trigger === "7d" ? 7 : trigger === "3d" ? 3 : 1;
-    if (remaining <= triggerDays && remaining >= 0) {
+    if (event.status === "rejected") return;
+
+    const deadlineDays = getCalendarDaysDiff(event.registrationDeadline);
+    const eventDays = getCalendarDaysDiff(event.date);
+
+    // H-1 deadline pendaftaran
+    if (deadlineDays === 1) {
       addNotification(userId, {
-        id: `reminder-${event.id}-${trigger}-${event.date}`,
+        id: `reminder-deadline-h-1-${event.id}-${event.registrationDeadline}`,
         role,
-        title: "Pengingat event",
-        message: `Event ${event.title} akan dimulai pada ${event.date}. Sisa waktu: ${remaining} hari.`,
+        title: "H-1 Deadline Pendaftaran",
+        message: `Pendaftaran untuk event ${event.title} akan ditutup besok (${event.registrationDeadline}). Jangan sampai ketinggalan!`,
         href: `/event/${event.id}`,
       });
     }
-    if (daysUntil(event.date) === 1) {
+
+    // H-1 pelaksanaan event
+    if (eventDays === 1) {
       addNotification(userId, {
-        id: `saved-tomorrow-${event.id}-${event.date}`,
+        id: `reminder-event-h-1-${event.id}-${event.date}`,
         role,
-        title: "Event tersimpan dimulai besok",
-        message: `Event ${event.title} yang Anda simpan akan dimulai besok.`,
+        title: "H-1 Tanggal Pelaksanaan",
+        message: `Event ${event.title} akan dilaksanakan besok (${event.date}). Siapkan diri Anda!`,
         href: `/event/${event.id}`,
       });
     }
+
+    // Hari H pelaksanaan event
+    if (eventDays === 0) {
+      addNotification(userId, {
+        id: `reminder-event-today-${event.id}-${event.date}`,
+        role,
+        title: "Event Berlangsung Hari Ini",
+        message: `Event ${event.title} berlangsung hari ini! Selamat mengikuti acara.`,
+        href: `/event/${event.id}`,
+      });
+    }
+
     const percentage = event.quota ? Math.round(((event.registeredCount || 0) / event.quota) * 100) : 0;
     if (percentage >= 90 && percentage < 100) {
       addNotification(userId, {
@@ -228,12 +286,19 @@ export function generateNotifications(events: Event[], role: NotificationRole, u
     }
   });
 
+  const notifiedStatuses = getNotifiedSubmissionStatuses(userId);
+
   getSubmittedEvents(userId).forEach((submission) => {
     const latestSubmission = events.find((event) => event.id === submission.id) || submission;
     if (latestSubmission.id !== submission.id) return;
     if (latestSubmission.status !== submission.status) saveSubmittedEvent(userId, latestSubmission);
 
     const status = latestSubmission.status || "pending_review";
+    // Jika status pengajuan belum berubah dari yang sudah pernah dinotifikasikan, jangan buat notifikasi baru
+    if (notifiedStatuses[latestSubmission.id] === status) {
+      return;
+    }
+
     const statusNotification: Record<string, { title: string; message: string }> = {
       pending_review: {
         title: "Pengajuan event diterima",
@@ -269,5 +334,8 @@ export function generateNotifications(events: Event[], role: NotificationRole, u
       ...notification,
       href: "/profil",
     });
+
+    // Simpan status yang telah dinotifikasikan agar tidak muncul berulang kali setiap membuka notifikasi
+    saveNotifiedSubmissionStatus(userId, latestSubmission.id, status);
   });
 }

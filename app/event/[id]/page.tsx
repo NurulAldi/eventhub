@@ -4,20 +4,17 @@ import { use, useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiGetEventById, apiGetEvents, apiRegisterEvent, apiGetUserRegistrations, apiGetNotificationPreferences } from "@/lib/api";
-import type { DescriptionBlock } from "@/types";
+import dynamic from "next/dynamic";
+import { apiGetEventById, apiGetEvents, apiRegisterEvent, apiGetUserRegistrations, apiGetNotificationPreferences, apiUpdateEvent } from "@/lib/api";
+import type { DescriptionBlock, EventStatus } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import EventCard from "@/components/EventCard";
 import { Event, RegisteredEvent } from "@/types";
-import { isEventInWishlist, subscribeToWishlist, toggleWishlist } from "@/lib/wishlist";
+import { isEventInWishlist, pruneWishlistIds, subscribeToWishlist, toggleWishlist } from "@/lib/wishlist";
 import { getPopularityLabel } from "@/lib/event-popularity";
+import { getEventLifecycleStatus } from "@/lib/event-lifecycle";
 import { addRegisteredTicket, getRegisteredTickets, isEventRegistered, removeRegisteredTickets, subscribeToTickets } from "@/lib/tickets";
-import {
-  getReminderPreferences,
-  setReminderPreference,
-  subscribeToNotifications,
-  type ReminderTrigger,
-} from "@/lib/notifications";
+const EventLocationPreview = dynamic(() => import("@/components/EventLocationPreview"), { ssr: false });
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -38,6 +35,45 @@ function EventDetailContent({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("deskripsi");
 
+  // Admin: status change
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  const statusOptions: Array<{ value: EventStatus; label: string }> = [
+    { value: "pending_review", label: "Menunggu Review" },
+    { value: "needs_revision", label: "Perlu Perbaikan" },
+    { value: "rejected", label: "Ditolak" },
+    { value: "active", label: "Aktif" },
+    { value: "completed", label: "Selesai" },
+    { value: "cancelled", label: "Dibatalkan" },
+  ];
+  const statusColors: Record<string, string> = {
+    pending_review: "bg-amber-50 text-amber-800 border-amber-200",
+    needs_revision: "bg-orange-50 text-orange-800 border-orange-200",
+    rejected: "bg-red-50 text-red-800 border-red-200",
+    active: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    completed: "bg-[#EAE2D4] text-[#29374A] border-[#E4DCCF]",
+    cancelled: "bg-rose-50 text-rose-800 border-rose-200",
+  };
+
+  const handleStatusChange = async (nextStatus: EventStatus) => {
+    if (!event) return;
+    setIsUpdatingStatus(true);
+    try {
+      const updated = await apiUpdateEvent(event.id, { status: nextStatus });
+      setEvent(updated);
+      setStatusDropdownOpen(false);
+      // Status non-aktif membuat event keluar dari wishlist semua pengguna.
+      if (user?.id && !["active", "published"].includes(nextStatus)) {
+        if (pruneWishlistIds(user.id, [event.id])) setIsSaved(false);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Gagal memperbarui status event.");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   // Interactive States
   const [isSaved, setIsSaved] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -46,9 +82,6 @@ function EventDetailContent({ params }: Props) {
   const [isRegistered, setIsRegistered] = useState(false);
   const [registeredTicket, setRegisteredTicket] = useState<RegisteredEvent | null>(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
-  const [reminderSet, setReminderSet] = useState(false);
-  const [showReminderOptions, setShowReminderOptions] = useState(false);
-  const [reminderTrigger, setReminderTrigger] = useState<ReminderTrigger | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -63,6 +96,11 @@ function EventDetailContent({ params }: Props) {
         if (!isMounted) return;
         setEvent(fetchedEvent);
         if (user?.id) {
+          // Server sudah membuang event yang tidak aktif dari wishlist. Samakan
+          // salinan lokal agar tombol "Tersimpan" tidak tertinggal.
+          if (fetchedEvent.status && !["active", "published"].includes(fetchedEvent.status)) {
+            pruneWishlistIds(user.id, [fetchedEvent.id]);
+          }
           setIsSaved(isEventInWishlist(user.id, fetchedEvent.id));
           const userTickets = getRegisteredTickets(user.id);
           const found = userTickets.find((ticket) => ticket.eventId === fetchedEvent.id);
@@ -126,41 +164,8 @@ function EventDetailContent({ params }: Props) {
       if (event && user?.id) {
         const saved = isEventInWishlist(user.id, event.id);
         setIsSaved(saved);
-        if (!saved) {
-          setReminderSet(false);
-          setReminderTrigger(null);
-          setShowReminderOptions(false);
-          setReminderPreference(user.id, event.id, null);
-        }
       }
     });
-    return unsubscribe;
-  }, [event, user?.id]);
-
-  useEffect(() => {
-    if (!event || !user?.id) return;
-
-    const syncReminder = () => {
-      const trigger = getReminderPreferences(user.id)[event.id] || null;
-      setReminderTrigger(trigger);
-      setReminderSet(Boolean(trigger));
-    };
-
-    syncReminder();
-    const unsubscribe = subscribeToNotifications(syncReminder);
-
-    apiGetNotificationPreferences()
-      .then((preferences) => {
-        const trigger = preferences.eventReminders?.[event.id] || null;
-        localStorage.setItem(
-          `eventhub_reminder_preferences_${user.id}`,
-          JSON.stringify(preferences.eventReminders || {})
-        );
-        setReminderTrigger(trigger);
-        setReminderSet(Boolean(trigger));
-      })
-      .catch(() => {});
-
     return unsubscribe;
   }, [event, user?.id]);
 
@@ -245,6 +250,18 @@ function EventDetailContent({ params }: Props) {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 
+  // Durasi pelaksanaan: tampilkan jumlah hari dan tanggal selesai jika lebih dari 1 hari.
+  const durationDays = event.durationDays && event.durationDays > 0 ? Math.floor(event.durationDays) : 1;
+  const durationLabel = `${durationDays} hari`;
+  const endDateFormatted = (() => {
+    if (durationDays <= 1 || !/^\d{4}-\d{2}-\d{2}$/.test(event.date)) return null;
+    const [year, month, day] = event.date.split("-").map(Number);
+    const endDate = new Date(Date.UTC(year, month - 1, day) + (durationDays - 1) * 86400000);
+    return endDate.toLocaleDateString("id-ID", {
+      day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+    });
+  })();
+
   const priceDisplay = event.price === 0
     ? "Gratis"
     : `Rp ${event.price.toLocaleString("id-ID")}`;
@@ -255,7 +272,14 @@ function EventDetailContent({ params }: Props) {
       })
     : "Belum ditentukan";
 
-  const isClosed = ["completed", "cancelled", "rejected"].includes(event.status || "");
+  const registrationDeadlinePassed = Boolean(
+    event.registrationDeadline &&
+    /^\d{4}-\d{2}-\d{2}$/.test(event.registrationDeadline) &&
+    new Date(`${event.registrationDeadline}T23:59:59`).getTime() < new Date().setHours(0, 0, 0, 0)
+  );
+  const isClosed = ["completed", "cancelled", "rejected"].includes(event.status || "") || registrationDeadlinePassed;
+  // Wishlist hanya untuk event yang tampil publik (aktif/terbit), sama seperti aturan server.
+  const isBookmarkable = !event.status || ["active", "published"].includes(event.status);
   const popularityLabel = getPopularityLabel(event);
 
   const quota = event.quota || 1000;
@@ -263,13 +287,8 @@ function EventDetailContent({ params }: Props) {
   const isQuotaFull = quota > 0 && registered >= quota;
   const registrationPercentage = Math.min(100, Math.round((registered / quota) * 100));
 
-  const deadlineDaysLeft = (() => {
-    if (!event.registrationDeadline) return null;
-    const target = new Date(`${event.registrationDeadline}T00:00:00`);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  })();
+  const lifecycleStatus = getEventLifecycleStatus(event);
+  const executionStatus = lifecycleStatus.label;
 
   const handleOpenRegistration = () => {
     if (isClosed) return;
@@ -280,7 +299,7 @@ function EventDetailContent({ params }: Props) {
   };
 
   const handleConfirmRegistration = async () => {
-    if (isRegistered || isEventCreator || isAdmin) return;
+    if (isClosed || isRegistered || isEventCreator || isAdmin) return;
     try {
       const response = await apiRegisterEvent(event.id);
       const ticket: RegisteredEvent = response.ticket || {
@@ -392,15 +411,55 @@ function EventDetailContent({ params }: Props) {
                     🔥 {popularityLabel}
                   </span>
                 )}
-                {isClosed && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-semibold">
-                    Ditutup
+                {executionStatus && (
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${lifecycleStatus.badgeClass}`}>
+                    {executionStatus}
                   </span>
                 )}
               </div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold">
                 🏆 {event.category}
               </span>
+              {isAdmin && (
+                <div className="relative inline-block">
+                  <button
+                    type="button"
+                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusColors[event.status || "active"] || "bg-emerald-50 text-emerald-800 border-emerald-200"}`}
+                  >
+                    {statusOptions.find((o) => o.value === (event.status || "active"))?.label || (event.status || "active")}
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {statusDropdownOpen && (
+                    <div className="absolute right-0 mt-1.5 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50">
+                      {statusOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => handleStatusChange(option.value)}
+                          disabled={option.value === event.status || isUpdatingStatus}
+                          className={`flex w-full items-center gap-3 px-3 py-2 text-sm transition ${option.value === event.status ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
+                        >
+                          {option.label}
+                          {option.value === event.status && (
+                            <svg className="ml-auto w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                          {isUpdatingStatus && (
+                            <svg className="ml-auto w-4 h-4 animate-spin text-gray-600" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Judul & Penyelenggara */}
@@ -443,9 +502,14 @@ function EventDetailContent({ params }: Props) {
                   <span className="text-[11px] font-medium text-gray-400 block">Deadline Pendaftaran</span>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs sm:text-sm font-bold text-gray-900">{registrationDeadlineFormatted}</span>
-                    {deadlineDaysLeft !== null && deadlineDaysLeft > 0 && (
+                    {lifecycleStatus.deadlineDays !== null && lifecycleStatus.deadlineDays > 0 && (
                       <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
-                        {deadlineDaysLeft} hari lagi
+                        {lifecycleStatus.deadlineDays} hari lagi
+                      </span>
+                    )}
+                    {lifecycleStatus.deadlineDays === 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                        Hari Terakhir Pendaftaran
                       </span>
                     )}
                   </div>
@@ -463,6 +527,10 @@ function EventDetailContent({ params }: Props) {
                 <div className="min-w-0">
                   <span className="text-[11px] font-medium text-gray-400 block">Tanggal Pelaksanaan</span>
                   <span className="text-xs sm:text-sm font-bold text-gray-900 block">{formattedDate}</span>
+                  <span className="text-[11px] text-gray-500 block mt-0.5">
+                    Durasi {durationLabel}
+                    {endDateFormatted && ` · berakhir ${endDateFormatted}`}
+                  </span>
                 </div>
               </div>
 
@@ -524,6 +592,20 @@ function EventDetailContent({ params }: Props) {
                 </div>
               </div>
 
+              {event.eventMode !== "online" &&
+                event.latitude !== undefined &&
+                event.longitude !== undefined &&
+                !["pending_review", "needs_revision", "rejected", "draft"].includes(event.status || "") && (
+                  <div className="sm:col-span-2 p-1">
+                    <span className="text-[11px] font-medium text-gray-400 block mb-2">Lokasi pada Peta</span>
+                    <EventLocationPreview
+                      latitude={event.latitude}
+                      longitude={event.longitude}
+                      location={event.location}
+                    />
+                  </div>
+                )}
+
             </div>
 
             {/* Tombol Aksi - Sesuai Gambar 3 */}
@@ -569,6 +651,15 @@ function EventDetailContent({ params }: Props) {
                   </svg>
                   Lihat E-Ticket QR (Terdaftar)
                 </button>
+              ) : isClosed ? (
+                <button
+                  type="button"
+                  disabled
+                  aria-disabled="true"
+                  className="flex-1 py-3 px-6 bg-gray-200 text-gray-500 font-bold text-sm rounded-xl cursor-not-allowed select-none text-center"
+                >
+                  Pendaftaran Ditutup
+                </button>
               ) : isQuotaFull ? (
                 <button
                   type="button"
@@ -595,51 +686,6 @@ function EventDetailContent({ params }: Props) {
                 </button>
               )}
 
-              {/* Tombol Ingatkan Saya */}
-              <div className="relative">
-                <button
-                  type="button"
-                  disabled={!isSaved}
-                  onClick={() => setShowReminderOptions((current) => !current)}
-                  className={`py-3 px-5 border rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 ${
-                    !isSaved
-                      ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : reminderSet
-                        ? "border-amber-300 bg-amber-50 text-amber-800 cursor-pointer"
-                        : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 cursor-pointer"
-                  }`}
-                  title={!isSaved ? "Simpan event terlebih dahulu untuk mengatur pengingat" : "Atur pengingat event"}
-                >
-                  <svg className={`w-4 h-4 ${reminderSet ? "text-amber-600 fill-amber-500" : "text-gray-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  {reminderSet ? "Pengingat Aktif" : "Ingatkan Saya"}
-                </button>
-
-                {showReminderOptions && isSaved && (
-                  <select
-                    autoFocus
-                    value={reminderTrigger || ""}
-                    onChange={(changeEvent) => {
-                      if (!user?.id) return;
-                      const value = changeEvent.target.value;
-                      const trigger = value ? value as ReminderTrigger : null;
-                      setReminderPreference(user.id, event.id, trigger);
-                      setReminderTrigger(trigger);
-                      setReminderSet(Boolean(trigger));
-                      setShowReminderOptions(false);
-                    }}
-                    className="absolute right-0 mt-2 z-20 w-44 px-3 py-2 border border-gray-200 bg-white text-gray-700 text-xs font-semibold rounded-lg shadow-lg outline-none"
-                    aria-label="Pilih pengingat event"
-                  >
-                    <option value="">Tanpa Pengingat</option>
-                    <option value="7d">7 hari sebelum</option>
-                    <option value="3d">3 hari sebelum</option>
-                    <option value="1d">1 hari sebelum</option>
-                  </select>
-                )}
-              </div>
-
               {/* Tombol Simpan Event (Wishlist) */}
               <button
                 type="button"
@@ -650,6 +696,8 @@ function EventDetailContent({ params }: Props) {
                   }
                   if (user?.id) setIsSaved(toggleWishlist(user.id, event.id));
                 }}
+                disabled={!isBookmarkable}
+                title={isBookmarkable ? undefined : "Event yang tidak aktif tidak dapat disimpan ke wishlist"}
                 className={`py-3 px-5 border rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
                   isSaved
                     ? "border-blue-300 bg-blue-50 text-blue-700"
@@ -659,7 +707,7 @@ function EventDetailContent({ params }: Props) {
                 <svg className={`w-4 h-4 ${isSaved ? "text-blue-700 fill-blue-700" : "text-gray-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
-                {isSaved ? "Tersimpan" : "Simpan Event"}
+                {isSaved ? "Tersimpan" : isBookmarkable ? "Simpan Event" : "Hanya event aktif"}
               </button>
             </div>
 
@@ -822,6 +870,12 @@ function EventDetailContent({ params }: Props) {
                         <h4 className="font-bold text-blue-900 text-sm">Waktu Pelaksanaan</h4>
                         <p className="text-sm text-blue-800 font-medium">{formattedDate}</p>
                         <p className="text-xs text-blue-600 mt-0.5">Pukul {event.time || "09:00 - Selesai WIB"}</p>
+                        <p className="text-xs text-blue-600 mt-0.5">
+                          Durasi {durationLabel}
+                          {endDateFormatted
+                            ? ` (selesai ${endDateFormatted})`
+                            : " (1 hari pelaksanaan)"}
+                        </p>
                       </div>
                     </div>
 

@@ -3,6 +3,41 @@ import { Event } from "@/types";
 import { DatabaseEventRow, mapRowToEvent } from "./event-service";
 
 /**
+ * Status event yang masih dianggap aktif/tampil. Event dengan status lain
+ * (pending_review, needs_revision, rejected, completed, cancelled, dst.)
+ * tidak boleh tersisa di wishlist pengguna.
+ */
+export const ACTIVE_WISHLIST_EVENT_STATUSES = ["active", "published"] as const;
+
+const activeStatusList = ACTIVE_WISHLIST_EVENT_STATUSES.map((status) => `'${status}'`).join(", ");
+
+/**
+ * Menghapus event yang sudah tidak aktif dari wishlist semua pengguna.
+ * Dipanggil setelah status event berubah dan setelah sinkronisasi status otomatis.
+ * @returns jumlah baris wishlist yang dihapus
+ */
+export async function removeInactiveEventsFromWishlists(eventIds?: string[]): Promise<number> {
+  const params: unknown[] = [];
+  let filter = "";
+  if (eventIds) {
+    if (eventIds.length === 0) return 0;
+    params.push(eventIds);
+    filter = `AND w.event_id = ANY($1::varchar[])`;
+  }
+
+  const result = await query(
+    `DELETE FROM user_wishlists w
+     USING events e
+     WHERE w.event_id = e.id
+       AND e.status NOT IN (${activeStatusList})
+       ${filter}
+     RETURNING w.event_id`,
+    params
+  );
+  return result.length;
+}
+
+/**
  * Mengambil daftar eventId yang dibookmark oleh pengguna
  */
 export async function getUserWishlistEventIds(userId: string): Promise<string[]> {
@@ -54,8 +89,8 @@ export async function toggleUserWishlist(
   if (!eventId) throw new Error("ID event wajib diisi.");
 
   // Pastikan event ada di database
-  const event = await queryOne<{ id: string }>(
-    `SELECT id FROM events WHERE id = $1`,
+  const event = await queryOne<{ id: string; status: string }>(
+    `SELECT id, status FROM events WHERE id = $1`,
     [eventId]
   );
   if (!event) {
@@ -74,6 +109,10 @@ export async function toggleUserWishlist(
     );
     return { isInWishlist: false };
   } else {
+    // Event yang tidak aktif tidak boleh masuk wishlist.
+    if (!ACTIVE_WISHLIST_EVENT_STATUSES.includes(event.status as (typeof ACTIVE_WISHLIST_EVENT_STATUSES)[number])) {
+      throw new Error("Event ini tidak aktif sehingga tidak dapat disimpan ke wishlist.");
+    }
     await query(
       `INSERT INTO user_wishlists (user_id, event_id)
        VALUES ($1, $2)

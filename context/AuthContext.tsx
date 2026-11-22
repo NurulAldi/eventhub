@@ -22,6 +22,11 @@ interface AuthContextType {
   register: (data: { name: string; email: string; university?: string; password: string }) => Promise<void>;
   updateProfile: (data: { name: string; email: string; avatarUrl?: string | null; university?: string | null }) => Promise<void>;
   logout: () => Promise<void>;
+  /**
+   * Logout dengan reload penuh ke beranda.
+   * Parameter redirectTo dipakai untuk variasi tombol, default "/".
+   */
+  logoutAndRedirect: (redirectTo?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -90,6 +95,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  /**
+   * Logout lalu memuat ulang aplikasi ke halaman tujuan (default beranda).
+   * Reload penuh dipakai agar seluruh state di memori (notifikasi, wishlist,
+   * tiket, cache halaman) ikut bersih, bukan hanya state user. Cookie sesi sudah
+   * terhapus di server sebelum reload sehingga sesi tidak kembali aktif.
+   */
+  const logoutAndRedirect = async (redirectTo = "/") => {
+    try {
+      await logout();
+    } catch (error) {
+      // Tetap lanjutkan reload: cookie sesi mungkin sudah terhapus sebagian.
+      console.error("Logout gagal:", error);
+    } finally {
+      window.location.assign(redirectTo);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -100,6 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         updateProfile,
         logout,
+        logoutAndRedirect,
       }}
     >
       {children}

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Event } from "@/types";
 import { getPopularityLabel } from "@/lib/event-popularity";
+import { getEventLifecycleStatus } from "@/lib/event-lifecycle";
 
 interface EventCardProps {
   event: Event;
@@ -20,13 +21,9 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function EventCard({ event, showPrice = true }: EventCardProps) {
-  const deadlineDays = (() => {
-    if (!event.registrationDeadline) return null;
-    const target = new Date(`${event.registrationDeadline}T00:00:00`);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  })();
+  const lifecycle = getEventLifecycleStatus(event);
+  const isClosed = lifecycle.isClosed;
+  const executionStatus = lifecycle.label;
 
   const popularityLabel = getPopularityLabel(event);
   const categoryColorClass = CATEGORY_COLORS[event.category] ?? "bg-gray-100 text-gray-700";
@@ -40,8 +37,6 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
     month: "short",
     year: "numeric",
   });
-
-  const isClosed = event.status === "completed" || event.status === "cancelled";
 
   return (
     <div className="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
@@ -57,7 +52,7 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
           />
           {/* Badges on image */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
-            {!isClosed && (
+            {!isClosed && !executionStatus && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/90 backdrop-blur-sm text-green-700 text-[11px] font-semibold shadow-sm border border-green-100">
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -65,9 +60,15 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
                 Terverifikasi
               </span>
             )}
-            {isClosed && (
-              <span className="px-2 py-0.5 rounded-md bg-gray-800/80 text-white text-[11px] font-semibold">
-                Ditutup
+            {(isClosed || executionStatus) && (
+              <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold ${
+                executionStatus === "Berlangsung"
+                  ? "bg-emerald-600/90 text-white"
+                  : executionStatus && executionStatus !== "Ditutup"
+                    ? "bg-blue-600/90 text-white"
+                    : "bg-gray-800/80 text-white"
+              }`}>
+                {executionStatus || "Ditutup"}
               </span>
             )}
           </div>
@@ -123,9 +124,14 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
                 <span className="text-orange-600 font-semibold">
                   Deadline {new Date(`${event.registrationDeadline}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                 </span>
-                {deadlineDays !== null && deadlineDays > 0 && (
+                {lifecycle.deadlineDays !== null && lifecycle.deadlineDays > 0 && (
                   <span className="ml-auto px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold shrink-0">
-                    {deadlineDays} hari lagi
+                    {lifecycle.deadlineDays} hari lagi
+                  </span>
+                )}
+                {lifecycle.deadlineDays === 0 && (
+                  <span className="ml-auto px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold shrink-0">
+                    Hari Terakhir
                   </span>
                 )}
               </div>

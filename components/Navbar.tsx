@@ -32,7 +32,7 @@ function NotificationBell({ role, userId, isHydrated }: { role: "user" | "admin"
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { user, isLoggedIn, isLoading, logout } = useAuth();
+  const { user, isLoggedIn, isLoading, logoutAndRedirect } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -183,7 +183,7 @@ export default function Navbar() {
             </Link>
             <button
               type="button"
-              onClick={() => void logout()}
+              onClick={() => void logoutAndRedirect("/")}
               className="hidden md:inline-block text-xs text-red-500 hover:text-red-700 font-medium ml-1"
             >
               Logout
@@ -258,7 +258,7 @@ export default function Navbar() {
                 </Link>
               </>
             ) : (
-              <button type="button" onClick={() => void logout()} className="text-xs text-red-500 font-medium text-left">
+              <button type="button" onClick={() => void logoutAndRedirect("/")} className="text-xs text-red-500 font-medium text-left">
                 Logout
               </button>
             )}

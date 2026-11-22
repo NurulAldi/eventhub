@@ -113,6 +113,8 @@ export const createEventSchema = z.object({
     .string()
     .trim()
     .min(1, { message: "Lokasi event wajib diisi." }),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   eventMode: z.enum(["offline", "online", "hybrid"]).default("offline"),
   image: z
     .string()
@@ -148,11 +150,45 @@ export type CreateEventInput = z.infer<typeof createEventSchema>;
 
 /**
  * Schema Update Event
+ *
+ * Wajib mempertahankan sifat "hanya field yang dikirim". `createEventSchema.partial()`
+ * pada zod 4 tetap menerapkan `.default()` milik field yang tidak dikirim, sehingga
+ * permintaan seperti { status: "active" } akan berisi durationDays: 1, eventMode:
+ * "offline", price: 0, quota: 100, requirements: [], descriptionBlocks: [], dan
+ * menimpa data event asli dengan nilai default.
  */
-export const updateEventSchema = createEventSchema.partial().extend({
-  status: z.enum(["active", "pending_review", "needs_revision", "rejected", "completed", "cancelled"]).optional(),
-  rejectionReason: z.string().optional(),
-});
+const updateEventFields = {
+  title: createEventSchema.shape.title,
+  description: createEventSchema.shape.description,
+  category: createEventSchema.shape.category,
+  date: createEventSchema.shape.date,
+  durationDays: z.number().int().min(1, { message: "Durasi event minimal 1 hari." }),
+  time: createEventSchema.shape.time,
+  location: createEventSchema.shape.location,
+  latitude: createEventSchema.shape.latitude,
+  longitude: createEventSchema.shape.longitude,
+  eventMode: z.enum(["offline", "online", "hybrid"]),
+  image: createEventSchema.shape.image,
+  price: z.number().min(0, { message: "Harga event harus berupa angka positif atau 0 (gratis)." }),
+  organizer: createEventSchema.shape.organizer,
+  quota: z.number().min(0, { message: "Kuota event harus berupa angka lebih besar atau sama dengan 0." }),
+  organizerType: createEventSchema.shape.organizerType,
+  institution: createEventSchema.shape.institution,
+  organizerContact: createEventSchema.shape.organizerContact,
+  registrationDeadline: createEventSchema.shape.registrationDeadline,
+  registrationUrl: createEventSchema.shape.registrationUrl,
+  descriptionBlocks: z.array(z.any()).max(10, { message: "Maksimal 10 blok konten." }),
+  requirements: z.array(z.string()),
+  purpose: createEventSchema.shape.purpose,
+  targetParticipants: createEventSchema.shape.targetParticipants,
+  speakers: createEventSchema.shape.speakers,
+  facilities: createEventSchema.shape.facilities,
+  contactPic: createEventSchema.shape.contactPic,
+  status: z.enum(["active", "pending_review", "needs_revision", "rejected", "completed", "cancelled"]),
+  rejectionReason: z.string(),
+};
+
+export const updateEventSchema = z.object(updateEventFields).partial();
 
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 

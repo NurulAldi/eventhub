@@ -6,8 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   apiGetEventById,
-  apiGetEvents,
   apiGetUserRegistrations,
+  apiGetUserSubmissions,
   apiGetWishlist,
   apiGetNotificationPreferences,
   apiUpdateNotificationPreferences,
@@ -15,19 +15,14 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { RegisteredEvent, Event } from "@/types";
 import { getWishlistIds, subscribeToWishlist, toggleWishlist, writeWishlistIds } from "@/lib/wishlist";
-import {
-  getReminderPreferences,
-  ReminderTrigger,
-  setReminderPreference,
-  subscribeToNotifications,
-} from "@/lib/notifications";
+import { getEventLifecycleStatus } from "@/lib/event-lifecycle";
 import {
   getRegisteredTickets,
   removeRegisteredTickets,
   saveRegisteredTickets,
   subscribeToTickets,
 } from "@/lib/tickets";
-import { getSubmittedEvents } from "@/lib/submissions";
+import { getSubmittedEvents, saveSubmittedEvents } from "@/lib/submissions";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -43,7 +38,6 @@ export default function ProfilePage() {
   const [submittedEvent, setSubmittedEvent] = useState<Event | null>(null);
   const [submittedEvents, setSubmittedEvents] = useState<Event[]>([]);
   const [showAllSubmissions, setShowAllSubmissions] = useState(false);
-  const [reminders, setReminders] = useState<Record<string, ReminderTrigger>>({});
   const [registeredEventStatuses, setRegisteredEventStatuses] = useState<Record<string, Event["status"]>>({});
 
   // Notification Preferences State (Persistensi PostgreSQL)
@@ -80,7 +74,7 @@ export default function ProfilePage() {
     let isMounted = true;
     const userId = authUser.id;
 
-    async function loadSavedEvents() {
+    async function loadSavedEventsAndSubmissions() {
       try {
         const wishlistRes = await apiGetWishlist();
         if (!isMounted) return;
@@ -138,9 +132,26 @@ export default function ProfilePage() {
       }
     }
 
-    void loadSavedEvents();
+    void loadSavedEventsAndSubmissions();
+    void (async () => {
+      try {
+        const submissions = await apiGetUserSubmissions();
+        if (isMounted) {
+          setSubmittedEvents(submissions);
+          setSubmittedEvent(submissions[0] || null);
+          saveSubmittedEvents(userId, submissions);
+        }
+      } catch (error) {
+        console.error("Gagal memuat pengajuan event:", error);
+        if (isMounted) {
+          const cachedSubmissions = getSubmittedEvents(userId);
+          setSubmittedEvents(cachedSubmissions);
+          setSubmittedEvent(cachedSubmissions[0] || null);
+        }
+      }
+    })();
     const unsubscribeWishlist = subscribeToWishlist(() => {
-      void loadSavedEvents();
+      void loadSavedEventsAndSubmissions();
     });
 
     return () => {
@@ -154,7 +165,6 @@ export default function ProfilePage() {
     if (isAuthLoading || !authenticatedUser) return;
     let isMounted = true;
     const userId = authenticatedUser.id;
-    const submissionOrganizer = authenticatedUser.name;
     async function loadProfileEvents() {
       if (profileLoadInFlight.current) {
         profileRefreshPending.current = true;
@@ -172,42 +182,12 @@ export default function ProfilePage() {
       }
 
       try {
-        const storedSubmissions = getSubmittedEvents(userId);
         const storedTickets = getRegisteredTickets(userId);
         if (isMounted) {
           setRegisteredEvents(storedTickets);
-          setSubmittedEvents(storedSubmissions);
-          setSubmittedEvent(storedSubmissions[0] || null);
-          setReminders(getReminderPreferences(userId));
           setIsProfileLoading(false);
         }
 
-        // Muat wishlist lokal terlebih dahulu agar tab Disimpan langsung terisi saat profil dibuka.
-        const initialWishlistIds = getWishlistIds(userId);
-        const localWishlistEvents = await Promise.all(
-          initialWishlistIds.map(async (eventId) => {
-            try {
-              return await withTimeout(apiGetEventById(eventId));
-            } catch {
-              return null;
-            }
-          })
-        );
-        if (isMounted) {
-          setSavedEvents(
-            localWishlistEvents.filter((event): event is Event => event !== null)
-          );
-        }
-
-        const allEvents = await withTimeout(apiGetEvents({ status: "Semua" }));
-        const databaseSubmissions = allEvents.filter(
-          (event) => event.organizer.trim().toLowerCase() === submissionOrganizer.trim().toLowerCase()
-        );
-        const submissionMap = new Map(
-          [...storedSubmissions, ...databaseSubmissions].map((event) => [event.id, event])
-        );
-        const submissions = Array.from(submissionMap.values());
-        const submissionIds = submissions.map((submission) => submission.id);
 
         // Ambil tiket resmi dari PostgreSQL
         const serverTickets = await withTimeout(apiGetUserRegistrations()).catch(() => getRegisteredTickets(userId));
@@ -239,7 +219,7 @@ export default function ProfilePage() {
           .filter(
             ({ event }) =>
               event.createdBy === userId ||
-              (!event.createdBy && event.organizer.trim().toLowerCase() === submissionOrganizer.trim().toLowerCase())
+              (!event.createdBy && event.organizer.trim().toLowerCase() === (authenticatedUser?.name || "").trim().toLowerCase())
           )
           .map(({ ticket }) => ticket.eventId);
 
@@ -307,30 +287,8 @@ export default function ProfilePage() {
             updateEvent: prefs.updateEvent,
             generalInfo: prefs.generalInfo,
           });
-          setReminders(prefs.eventReminders || {});
-        } else if (isMounted) {
-          setReminders(getReminderPreferences(userId));
         }
 
-        const latestSubmissions = await Promise.all(
-          submissionIds.map(async (submissionId) => {
-            try {
-              return await withTimeout(apiGetEventById(submissionId));
-            } catch (err) {
-              if (err instanceof Error && err.message === "Event tidak ditemukan.") return null;
-              throw err;
-            }
-          })
-        );
-        const validSubmissions = latestSubmissions.filter((event): event is Event => event !== null);
-        if (isMounted) {
-          setSubmittedEvents(validSubmissions);
-          setSubmittedEvent(validSubmissions[0] || null);
-          if (validSubmissions.length > 0) {
-            localStorage.setItem("eventhub_submissions", JSON.stringify(validSubmissions));
-            localStorage.setItem("eventhub_last_submission", JSON.stringify(validSubmissions[0]));
-          }
-        }
       } catch (err) {
         console.error("Gagal memuat data profil:", err);
       } finally {
@@ -344,47 +302,15 @@ export default function ProfilePage() {
       }
     }
 
-    const refreshProfileEvents = () => {
-      if (document.visibilityState === "visible") {
-        void loadProfileEvents();
-      }
-    }
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        void loadProfileEvents();
-      }
-    }
-
     loadProfileEvents();
     const unsubscribeTickets = subscribeToTickets(() => {
       void loadProfileEvents();
     });
-    window.addEventListener("focus", refreshProfileEvents);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
     return () => {
       isMounted = false;
       unsubscribeTickets();
-      window.removeEventListener("focus", refreshProfileEvents);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [authUser, isAuthLoading]);
-
-  useEffect(() => {
-    if (!authUser?.id) return;
-    const syncReminders = () => {
-      setReminders(getReminderPreferences(authUser.id));
-    };
-    syncReminders();
-    return subscribeToNotifications(syncReminders);
-  }, [authUser?.id]);
-
-  const toggleReminder = (event: Event, trigger: ReminderTrigger | null) => {
-    if (!authUser?.id) return;
-    setReminderPreference(authUser.id, event.id, trigger);
-    setReminders(getReminderPreferences(authUser.id));
-  };
 
   const handleTogglePref = async (key: "reminderEvent" | "updateEvent" | "generalInfo") => {
     const nextVal = !notificationPrefs[key];
@@ -617,6 +543,14 @@ export default function ProfilePage() {
                 Lihat Detail Event
               </Link>
             )}
+          {submissionStatus === "active" && (
+              <Link
+                href={`/pengajuan-event?edit=${encodeURIComponent(submittedEvent.id)}`}
+                className="inline-flex w-fit px-4 py-2 bg-[#315E9E] text-white text-xs font-bold rounded-md hover:bg-[#244777] transition"
+              >
+                Edit Event
+              </Link>
+          )}
             {["needs_revision", "pending_review"].includes(submissionStatus) && (
               <Link
                 href={`/pengajuan-event?edit=${encodeURIComponent(submittedEvent.id)}`}
@@ -648,6 +582,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {isPublic && <Link href={`/event/${encodeURIComponent(submission.id)}`} className="px-3 py-2 bg-[#315E9E] text-white text-xs font-bold rounded-md">Lihat Detail Event</Link>}
+                  {status === "active" && <Link href={`/pengajuan-event?edit=${encodeURIComponent(submission.id)}`} className="px-3 py-2 bg-[#315E9E] text-white text-xs font-bold rounded-md">Edit Event</Link>}
                   {!isPublic && status !== "rejected" && <Link href={`/pengajuan-event?edit=${encodeURIComponent(submission.id)}`} className="px-3 py-2 bg-[#315E9E] text-white text-xs font-bold rounded-md">Edit Pengajuan</Link>}
                 </div>
               </div>
@@ -758,7 +693,10 @@ export default function ProfilePage() {
                 EVENT YANG DISIMPAN KE WISHLIST
               </span>
 
-              {savedEvents.map((evt) => (
+              {savedEvents.map((evt) => {
+                const lifecycle = getEventLifecycleStatus(evt);
+
+                return (
                 <div
                   key={evt.id}
                   className="p-4 border border-[#E4DCCF] rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#FFFCF6] hover:border-[#B9B2A7] transition"
@@ -778,20 +716,12 @@ export default function ProfilePage() {
                     <p className="text-xs text-[#6F7580]">
                       <span className="inline-flex items-center gap-1"><svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16" /></svg>{evt.date}</span> &bull; <span className="inline-flex items-center gap-1"><svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2" /></svg>{evt.location}</span>
                     </p>
+                    <span className={`mt-1 w-fit px-2 py-0.5 rounded-full text-[10px] font-bold border ${lifecycle.badgeClass}`}>
+                      {lifecycle.label}
+                    </span>
                   </div>
 
                   <div className="flex w-full sm:w-auto flex-wrap justify-end gap-2 shrink-0">
-                    <select
-                      value={reminders[evt.id] || ""}
-                      onChange={(event) => toggleReminder(evt, (event.target.value || null) as ReminderTrigger | null)}
-                      className="px-2 py-2 border border-[#E4DCCF] rounded-md text-xs text-[#29374A]"
-                      aria-label={`Pilih trigger pengingat ${evt.title}`}
-                    >
-                      <option value="">Tanpa Pengingat</option>
-                      <option value="7d">7 hari sebelum event</option>
-                      <option value="3d">3 hari sebelum event</option>
-                      <option value="1d">1 hari sebelum event</option>
-                    </select>
                     <Link
                       href={`/event/${evt.id}`}
                       className="px-4 py-2 bg-[#315E9E] text-white font-semibold text-xs rounded-md hover:bg-[#244777] transition text-center"
@@ -807,7 +737,8 @@ export default function ProfilePage() {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -4,6 +4,8 @@
  */
 
 import { query, queryOne } from "@/lib/db";
+import { deleteStorageObjects } from "@/lib/services/storage-service";
+import { removeInactiveEventsFromWishlists } from "@/lib/services/wishlist-service";
 import { DescriptionBlock, Event, EventCategory, EventStatus } from "@/types";
 
 export interface EventFilters {
@@ -24,6 +26,8 @@ export interface CreateEventDTO {
   durationDays?: number;
   time?: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   eventMode?: "online" | "offline" | "hybrid";
   category: EventCategory | string;
   image?: string;
@@ -57,7 +61,9 @@ export interface DatabaseEventRow {
   duration_days?: number | null;
   time: string | null;
   location: string;
-  event_mode?: "online" | "offline" | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  event_mode?: "online" | "offline" | "hybrid" | null;
   category: string;
   image: string;
   price: number;
@@ -122,6 +128,8 @@ export function mapRowToEvent(row: DatabaseEventRow): Event {
     durationDays: row.duration_days !== null && row.duration_days !== undefined ? Number(row.duration_days) : 1,
     time: row.time || undefined,
     location: row.location,
+    latitude: row.latitude != null ? Number(row.latitude) : undefined,
+    longitude: row.longitude != null ? Number(row.longitude) : undefined,
     eventMode: row.event_mode || undefined,
     category: row.category as EventCategory,
     image: row.image,
@@ -188,9 +196,34 @@ export function validateEventInput(data: Partial<CreateEventDTO>, isUpdate = fal
     }
   }
 
-  if ((!isUpdate || data.location !== undefined) && data.eventMode !== "online") {
-    if (!data.location || !data.location.trim()) {
-      errors.push("Lokasi event wajib diisi.");
+  const effectiveEventMode = data.eventMode !== undefined ? data.eventMode : undefined;
+  if (!isUpdate || data.location !== undefined || (effectiveEventMode !== undefined && effectiveEventMode !== "online")) {
+    const isOnline = data.eventMode === "online";
+    if (!isOnline) {
+      if (data.location !== undefined && (!data.location || !data.location.trim())) {
+        errors.push("Lokasi event wajib diisi.");
+      } else if (!isUpdate && (!data.location || !data.location.trim())) {
+        errors.push("Lokasi event wajib diisi.");
+      }
+
+      // Validasi koordinat hanya jika: (1) bukan update, atau
+      // (2) salah satu koordinat secara eksplisit dikirim dalam payload update
+      // Jangan validasi koordinat pada update yang hanya mengubah status/field lain
+      const coordinateSentExplicitly = "latitude" in data || "longitude" in data;
+      if (!isUpdate || coordinateSentExplicitly) {
+        if (
+          data.latitude === undefined ||
+          data.longitude === undefined ||
+          !Number.isFinite(data.latitude) ||
+          !Number.isFinite(data.longitude) ||
+          data.latitude < -90 ||
+          data.latitude > 90 ||
+          data.longitude < -180 ||
+          data.longitude > 180
+        ) {
+          errors.push("Titik lokasi pada peta wajib dipilih.");
+        }
+      }
     }
   }
 
@@ -277,11 +310,25 @@ export async function syncEventStatuses(): Promise<void> {
         )
       );
   `);
+
+  // Event yang otomatis ditutup/dibatalkan juga harus hilang dari wishlist.
+  await removeInactiveEventsFromWishlists();
 }
 
 /**
  * Mengambil daftar event berdasarkan filter dan sorting
  */
+export async function getUserSubmissions(userId: string): Promise<Event[]> {
+  if (!userId) return [];
+  const rows = await query<DatabaseEventRow>(
+    `SELECT * FROM events
+     WHERE created_by = $1
+     ORDER BY COALESCE(updated_at, created_at) DESC NULLS LAST, created_at DESC;`,
+    [userId]
+  );
+  return rows.map(mapRowToEvent);
+}
+
 export async function getAllEvents(filters: EventFilters = {}): Promise<Event[]> {
   await syncEventStatuses();
   const conditions: string[] = [];
@@ -403,16 +450,16 @@ export async function createEvent(data: CreateEventDTO, createdBy?: string): Pro
   const sql = `
     INSERT INTO events (
       id, title, description, description_blocks, date, duration_days, time, location,
-      event_mode,
+      latitude, longitude, event_mode,
       category, image, price, organizer, quota,
       registered_count, status, requirements, contact_pic, is_popular,
       organizer_type, institution, organizer_contact, registration_deadline, registration_url,
       purpose, target_participants, speakers, facilities, rejection_reason, created_by
     ) VALUES (
       $1, $2, $3, $4::jsonb, $5, $6, $7, $8,
-      $9, $10, $11, $12, $13, $14,
-      $15, $16, $17::jsonb, $18, $19,
-      $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30
+      $9, $10, $11, $12, $13, $14, $15,
+      $16, $17, $18, $19::jsonb, $20,
+      $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32
     )
     RETURNING *;
   `;
@@ -426,6 +473,8 @@ export async function createEvent(data: CreateEventDTO, createdBy?: string): Pro
     data.durationDays !== undefined ? Math.max(1, Math.floor(Number(data.durationDays))) : 1,
     data.time ? data.time.trim() : null,
     (data.location || (data.eventMode === "online" ? "Online" : "")).trim(),
+    data.latitude ?? null,
+    data.longitude ?? null,
     data.eventMode || "offline",
     data.category.trim(),
     data.image ? data.image.trim() : defaultImage,
@@ -433,7 +482,7 @@ export async function createEvent(data: CreateEventDTO, createdBy?: string): Pro
     data.organizer.trim(),
     data.quota !== undefined ? Number(data.quota) : 100,
     data.registeredCount !== undefined ? Number(data.registeredCount) : 0,
-    data.status || "active",
+    data.status || "pending_review",
     JSON.stringify(data.requirements || []),
     data.contactPic || null,
     Boolean(data.isPopular),
@@ -480,7 +529,11 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
     throw new Error(scheduleValidation.errors.join(", "));
   }
 
-  const validation = validateEventInput(data, true);
+  const mergedData: Partial<CreateEventDTO> = {
+    ...existing,
+    ...data,
+  };
+  const validation = validateEventInput(mergedData, true);
   if (!validation.valid) {
     throw new Error(validation.errors.join(", "));
   }
@@ -522,6 +575,16 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
   if (data.eventMode !== undefined) {
     updates.push(`event_mode = $${paramIndex++}`);
     params.push(data.eventMode);
+  }
+
+  if (data.latitude !== undefined) {
+    updates.push(`latitude = $${paramIndex++}`);
+    params.push(data.latitude);
+  }
+
+  if (data.longitude !== undefined) {
+    updates.push(`longitude = $${paramIndex++}`);
+    params.push(data.longitude);
   }
 
   if (data.category !== undefined) {
@@ -591,14 +654,21 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
     ["purpose", "purpose"],
     ["targetParticipants", "target_participants"],
     ["speakers", "speakers"],
-    ["facilities", "facilities"],
     ["rejectionReason", "rejection_reason"],
   ];
   for (const [field, column] of optionalFields) {
     if (data[field] !== undefined) {
       updates.push(`${column} = $${paramIndex++}`);
-      params.push(field === "facilities" && Array.isArray(data[field]) ? JSON.stringify(data[field]) : data[field] || null);
+      params.push(data[field] || null);
     }
+  }
+
+  // Kolom facilities bertipe TEXT dan menyimpan daftar sebagai string JSON,
+  // sama seperti saat createEvent.
+  if (data.facilities !== undefined) {
+    const facilities = Array.isArray(data.facilities) ? data.facilities : [];
+    updates.push(`facilities = $${paramIndex++}`);
+    params.push(facilities.length ? JSON.stringify(facilities) : null);
   }
 
   if (updates.length === 0) {
@@ -616,7 +686,15 @@ export async function updateEvent(id: string, data: Partial<CreateEventDTO>): Pr
   `;
 
   const updatedRow = await queryOne<DatabaseEventRow>(sql, params);
-  return updatedRow ? mapRowToEvent(updatedRow) : null;
+  if (!updatedRow) return null;
+
+  // Event yang berubah dari aktif menjadi status lain (misalnya pending_review
+  // setelah pengajuan diperbaiki) harus hilang dari wishlist pengguna.
+  if (updatedRow.status !== existing.status) {
+    await removeInactiveEventsFromWishlists([id]);
+  }
+
+  return mapRowToEvent(updatedRow);
 }
 
 /**
@@ -640,13 +718,31 @@ export async function registerEvent(id: string): Promise<Event | null> {
 }
 
 /**
- * Menghapus event berdasarkan ID
+ * Menghapus event berdasarkan ID beserta gambar event di Supabase Storage.
  */
 export async function deleteEvent(id: string): Promise<boolean> {
   if (!id) return false;
 
+  const existing = await queryOne<{ image: string | null; description_blocks: unknown }>(
+    `SELECT image, description_blocks FROM events WHERE id = $1 LIMIT 1;`,
+    [id]
+  );
   const sql = `DELETE FROM events WHERE id = $1 RETURNING id;`;
   const deleted = await queryOne<{ id: string }>(sql, [id]);
 
-  return !!deleted;
+  if (!deleted) return false;
+
+  // Hapus gambar setelah baris database hilang; kegagalan storage tidak membatalkan
+  // penghapusan event, tetapi dicatat di log oleh deleteStorageObjects.
+  if (existing) {
+    const blocks = Array.isArray(existing.description_blocks)
+      ? (existing.description_blocks as DescriptionBlock[])
+      : [];
+    const descriptionImages = blocks
+      .filter((block) => block.type === "image")
+      .map((block) => block.content);
+    await deleteStorageObjects([existing.image, ...descriptionImages]);
+  }
+
+  return true;
 }

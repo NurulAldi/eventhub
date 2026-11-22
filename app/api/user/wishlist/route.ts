@@ -59,9 +59,9 @@ export async function POST(request: NextRequest) {
     if (authError) {
       return NextResponse.json({ error: authError.error }, { status: authError.status });
     }
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Gagal memperbarui wishlist." },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : "Gagal memperbarui wishlist.";
+    // Event yang tidak aktif / tidak ditemukan adalah kesalahan permintaan, bukan server.
+    const isClientError = message.includes("tidak aktif") || message.includes("tidak ditemukan");
+    return NextResponse.json({ error: message }, { status: isClientError ? 400 : 500 });
   }
 }

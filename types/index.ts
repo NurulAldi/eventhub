@@ -34,6 +34,8 @@ export interface Event {
   durationDays?: number;
   time?: string; // Format e.g.: "09:00 - 13:00 WIB"
   location: string;
+  latitude?: number;
+  longitude?: number;
   eventMode?: "online" | "offline" | "hybrid";
   category: EventCategory | string;
   image: string;

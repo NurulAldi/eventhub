@@ -22,6 +22,8 @@ export interface CreateEventPayload {
   durationDays?: number;
   time?: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   eventMode?: "online" | "offline" | "hybrid";
   category: EventCategory | string;
   image?: string;
@@ -230,6 +232,22 @@ export async function apiGetUserRegistrations(): Promise<RegisteredEvent[]> {
 /**
  * Mengambil data wishlist pengguna (array of ID dan array of Event)
  */
+export async function apiGetUserSubmissions(): Promise<Event[]> {
+  const endpoint = typeof window !== "undefined"
+    ? `/api/user/submissions`
+    : `${getBaseUrl()}/api/user/submissions`;
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal memuat pengajuan event (HTTP ${response.status})`);
+  }
+  return response.json();
+}
+
 export async function apiGetWishlist(): Promise<{ ids: string[]; events: Event[] }> {
   const endpoint = typeof window !== "undefined"
     ? `/api/user/wishlist`

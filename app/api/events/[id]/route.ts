@@ -91,6 +91,8 @@ export async function PATCH(
           { status: 403 }
         );
       }
+
+      body.status = "pending_review";
     }
 
     const updated = await updateEvent(id, body as Partial<CreateEventDTO>);

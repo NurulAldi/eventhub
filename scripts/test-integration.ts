@@ -17,7 +17,10 @@ import { initSchema, query, queryOne, testConnection, getPool } from "../lib/db"
 import {
   getAllEvents,
   createEvent,
+  updateEvent,
+  deleteEvent,
 } from "../lib/services/event-service";
+import { getStorageObjectPath } from "../lib/services/storage-service";
 import {
   registerUserForEvent,
   getUserRegistrations,
@@ -27,12 +30,14 @@ import {
   toggleUserWishlist,
   getUserWishlistEventIds,
   getUserWishlistEvents,
+  removeInactiveEventsFromWishlists,
 } from "../lib/services/wishlist-service";
 import {
   getUserNotificationPreferences,
   updateUserNotificationPreferences,
 } from "../lib/services/notification-service";
 import { checkRateLimit, resetRateLimit } from "../lib/rate-limit";
+import { updateEventSchema } from "../lib/validations";
 import { GET as getEventsRoute, POST as postEventRoute } from "../app/api/events/route";
 import { GET as getEventByIdRoute } from "../app/api/events/[id]/route";
 import { POST as loginRoute } from "../app/api/auth/login/route";
@@ -134,10 +139,13 @@ async function runTests() {
         date: "2027-11-20",
         time: "09:00 - 12:00 WIB",
         location: "Gedung Uji A",
+        latitude: -0.950505,
+        longitude: 100.353183,
         category: "Seminar",
         organizer: "Panitia Uji AI",
         price: 0,
         quota: 100,
+        status: "active",
       });
       testEvt1Id = evt1.id;
       createdTestIds.push(testEvt1Id);
@@ -148,10 +156,13 @@ async function runTests() {
         date: "2027-11-25",
         time: "13:00 - 16:00 WIB",
         location: "Lab Komputer Uji",
+        latitude: -0.951505,
+        longitude: 100.354183,
         category: "Workshop",
         organizer: "Panitia Uji Web",
         price: 50000,
         quota: 50,
+        status: "active",
       });
       testEvt2Id = evt2.id;
       createdTestIds.push(testEvt2Id);
@@ -163,10 +174,13 @@ async function runTests() {
         date: "2027-11-28",
         time: "10:00 - 12:00 WIB",
         location: "Ruang Rapat",
+        latitude: -0.952505,
+        longitude: 100.355183,
         category: "Lomba",
         organizer: "Juri Lomba",
         price: 0,
         quota: 1,
+        status: "active",
       });
       limitedQuotaEvtId = evtLimited.id;
       createdTestIds.push(limitedQuotaEvtId);
@@ -212,6 +226,130 @@ async function runTests() {
       assert(false, "Service layer query & filter", String(err));
     }
 
+    // 3b. Pengujian Update Event Tanpa Menimpa Data Penting
+    console.log("\n[3b] Pengujian Update Event (Data terlindungi)");
+    try {
+      await updateEvent(testEvt1Id, {
+        organizerType: "Komunitas",
+        facilities: ["E-sertifikat", "Makan siang"],
+        targetParticipants: "Mahasiswa umum",
+      });
+      const afterSecondUpdate = await updateEvent(testEvt1Id, { title: "Test Event Seminar AI (Revisi)" });
+      assert(
+        !!afterSecondUpdate &&
+          afterSecondUpdate.status === "active" &&
+          afterSecondUpdate.facilities?.join(",") === "E-sertifikat,Makan siang" &&
+          afterSecondUpdate.targetParticipants === "Mahasiswa umum" &&
+          afterSecondUpdate.organizerType === "Komunitas" &&
+          afterSecondUpdate.price === 0,
+        "Update kedua tidak mengembalikan status/relasi/facilities/target/penyelenggara ke default",
+        JSON.stringify(afterSecondUpdate)
+      );
+    } catch (err) {
+      assert(false, "Update event mempertahankan data sebelumnya", String(err));
+    }
+
+    // 3b2. Pengujian Perubahan Status oleh Admin Tidak Menimpa Data Event
+    console.log("\n[3b2] Pengujian Perubahan Status (Nilai default tidak boleh menimpa data)");
+    try {
+      // Schema update hanya boleh memuat field yang benar-benar dikirim.
+      const parsedStatusOnly = updateEventSchema.parse({ status: "active" });
+      assert(
+        Object.keys(parsedStatusOnly).length === 1 && parsedStatusOnly.status === "active",
+        "updateEventSchema tidak menyisipkan nilai default saat hanya status dikirim",
+        JSON.stringify(parsedStatusOnly)
+      );
+
+      // Event dengan data khusus, lalu disetujui admin seperti di dashboard.
+      const approvalEvent = await createEvent({
+        title: "Test Event Persetujuan Admin",
+        description: "Deskripsi event uji persetujuan admin tanpa kehilangan data.",
+        descriptionBlocks: [{ id: "b1", type: "paragraph", content: "Blok deskripsi asli." }],
+        date: "2027-12-05",
+        durationDays: 3,
+        time: "09:00 - 12:00 WIB",
+        location: "Gedung Uji Persetujuan",
+        latitude: -0.950505,
+        longitude: 100.353183,
+        eventMode: "hybrid",
+        category: "Workshop",
+        organizer: "Panitia Uji Persetujuan",
+        price: 25000,
+        quota: 40,
+        requirements: ["Mahasiswa aktif", "Membawa laptop"],
+        status: "pending_review",
+      });
+
+      const approved = await updateEvent(approvalEvent.id, updateEventSchema.parse({ status: "active" }));
+      assert(
+        !!approved &&
+          approved.status === "active" &&
+          approved.durationDays === 3 &&
+          approved.eventMode === "hybrid" &&
+          approved.price === 25000 &&
+          approved.quota === 40 &&
+          approved.requirements?.length === 2 &&
+          approved.descriptionBlocks?.length === 1 &&
+          approved.time === "09:00 - 12:00 WIB",
+        "Menyetujui event tidak mengubah durasi/mode/harga/kuota/syarat/deskripsi ke default",
+        JSON.stringify(approved)
+      );
+
+      // Field yang benar-benar dikirim tetap diperbarui.
+      const updatedPrice = updateEventSchema.parse({ price: 30000 });
+      assert(
+        Object.keys(updatedPrice).length === 1 && updatedPrice.price === 30000,
+        "Schema update tetap meneruskan field yang dikirim (price)",
+        JSON.stringify(updatedPrice)
+      );
+
+      await deleteEvent(approvalEvent.id);
+    } catch (err) {
+      assert(false, "Perubahan status tidak menimpa data event", String(err));
+    }
+
+    // 3c. Pengujian Penghapusan Event Beserta Gambar Storage
+    console.log("\n[3c] Pengujian Hapus Event & Gambar Storage");
+    try {
+      const bucket = process.env.SUPABASE_STORAGE_BUCKET || "event-images";
+      const storageBase = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
+      const storagePrefix = `${storageBase}/storage/v1/object/public/${bucket}/`;
+
+      // Hanya URL gambar dari bucket event yang boleh dihapus.
+      assert(
+        getStorageObjectPath("https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=200") === null,
+        "URL gambar non-Supabase diabaikan saat penghapusan storage"
+      );
+      assert(
+        getStorageObjectPath(`${storagePrefix}../rahasia.png`) === null,
+        "Path yang keluar dari bucket ditolak"
+      );
+      assert(
+        getStorageObjectPath(`${storagePrefix}events/contoh.png?v=1`) === "events/contoh.png",
+        "Path objek storage diambil dari URL publik dengan benar"
+      );
+
+      const deletionEvent = await createEvent({
+        title: "Test Event Hapus Gambar",
+        description: "Deskripsi event uji penghapusan gambar storage.",
+        date: "2027-12-01",
+        time: "09:00 - 12:00 WIB",
+        location: "Gedung Uji Hapus",
+        latitude: -0.950505,
+        longitude: 100.353183,
+        category: "Seminar",
+        organizer: "Panitia Uji Hapus",
+        image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=200",
+        status: "active",
+      });
+      const deleted = await deleteEvent(deletionEvent.id);
+      assert(deleted, "deleteEvent menghapus event dari database");
+      const remaining = await queryOne<{ id: string }>(`SELECT id FROM events WHERE id = $1`, [deletionEvent.id]);
+      assert(!remaining, "Baris event benar-benar hilang setelah deleteEvent");
+    } catch (err) {
+      assert(false, "Hapus event beserta gambar storage", String(err));
+    }
+
     // 4. Pengujian Persistensi Registrasi Tiket Event (Target 14 November)
     console.log("\n[4] Pengujian Persistensi Registrasi Tiket (PostgreSQL Server)");
     try {
@@ -255,10 +393,13 @@ async function runTests() {
         description: "Event yang dibuat oleh testUserId.",
         date: "2027-11-30",
         location: "UNP",
+        latitude: -0.953505,
+        longitude: 100.356183,
         category: "Seminar",
         organizer: "User Uji 1",
         price: 0,
         quota: 50,
+        status: "active",
       }, testUserId);
       createdTestIds.push(ownEvent.id);
 
@@ -349,7 +490,51 @@ async function runTests() {
         "Event terhapus permanen dari tabel user_wishlists"
       );
 
-      // 5C: Preferensi Notifikasi
+      // 5C: Event tidak aktif otomatis keluar dari wishlist
+      await toggleUserWishlist(testUserId, testEvt2Id);
+      assert(
+        (await getUserWishlistEventIds(testUserId)).includes(testEvt2Id),
+        "Event aktif dapat diwishlist sebelum statusnya berubah"
+      );
+
+      // Event tidak aktif tidak boleh ditambahkan ke wishlist.
+      await toggleUserWishlist(testUserId, testEvt2Id);
+      await updateEvent(testEvt2Id, { status: "pending_review" });
+      let rejectedAdd = false;
+      try {
+        await toggleUserWishlist(testUserId, testEvt2Id);
+      } catch {
+        rejectedAdd = true;
+      }
+      assert(rejectedAdd, "Event tidak aktif ditolak saat ditambahkan ke wishlist");
+
+      // Event yang sudah ada di wishlist lalu menjadi pending_review harus hilang.
+      await updateEvent(testEvt2Id, { status: "active" });
+      await toggleUserWishlist(testUserId, testEvt2Id);
+      assert(
+        (await getUserWishlistEventIds(testUserId)).includes(testEvt2Id),
+        "Event kembali ada di wishlist setelah statusnya aktif lagi"
+      );
+
+      await updateEvent(testEvt2Id, { status: "pending_review" });
+      assert(
+        !(await getUserWishlistEventIds(testUserId)).includes(testEvt2Id),
+        "Event yang statusnya berubah menjadi pending_review otomatis hilang dari wishlist"
+      );
+
+      // Event yang sudah terlanjur ada di wishlist pun ikut dibersihkan langsung oleh DB.
+      await updateEvent(testEvt2Id, { status: "active" });
+      await toggleUserWishlist(testUserId, testEvt2Id);
+      await query(`UPDATE events SET status = 'cancelled' WHERE id = $1`, [testEvt2Id]);
+      const cleaned = await removeInactiveEventsFromWishlists();
+      assert(cleaned >= 1, "removeInactiveEventsFromWishlists membersihkan event tidak aktif");
+      assert(
+        !(await getUserWishlistEventIds(testUserId)).includes(testEvt2Id),
+        "Event batal/selesai dibersihkan dari wishlist semua pengguna"
+      );
+      await updateEvent(testEvt2Id, { status: "active" });
+
+      // 5D: Preferensi Notifikasi
       const defaultPrefs = await getUserNotificationPreferences(testUserId);
       assert(
         defaultPrefs.reminderEvent === true && defaultPrefs.updateEvent === true,

@@ -7,6 +7,7 @@ import Link from "next/link";
 import EventCard from "@/components/EventCard";
 import { apiGetEvents } from "@/lib/api";
 import { Event } from "@/types";
+import { getEventLifecycleStatus } from "@/lib/event-lifecycle";
 
 function FilterCheckbox({
   checked,
@@ -358,6 +359,7 @@ function EventListContent() {
                       month: "long",
                       year: "numeric",
                     });
+                    const lifecycle = getEventLifecycleStatus(evt);
                     const deadlineFormatted = evt.registrationDeadline
                       ? new Date(`${evt.registrationDeadline}T00:00:00`).toLocaleDateString("id-ID", {
                           day: "numeric",
@@ -365,6 +367,7 @@ function EventListContent() {
                           year: "numeric",
                         })
                       : null;
+                    const executionStatus = lifecycle.label;
 
                     return (
                       <div
@@ -386,9 +389,15 @@ function EventListContent() {
                           {/* Info */}
                           <div className="flex flex-col gap-1.5 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                                ✓ Terverifikasi
-                              </span>
+                              {executionStatus ? (
+                                <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border ${lifecycle.badgeClass}`}>
+                                  {executionStatus}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                  ✓ Terverifikasi
+                                </span>
+                              )}
                               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
                                 {evt.category}
                               </span>

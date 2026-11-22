@@ -67,7 +67,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newEvent = await createEvent(validation.data, user.id);
+    const newEvent = await createEvent(
+      { ...validation.data, status: "pending_review" },
+      user.id
+    );
 
     return NextResponse.json(newEvent, { status: 201 });
   } catch (error) {

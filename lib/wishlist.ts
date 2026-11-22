@@ -51,6 +51,21 @@ export async function syncWishlistWithServer(userId: string): Promise<string[]> 
 }
 
 /**
+ * Membuang ID event dari salinan lokal wishlist.
+ * Dipakai ketika server sudah menghapus event tidak aktif dari wishlist, supaya
+ * status "Tersimpan" tidak tertinggal di perangkat ini.
+ * @returns true jika ada perubahan pada penyimpanan lokal
+ */
+export function pruneWishlistIds(userId: string, removedIds: string[]): boolean {
+  if (!userId || removedIds.length === 0) return false;
+  const ids = readWishlistIds(userId);
+  const nextIds = ids.filter((id) => !removedIds.includes(id));
+  if (nextIds.length === ids.length) return false;
+  writeWishlistIds(userId, nextIds);
+  return true;
+}
+
+/**
  * Toggle bookmark/wishlist dengan persistensi database PostgreSQL
  */
 let wishlistWriteQueue = Promise.resolve();

@@ -216,6 +216,8 @@ export async function initSchema(): Promise<void> {
         duration_days INTEGER NOT NULL DEFAULT 1 CHECK (duration_days >= 1),
         time VARCHAR(64),
         location VARCHAR(255) NOT NULL,
+        latitude DOUBLE PRECISION,
+        longitude DOUBLE PRECISION,
         event_mode VARCHAR(16) NOT NULL DEFAULT 'offline',
         category VARCHAR(64) NOT NULL,
         image TEXT NOT NULL,
@@ -248,6 +250,8 @@ export async function initSchema(): Promise<void> {
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS duration_days INTEGER NOT NULL DEFAULT 1;`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS description_blocks JSONB NOT NULL DEFAULT '[]'::jsonb;`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_mode VARCHAR(16) NOT NULL DEFAULT 'offline';`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_contact VARCHAR(255);`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_deadline VARCHAR(64);`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_url TEXT;`);

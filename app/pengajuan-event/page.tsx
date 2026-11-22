@@ -2,10 +2,16 @@
 
 import { DragEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { apiCreateEvent, apiGetEventById, apiUpdateEvent } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { DescriptionBlock, EventStatus } from "@/types";
+import { DescriptionBlock } from "@/types";
 import { saveSubmittedEvent } from "@/lib/submissions";
+
+const EventLocationPicker = dynamic(() => import("@/components/EventLocationPicker"), {
+  ssr: false,
+  loading: () => <div className="h-64 w-full rounded-lg border border-[#E4DCCF] bg-[#F7F4EE]" />,
+});
 
 const categories = ["Seminar", "Workshop", "Lomba", "Beasiswa", "Konser & Musik", "Olahraga", "Technopreneurship"];
 const organizerTypes = ["Individu", "Organisasi mahasiswa", "Unit kampus", "Perusahaan", "Komunitas"];
@@ -16,12 +22,8 @@ const participantTargets = [
   "Pelajar dan mahasiswa",
   "Umum",
 ];
-const timeOptions = Array.from({ length: 24 * 12 }, (_, index) => {
-  const hour = Math.floor(index / 12);
-  const minute = (index % 12) * 5;
-  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-});
-const timeOptionsId = "event-time-options";
+const hourOptions = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
+const minuteOptions = ["00", "15", "30", "45"];
 const makeBlock = (type: DescriptionBlock["type"] = "paragraph", id = `block-${type}`): DescriptionBlock => ({
   id,
   type,
@@ -31,6 +33,14 @@ const parseList = (value: string | string[] | undefined) => {
   if (Array.isArray(value)) return value;
   return value ? value.split("\n").map((item) => item.trim()).filter(Boolean) : [];
 };
+const parseTimeRange = (value: string | undefined): [string, string] => {
+  const match = (value || "").match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
+  return match ? [match[1], match[2]] : ["", ""];
+};
+// Nilai yang tidak tersedia pada data lama ditampilkan sebagai kolom kosong,
+// bukan mengambil opsi pertama pada <select>.
+const withCurrentOption = (options: string[], value: string) =>
+  value && !options.includes(value) ? [value, ...options] : options;
 
 async function uploadImage(file: File): Promise<string> {
   const body = new FormData();
@@ -118,38 +128,50 @@ function ImageUploadField({
   );
 }
 
+const createInitialForm = (organizer = "") => ({
+  organizer,
+  organizerType: "Organisasi mahasiswa",
+  institution: "",
+  title: "",
+  category: "Seminar",
+  eventMode: "offline" as "online" | "offline" | "hybrid",
+  description: "",
+  image: "",
+  descriptionBlocks: [makeBlock()],
+  purpose: "",
+  targetParticipants: "Mahasiswa umum",
+  speakers: "",
+  date: "",
+  durationDays: "1",
+  time: "",
+  startHour: "",
+  startMinute: "",
+  endTime: "",
+  endHour: "",
+  endMinute: "",
+  registrationDeadline: "",
+  location: "",
+  latitude: null as number | null,
+  longitude: null as number | null,
+  quota: "100",
+  price: "0",
+  facilities: [] as string[],
+  requirements: [] as string[],
+  contactPic: "",
+});
+const initialForm = createInitialForm();
+
 export default function EventSubmissionPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [form, setForm] = useState({
-    organizer: user?.name || "",
-    organizerType: "Organisasi mahasiswa",
-    institution: "",
-    title: "",
-    category: "Seminar",
-    eventMode: "offline" as "online" | "offline" | "hybrid",
-    description: "",
-    image: "",
-    descriptionBlocks: [makeBlock()],
-    purpose: "",
-    targetParticipants: "Mahasiswa umum",
-    speakers: "",
-    date: "",
-    durationDays: "1",
-    time: "",
-    endTime: "",
-    registrationDeadline: "",
-    location: "",
-    quota: "100",
-    price: "0",
-    facilities: [] as string[],
-    requirements: [] as string[],
-    contactPic: "",
-  });
+  const [form, setForm] = useState<ReturnType<typeof createInitialForm>>(() => createInitialForm(user?.name));
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  // ID event yang datanya akan diedit, agar form tidak dirender dengan nilai
+  // default sebelum data event selesai dimuat.
+  const [editTargetId, setEditTargetId] = useState<string | null>(null);
   const [pendingImageFile, setPendingImageFile] = useState<File>();
   const [pendingDescriptionFiles, setPendingDescriptionFiles] = useState<Record<string, File>>({});
 
@@ -157,39 +179,55 @@ export default function EventSubmissionPage() {
     const timer = window.setTimeout(() => {
       const eventId = new URLSearchParams(window.location.search).get("edit");
       if (!eventId) return;
+      setEditTargetId(eventId);
       void apiGetEventById(eventId).then((event) => {
         if (event.status === "rejected") {
           setError("Pengajuan event yang ditolak tidak dapat diedit.");
           return;
         }
-        setEditingEventId(eventId);
-        const [startTime = "", endTime = ""] = (event.time || "").split(" - ");
-        setForm((current) => ({
-          ...current,
+        if (!event.image) {
+          setError("Event ini belum memiliki sampul. Unggah sampul baru sebelum menyimpan perubahan.");
+        }
+        const [startTime = "", endTime = ""] = parseTimeRange(event.time);
+        const [startHour = "", startMinute = ""] = startTime.split(":");
+        const [endHour = "", endMinute = ""] = endTime.split(":");
+        // Form diisi utuh dari data event lalu dipasang sekali, agar peta tidak
+        // pernah dirender dengan nilai default atau dirender ulang saat mode/titik berubah.
+        setForm({
+          ...initialForm,
           organizer: event.organizer,
-          organizerType: event.organizerType || current.organizerType,
+          organizerType: event.organizerType || "",
           institution: event.institution || "",
           title: event.title,
           category: event.category,
-          eventMode: event.eventMode || "offline",
+          eventMode: event.eventMode || initialForm.eventMode,
           image: event.image || "",
           description: event.description,
-          descriptionBlocks: event.descriptionBlocks?.length ? event.descriptionBlocks : [{ ...makeBlock("paragraph", "legacy-description"), content: event.description }],
+          descriptionBlocks: event.descriptionBlocks?.length
+            ? event.descriptionBlocks
+            : [{ ...makeBlock("paragraph", "legacy-description"), content: event.description }],
           purpose: event.purpose || "",
-          targetParticipants: event.targetParticipants || "Mahasiswa umum",
+          targetParticipants: event.targetParticipants || "",
           speakers: event.speakers || "",
           date: event.date,
-          durationDays: String(event.durationDays || 1),
+          durationDays: String(event.durationDays ?? 1),
           time: startTime,
+          startHour,
+          startMinute,
           endTime,
+          endHour,
+          endMinute,
           registrationDeadline: event.registrationDeadline || "",
           location: event.location,
-          quota: String(event.quota || 100),
-          price: String(event.price || 0),
+          latitude: event.latitude ?? null,
+          longitude: event.longitude ?? null,
+          quota: String(event.quota ?? 100),
+          price: String(event.price ?? 0),
           facilities: parseList(event.facilities),
           requirements: event.requirements || [],
           contactPic: event.contactPic || "",
-        }));
+        });
+        setEditingEventId(eventId);
       }).catch((loadError) => {
         setError(loadError instanceof Error ? loadError.message : "Gagal memuat pengajuan event.");
       });
@@ -237,10 +275,13 @@ export default function EventSubmissionPage() {
       ["endTime", "Waktu selesai wajib diisi."],
       ["contactPic", "Kontak panitia wajib diisi."],
     ];
-    if (form.eventMode === "offline") {
+    if (form.eventMode !== "online") {
       requiredFields.push(["location", "Lokasi event wajib diisi."]);
+      if (form.latitude === null || form.longitude === null) {
+        nextFieldErrors.latitude = "Titik lokasi pada peta wajib dipilih.";
+      }
     }
-    if (form.organizerType !== "Individu") {
+    if (form.organizerType && form.organizerType !== "Individu") {
       requiredFields.splice(2, 0, ["institution", "Institusi/organisasi wajib diisi."]);
     }
     for (const [field, message] of requiredFields) {
@@ -294,10 +335,10 @@ export default function EventSubmissionPage() {
       showValidationError("Waktu selesai harus setelah waktu mulai.");
       return;
     }
-    if (![form.time, form.endTime].every((value) => /^\d{2}:\d{2}$/.test(value) && Number(value.slice(3)) % 5 === 0)) {
-      nextFieldErrors.time = "Gunakan format HH:mm dengan interval 5 menit.";
-      nextFieldErrors.endTime = "Gunakan format HH:mm dengan interval 5 menit.";
-      showValidationError("Waktu harus menggunakan format 24 jam dengan interval 5 menit.");
+    if (![form.time, form.endTime].every((value) => /^\d{2}:\d{2}$/.test(value) && minuteOptions.includes(value.slice(3)))) {
+      nextFieldErrors.time = "Pilih jam dan menit mulai yang valid.";
+      nextFieldErrors.endTime = "Pilih jam dan menit selesai yang valid.";
+      showValidationError("Waktu harus menggunakan format 24 jam dengan interval 15 menit.");
       return;
     }
     if (!Number.isInteger(Number(form.durationDays)) || Number(form.durationDays) < 1) {
@@ -330,12 +371,13 @@ export default function EventSubmissionPage() {
         durationDays: Number(form.durationDays),
         time: `${form.time} - ${form.endTime}`,
         location: form.eventMode === "online" ? "Online" : form.location,
+        latitude: form.eventMode === "online" ? undefined : form.latitude ?? undefined,
+        longitude: form.eventMode === "online" ? undefined : form.longitude ?? undefined,
         eventMode: form.eventMode,
         category: form.category,
         price: Number(form.price),
         organizer: form.organizer,
         quota: Number(form.quota),
-        status: "pending_review" as EventStatus,
         organizerType: form.organizerType,
         institution: form.organizerType === "Individu" ? "" : form.institution.trim(),
         registrationDeadline: form.registrationDeadline,
@@ -370,6 +412,19 @@ export default function EventSubmissionPage() {
     );
   }
 
+  if (editTargetId && !editingEventId) {
+    return (
+      <main className="flex-1 max-w-5xl w-full mx-auto px-6 lg:px-16 py-10">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-[#29374A]">Perbaiki Pengajuan Event</h1>
+        {error ? (
+          <p className="mt-4 text-sm text-red-600">{error}</p>
+        ) : (
+          <p className="mt-2 text-sm text-[#6F7580]">Memuat data pengajuan event...</p>
+        )}
+      </main>
+    );
+  }
+
   const fieldClass = "w-full px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md text-sm focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E]";
   const getFieldClass = (field: keyof typeof form) =>
     `${fieldClass} ${fieldErrors[field] ? "border-red-500 bg-red-50 focus:border-red-600" : ""}`;
@@ -383,7 +438,7 @@ export default function EventSubmissionPage() {
         </h1>
         <p className="mt-2 text-sm text-[#6F7580]">
           {editingEventId
-            ? "Perbarui informasi yang diminta admin. Setelah dikirim, pengajuan kembali ke status Menunggu Review."
+            ? "Perbarui informasi event Anda. Event yang sudah aktif tetap tampil setelah perubahan disimpan."
             : "Lengkapi informasi berikut. Pengajuan akan berstatus Menunggu Review sampai disetujui admin."}
         </p>
       </div>
@@ -408,8 +463,8 @@ export default function EventSubmissionPage() {
           <h2 className="font-bold text-[#29374A] border-b border-[#E4DCCF] pb-2">Identitas Penyelenggara</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             <label className="flex flex-col gap-1">{requiredLabel("Nama penyelenggara")}<input required value={form.organizer} onChange={(e) => update("organizer", e.target.value)} className={getFieldClass("organizer")} /></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Jenis penyelenggara")}<select required value={form.organizerType} onChange={(e) => { const value = e.target.value; update("organizerType", value); if (value === "Individu") update("institution", ""); }} className={fieldClass}>{organizerTypes.map((type) => <option key={type}>{type}</option>)}</select></label>
-            {form.organizerType !== "Individu" && (
+            <label className="flex flex-col gap-1">{requiredLabel("Jenis penyelenggara")}<select required value={form.organizerType} onChange={(e) => { const value = e.target.value; update("organizerType", value); if (value === "Individu") update("institution", ""); }} className={fieldClass}>{!organizerTypes.includes(form.organizerType) && <option value={form.organizerType} disabled>{form.organizerType || "Pilih jenis penyelenggara"}</option>}{organizerTypes.map((type) => <option key={type}>{type}</option>)}</select></label>
+            {form.organizerType && form.organizerType !== "Individu" && (
               <label className="flex flex-col gap-1">{requiredLabel("Institusi/organisasi")}<input required value={form.institution} onChange={(e) => update("institution", e.target.value)} className={getFieldClass("institution")} /></label>
             )}
           </div>
@@ -418,9 +473,9 @@ export default function EventSubmissionPage() {
           <h2 className="font-bold text-[#29374A] border-b border-[#E4DCCF] pb-2">Informasi Event</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             <label className="sm:col-span-2 flex flex-col gap-1">{requiredLabel("Judul event")}<input required minLength={3} value={form.title} onChange={(e) => update("title", e.target.value)} className={getFieldClass("title")} /></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Kategori")}<select required value={form.category} onChange={(e) => update("category", e.target.value)} className={fieldClass}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Mode event")}<select required value={form.eventMode} onChange={(e) => { const mode = e.target.value as "online" | "offline"; update("eventMode", mode); if (mode === "online") update("location", "Online"); else if (form.location === "Online") update("location", ""); }} className={getFieldClass("eventMode")}><option value="offline">Offline</option><option value="online">Online</option></select></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Target peserta")}<select required value={form.targetParticipants} onChange={(e) => update("targetParticipants", e.target.value)} className={getFieldClass("targetParticipants")}>{participantTargets.map((target) => <option key={target}>{target}</option>)}</select></label>
+            <label className="flex flex-col gap-1">{requiredLabel("Kategori")}<select required value={form.category} onChange={(e) => update("category", e.target.value)} className={fieldClass}>{withCurrentOption(categories, form.category).map((category) => <option key={category}>{category}</option>)}</select></label>
+            <label className="flex flex-col gap-1">{requiredLabel("Mode event")}<select required value={form.eventMode} onChange={(e) => { const mode = e.target.value as "online" | "offline" | "hybrid"; update("eventMode", mode); if (mode === "online") { update("location", "Online"); update("latitude", null); update("longitude", null); } else if (form.location === "Online") update("location", ""); }} className={getFieldClass("eventMode")}><option value="offline">Offline</option><option value="online">Online</option><option value="hybrid">Hybrid</option></select></label>
+            <label className="flex flex-col gap-1">{requiredLabel("Target peserta")}<select required value={form.targetParticipants} onChange={(e) => update("targetParticipants", e.target.value)} className={getFieldClass("targetParticipants")}>{withCurrentOption(participantTargets, form.targetParticipants).map((target) => <option key={target} value={target} disabled={!target}>{target || "Pilih target peserta"}</option>)}</select></label>
             <div className="sm:col-span-2 flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -486,10 +541,97 @@ export default function EventSubmissionPage() {
             <label className="flex flex-col gap-1">{requiredLabel("Tanggal pelaksanaan")}<input required type="date" value={form.date} onChange={(e) => update("date", e.target.value)} className={getFieldClass("date")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Durasi pelaksanaan (hari)")}<input required type="number" min="1" step="1" value={form.durationDays} onChange={(e) => update("durationDays", e.target.value)} className={getFieldClass("durationDays")} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Deadline pendaftaran")}<input required type="date" value={form.registrationDeadline} onChange={(e) => update("registrationDeadline", e.target.value)} className={getFieldClass("registrationDeadline")} /></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Waktu mulai")}<input required type="text" inputMode="numeric" list={timeOptionsId} placeholder="--:--" maxLength={5} pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" value={form.time} onChange={(e) => update("time", e.target.value)} className={getFieldClass("time")} /></label>
-            <label className="flex flex-col gap-1">{requiredLabel("Waktu selesai")}<input required type="text" inputMode="numeric" list={timeOptionsId} placeholder="--:--" maxLength={5} pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" value={form.endTime} onChange={(e) => update("endTime", e.target.value)} className={getFieldClass("endTime")} /></label>
-            <datalist id={timeOptionsId}>{timeOptions.map((time) => <option key={time} value={time} />)}</datalist>
-            <label className="flex flex-col gap-1">{requiredLabel("Lokasi event")}<input required={form.eventMode === "offline"} disabled={form.eventMode === "online"} value={form.eventMode === "online" ? "Online" : form.location} onChange={(e) => update("location", e.target.value)} placeholder="Gedung atau ruangan" className={`${getFieldClass("location")} disabled:cursor-not-allowed disabled:bg-[#EAE2D4] disabled:text-[#92959C]`} /></label>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium">{requiredLabel("Waktu mulai")}</span>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  required
+                  aria-label="Jam mulai"
+                  value={form.startHour}
+                  onChange={(e) => {
+                    const startHour = e.target.value;
+                    update("startHour", startHour);
+                    update("time", startHour && form.startMinute ? `${startHour}:${form.startMinute}` : "");
+                  }}
+                  className={getFieldClass("time")}
+                >
+                  <option value="">Jam</option>
+                  {hourOptions.map((hour) => <option key={hour} value={hour}>{hour}</option>)}
+                </select>
+                <select
+                  required
+                  aria-label="Menit mulai"
+                  value={form.startMinute}
+                  onChange={(e) => {
+                    const startMinute = e.target.value;
+                    update("startMinute", startMinute);
+                    update("time", form.startHour && startMinute ? `${form.startHour}:${startMinute}` : "");
+                  }}
+                  className={getFieldClass("time")}
+                >
+                  <option value="">Menit</option>
+                  {minuteOptions.map((minute) => <option key={minute} value={minute}>{minute}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium">{requiredLabel("Waktu selesai")}</span>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  required
+                  aria-label="Jam selesai"
+                  value={form.endHour}
+                  onChange={(e) => {
+                    const endHour = e.target.value;
+                    update("endHour", endHour);
+                    update("endTime", endHour && form.endMinute ? `${endHour}:${form.endMinute}` : "");
+                  }}
+                  className={getFieldClass("endTime")}
+                >
+                  <option value="">Jam</option>
+                  {hourOptions.map((hour) => <option key={hour} value={hour}>{hour}</option>)}
+                </select>
+                <select
+                  required
+                  aria-label="Menit selesai"
+                  value={form.endMinute}
+                  onChange={(e) => {
+                    const endMinute = e.target.value;
+                    update("endMinute", endMinute);
+                    update("endTime", form.endHour && endMinute ? `${form.endHour}:${endMinute}` : "");
+                  }}
+                  className={getFieldClass("endTime")}
+                >
+                  <option value="">Menit</option>
+                  {minuteOptions.map((minute) => <option key={minute} value={minute}>{minute}</option>)}
+                </select>
+              </div>
+            </div>
+            <label className="flex flex-col gap-1">{requiredLabel("Lokasi event")}<input required={form.eventMode !== "online"} disabled={form.eventMode === "online"} value={form.eventMode === "online" ? "Online" : form.location} onChange={(e) => update("location", e.target.value)} placeholder="Gedung atau ruangan" className={`${getFieldClass("location")} disabled:cursor-not-allowed disabled:bg-[#EAE2D4] disabled:text-[#92959C]`} /></label>
+            {form.eventMode !== "online" && (
+              <div className="sm:col-span-2 flex flex-col gap-2">
+                <div>
+                  <span className="text-xs font-bold text-[#29374A]">Titik Lokasi pada Peta</span>
+                  <p className="text-[11px] text-[#6F7580] mt-1">Klik lokasi event pada peta untuk menempatkan penanda.</p>
+                </div>
+                <EventLocationPicker
+                  latitude={form.latitude ?? 0}
+                  longitude={form.longitude ?? 0}
+                  onChange={(value) => {
+                    update("latitude", value.latitude);
+                    update("longitude", value.longitude);
+                  }}
+                />
+                {form.latitude !== null && form.longitude !== null && (
+                  <p className="text-[11px] text-[#6F7580]">
+                    Koordinat: {form.latitude.toFixed(6)}, {form.longitude.toFixed(6)}
+                  </p>
+                )}
+                {fieldErrors.latitude && (
+                  <p className="text-xs text-red-600 font-medium">{fieldErrors.latitude}</p>
+                )}
+              </div>
+            )}
             <label className="flex flex-col gap-1">{requiredLabel("Kapasitas peserta")}<input required type="number" min="1" value={form.quota} onChange={(e) => update("quota", e.target.value)} className={fieldClass} /></label>
             <label className="flex flex-col gap-1">{requiredLabel("Biaya pendaftaran")}<input required type="number" min="0" value={form.price} onChange={(e) => update("price", e.target.value)} className={fieldClass} /></label>
             {(["facilities", "requirements"] as const).map((field) => (
