@@ -3,7 +3,7 @@
  * Menyediakan fungsi-fungsi konsisten untuk mengambil dan mengubah data melalui Backend REST API.
  */
 
-import { AdminUser, DescriptionBlock, Event, EventCategory, EventStatus, RegisteredEvent } from "@/types";
+import { AdminUser, DescriptionBlock, Event, EventCategory, EventStatus, RegisteredEvent, EventRegistration } from "@/types";
 
 export interface EventQueryParams {
   category?: string;
@@ -225,6 +225,25 @@ export async function apiGetUserRegistrations(): Promise<RegisteredEvent[]> {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || `Gagal memuat tiket terdaftar (HTTP ${response.status})`);
+  }
+  return response.json();
+}
+
+/**
+ * Mengambil daftar pendaftar untuk suatu event (untuk penyelenggara)
+ */
+export async function apiGetEventRegistrations(eventId: string): Promise<EventRegistration[]> {
+  const endpoint = typeof window !== "undefined"
+    ? `/api/events/${eventId}/registrations`
+    : `${getBaseUrl()}/api/events/${eventId}/registrations`;
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal memuat daftar pendaftar (HTTP ${response.status})`);
   }
   return response.json();
 }

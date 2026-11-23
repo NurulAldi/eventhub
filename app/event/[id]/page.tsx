@@ -5,8 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { apiGetEventById, apiGetEvents, apiRegisterEvent, apiGetUserRegistrations, apiGetNotificationPreferences, apiUpdateEvent } from "@/lib/api";
-import type { DescriptionBlock, EventStatus } from "@/types";
+import { apiGetEventById, apiGetEvents, apiRegisterEvent, apiGetUserRegistrations, apiGetNotificationPreferences, apiUpdateEvent, apiGetEventRegistrations } from "@/lib/api";
+import type { DescriptionBlock, EventStatus, EventRegistration } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import EventCard from "@/components/EventCard";
 import { Event, RegisteredEvent } from "@/types";
@@ -20,7 +20,7 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-type TabType = "deskripsi" | "persyaratan" | "jadwal" | "kontak";
+type TabType = "deskripsi" | "persyaratan" | "jadwal" | "kontak" | "pendaftar";
 
 function EventDetailContent({ params }: Props) {
   const router = useRouter();
@@ -34,6 +34,10 @@ function EventDetailContent({ params }: Props) {
   const [notFound, setNotFound] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("deskripsi");
+
+  // Registrations for event creator
+  const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
+  const [isLoadingRegistrations, setIsLoadingRegistrations] = useState(false);
 
   // Admin: status change
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
@@ -82,6 +86,7 @@ function EventDetailContent({ params }: Props) {
   const [isRegistered, setIsRegistered] = useState(false);
   const [registeredTicket, setRegisteredTicket] = useState<RegisteredEvent | null>(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
+  const [showAllRegistrationsModal, setShowAllRegistrationsModal] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -178,6 +183,31 @@ function EventDetailContent({ params }: Props) {
   );
 
   const isAdmin = user?.role === "admin";
+
+  // Fetch registrations for event creator
+  useEffect(() => {
+    if (!event || !user || (!isEventCreator && !isAdmin)) return;
+    const eventId = event.id;
+
+    let isMounted = true;
+
+    async function loadRegistrations() {
+      setIsLoadingRegistrations(true);
+      try {
+        const data = await apiGetEventRegistrations(eventId);
+        if (isMounted) {
+          setRegistrations(data);
+        }
+      } catch (err) {
+        console.error("Error loading registrations:", err);
+      } finally {
+        if (isMounted) setIsLoadingRegistrations(false);
+      }
+    }
+
+    loadRegistrations();
+    return () => { isMounted = false; };
+  }, [event, user, isEventCreator, isAdmin]);
 
   useEffect(() => {
     if (!event || !user) return;
@@ -333,6 +363,7 @@ function EventDetailContent({ params }: Props) {
     { id: "persyaratan", label: "Persyaratan" },
     { id: "jadwal", label: "Jadwal" },
     { id: "kontak", label: "Kontak Penyelenggara" },
+    ...((isEventCreator || isAdmin) ? [{ id: "pendaftar" as TabType, label: "Pendaftar" }] : []),
   ];
 
   return (
@@ -777,6 +808,11 @@ function EventDetailContent({ params }: Props) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 )}
+                {tab.id === "pendaftar" && (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                )}
                 {tab.label}
               </button>
             ))}
@@ -960,6 +996,73 @@ function EventDetailContent({ params }: Props) {
                       </p>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {activeTab === "pendaftar" && (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-gray-900">Daftar Pendaftar</h2>
+                    <span className="text-sm font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-full">
+                      Total: {registrations.length} pendaftar
+                    </span>
+                  </div>
+
+                  {isLoadingRegistrations ? (
+                    <div className="space-y-3">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className="animate-pulse flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                          <div className="w-10 h-10 rounded-full bg-gray-200" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-1/4" />
+                            <div className="h-3 bg-gray-200 rounded w-1/3" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : registrations.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Belum Ada Pendaftar</h3>
+                      <p className="text-sm text-gray-500 mt-1">Event ini belum memiliki pendaftar.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {registrations.slice(0, 10).map((reg, index) => (
+                        <div key={reg.ticketId} className="flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0 text-sm">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 truncate">{reg.userName}</p>
+                            <p className="text-sm text-gray-500 truncate">{reg.userEmail}</p>
+                            <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs">
+                                {reg.ticketStatus === "active" ? "Aktif" : reg.ticketStatus === "completed" ? "Selesai" : "Dibatalkan"}
+                              </span>
+                              <span>•</span>
+                              <span>Daftar: {reg.registeredAt}</span>
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {registrations.length > 10 && (
+                        <div className="text-center pt-4 border-t border-gray-200">
+                          <button
+                            type="button"
+                            className="px-6 py-2.5 bg-blue-700 text-white font-semibold text-sm rounded-xl hover:bg-blue-800 transition"
+                            onClick={() => setShowAllRegistrationsModal(true)}
+                          >
+                            Lihat Semua Pendaftar ({registrations.length})
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1161,6 +1264,53 @@ function EventDetailContent({ params }: Props) {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* All Registrations Modal for Event Creator */}
+      {showAllRegistrationsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white border border-gray-200 rounded-2xl max-w-2xl w-full max-h-[80vh] p-6 shadow-2xl flex flex-col animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-bold text-gray-900">Semua Pendaftar Event</h3>
+              <button type="button" onClick={() => setShowAllRegistrationsModal(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {registrations.map((reg, index) => (
+                <div key={reg.ticketId} className="flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0 text-sm">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">{reg.userName}</p>
+                    <p className="text-sm text-gray-500 truncate">{reg.userEmail}</p>
+                    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${
+                        reg.ticketStatus === "active" ? "bg-emerald-100 text-emerald-700" :
+                        reg.ticketStatus === "completed" ? "bg-blue-100 text-blue-700" :
+                        "bg-rose-100 text-rose-700"
+                      }`}>
+                        {reg.ticketStatus === "active" ? "Aktif" : reg.ticketStatus === "completed" ? "Selesai" : "Dibatalkan"}
+                      </span>
+                      <span>•</span>
+                      <span>Tiket: #{reg.ticketId}</span>
+                      <span>•</span>
+                      <span>Daftar: {reg.registeredAt}</span>
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-gray-100 pt-3">
+              <button
+                type="button"
+                onClick={() => setShowAllRegistrationsModal(false)}
+                className="w-full py-2.5 bg-blue-700 text-white font-semibold text-sm rounded-xl hover:bg-blue-800 transition"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

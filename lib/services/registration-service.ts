@@ -337,3 +337,81 @@ export async function cancelRegistration(
     client.release();
   }
 }
+
+/**
+ * Mengambil seluruh pendaftar untuk suatu event (untuk penyelenggara/admin)
+ */
+export async function getEventRegistrations(eventId: string): Promise<Array<RegisteredEvent & { userName: string; userEmail: string }>> {
+  if (!eventId) return [];
+
+  const sql = `
+    SELECT 
+      r.id AS reg_id,
+      r.ticket_code,
+      r.ticket_status,
+      r.qr_code_mock,
+      r.registered_at,
+      u.name AS user_name,
+      u.email AS user_email,
+      e.id AS event_id,
+      e.title AS event_title,
+      e.category,
+      e.date AS event_date,
+      e.time AS event_time,
+      e.location AS event_location,
+      e.price AS event_price,
+      e.status AS event_status
+    FROM event_registrations r
+    JOIN users u ON r.user_id = u.id
+    JOIN events e ON r.event_id = e.id
+    WHERE r.event_id = $1
+    ORDER BY r.registered_at DESC;
+  `;
+
+  interface RowResult {
+    reg_id: string;
+    ticket_code: string;
+    ticket_status: "active" | "completed" | "cancelled";
+    qr_code_mock: string | null;
+    registered_at: Date;
+    user_name: string;
+    user_email: string;
+    event_id: string;
+    event_title: string;
+    category: string;
+    event_date: string;
+    event_time: string | null;
+    event_location: string;
+    event_price: number;
+    event_status: string;
+  }
+
+  const rows = await query<RowResult>(sql, [eventId]);
+
+  return rows.map((row) => {
+    const formattedDate = new Date(row.event_date).toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
+    return {
+      ticketId: row.ticket_code,
+      eventId: row.event_id,
+      eventTitle: row.event_title,
+      category: row.category,
+      date: formattedDate,
+      time: row.event_time || "Waktu belum ditentukan",
+      location: row.event_location,
+      eventPrice: Number(row.event_price) || 0,
+      registeredAt: row.registered_at.toISOString().slice(0, 10),
+      ticketStatus: row.ticket_status,
+      qrCodeMock:
+        row.qr_code_mock ||
+        `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${row.ticket_code}`,
+      userName: row.user_name,
+      userEmail: row.user_email,
+    };
+  });
+}

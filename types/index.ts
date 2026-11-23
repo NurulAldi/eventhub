@@ -76,6 +76,11 @@ export interface RegisteredEvent {
   qrCodeMock?: string;
 }
 
+export interface EventRegistration extends RegisteredEvent {
+  userName: string;
+  userEmail: string;
+}
+
 export interface UserProfile {
   name: string;
   email: string;
