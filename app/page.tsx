@@ -8,6 +8,7 @@ import { apiGetEvents } from "@/lib/api";
 import { Event } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { getPopularityLabel, getRegistrationPercentage } from "@/lib/event-popularity";
+import { getEventLifecycleStatus } from "@/lib/event-lifecycle";
 
 /** Returns days until a date string (YYYY-MM-DD), or null */
 function getDaysUntil(dateStr: string | undefined, todayTime: number | null): number | null {
@@ -127,6 +128,14 @@ function HomePageContent() {
       return deadline.getTime() >= todayTime;
     })
     .sort((a, b) => (a.registrationDeadline ?? "").localeCompare(b.registrationDeadline ?? ""))
+    .slice(0, 4);
+
+  const ongoingEvents = [...events]
+    .filter((e) => !["completed", "cancelled"].includes(e.status || ""))
+    .filter((e) => {
+      const lifecycle = getEventLifecycleStatus(e);
+      return lifecycle.stage === "ongoing";
+    })
     .slice(0, 4);
 
   const categories = [
@@ -361,12 +370,17 @@ function HomePageContent() {
                             {evt.title}
                           </p>
                           <p className="text-xs text-gray-500 truncate mt-0.5">{evt.organizer}</p>
+                          {daysLeft !== null && daysLeft === 0 && (
+                            <span className="mt-1 inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                              Hari Terakhir
+                            </span>
+                          )}
                           {daysLeft !== null && daysLeft > 0 && (
                             <span className="mt-1 inline-block px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold">
                               {daysLeft} hari lagi
                             </span>
                           )}
-                          {daysLeft !== null && daysLeft <= 0 && (
+                          {daysLeft !== null && daysLeft < 0 && (
                             <span className="mt-1 inline-block px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold">
                               Sudah tutup
                             </span>
@@ -378,6 +392,79 @@ function HomePageContent() {
                 </div>
               ) : (
                 <p className="text-xs text-gray-500 text-center py-4">Tidak ada deadline mendatang.</p>
+              )}
+
+            </div>
+
+            {/* Event yang Sedang Berlangsung */}
+            <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" strokeWidth="2"/>
+                    <path d="M12 7v5l3 3" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  <h3 className="font-bold text-gray-900">Sedang Berlangsung</h3>
+                </div>
+                <Link href="/event?status=Berlangsung" className="text-xs font-semibold text-blue-700 hover:text-blue-800 transition">
+                  Lihat Semua →
+                </Link>
+              </div>
+
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((n) => (
+                    <div key={n} className="flex gap-3 animate-pulse">
+                      <div className="w-12 h-14 bg-gray-200 rounded-lg shrink-0" />
+                      <div className="flex-1 space-y-2 pt-1">
+                        <div className="h-3 bg-gray-200 rounded w-3/4" />
+                        <div className="h-3 bg-gray-200 rounded w-1/2" />
+                        <div className="h-4 w-20 bg-gray-200 rounded-full" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : ongoingEvents.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {ongoingEvents.map((evt) => {
+                    const lifecycle = getEventLifecycleStatus(evt);
+                    const eventDate = evt.date
+                      ? new Date(`${evt.date}T00:00:00`)
+                      : null;
+                    const dayNum = eventDate
+                      ? eventDate.toLocaleDateString("id-ID", { day: "numeric" })
+                      : "--";
+                    const monthAbbr = eventDate
+                      ? eventDate.toLocaleDateString("id-ID", { month: "short" })
+                      : "";
+
+                    return (
+                      <Link
+                        key={evt.id}
+                        href={`/event/${evt.id}`}
+                        className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-gray-50 transition group"
+                      >
+                        {/* Date Block */}
+                        <div className="w-12 shrink-0 flex flex-col items-center justify-center bg-emerald-50 border border-emerald-200 rounded-lg py-2 text-center">
+                          <span className="text-lg font-extrabold text-emerald-700 leading-none">{dayNum}</span>
+                          <span className="text-[10px] font-semibold text-emerald-600 uppercase">{monthAbbr}</span>
+                        </div>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 line-clamp-1 group-hover:text-blue-700 transition">
+                            {evt.title}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate mt-0.5">{evt.organizer}</p>
+                          <span className="mt-1 inline-block px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                            Sedang Berlangsung
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 text-center py-4">Tidak ada event yang sedang berlangsung.</p>
               )}
 
             </div>

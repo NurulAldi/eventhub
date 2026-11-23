@@ -310,6 +310,7 @@ function EventDetailContent({ params }: Props) {
         date: formattedDate,
         time: event.time || "Waktu belum ditentukan",
         location: event.location,
+        eventPrice: Number(event.price) || 0,
         registeredAt: new Date().toISOString().slice(0, 10),
         ticketStatus: "active",
         qrCodeMock: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=EVT-TICKET`,
@@ -545,11 +546,6 @@ function EventDetailContent({ params }: Props) {
                   <span className="text-[11px] font-medium text-gray-400 block">Biaya Pendaftaran</span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs sm:text-sm font-extrabold text-emerald-700">{priceDisplay}</span>
-                    {event.price === 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
-                        100% didanai
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -567,6 +563,28 @@ function EventDetailContent({ params }: Props) {
                   <span className="text-xs sm:text-sm font-bold text-gray-900 block truncate">{event.location}</span>
                 </div>
               </div>
+
+              {/* Link Event (untuk event online/hybrid) */}
+              {(event.eventMode === "online" || event.eventMode === "hybrid") && event.registrationUrl && (
+                <div className="flex items-start gap-3 p-1">
+                  <div className="w-8 h-8 rounded-lg bg-purple-100/70 text-purple-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[11px] font-medium text-gray-400 block">Link Event</span>
+                    <a
+                      href={event.registrationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs sm:text-sm font-bold text-purple-700 block truncate hover:underline"
+                    >
+                      {event.registrationUrl}
+                    </a>
+                  </div>
+                </div>
+              )}
 
               {/* 6. Kuota Peserta */}
               <div className="flex items-start gap-3 p-1">
@@ -640,7 +658,7 @@ function EventDetailContent({ params }: Props) {
                     Anda adalah penyelenggara event ini (tidak dapat mendaftar).
                   </p>
                 </div>
-              ) : isLoggedIn && isRegistered ? (
+              ) : isLoggedIn && isRegistered && event.price > 0 ? (
                 <button
                   type="button"
                   onClick={() => setShowTicketModal(true)}
@@ -650,6 +668,14 @@ function EventDetailContent({ params }: Props) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                   </svg>
                   Lihat E-Ticket QR (Terdaftar)
+                </button>
+              ) : isLoggedIn && isRegistered && event.price === 0 ? (
+                <button
+                  type="button"
+                  disabled
+                  className="flex-1 py-3 px-6 bg-gray-200 text-gray-500 font-bold text-sm rounded-xl cursor-not-allowed select-none text-center"
+                >
+                  Anda sudah terdaftar
                 </button>
               ) : isClosed ? (
                 <button
@@ -890,6 +916,28 @@ function EventDetailContent({ params }: Props) {
                           <h4 className="font-bold text-amber-900 text-sm">Batas Pendaftaran</h4>
                           <p className="text-sm text-amber-800 font-medium">{registrationDeadlineFormatted}</p>
                           <p className="text-xs text-amber-600 mt-0.5">Jangan sampai melewatkan deadline penting ini!</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {(event.eventMode === "online" || event.eventMode === "hybrid") && event.registrationUrl && (
+                      <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-200/80 flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-purple-900 text-sm">Link Event (Online/Hybrid)</h4>
+                          <a
+                            href={event.registrationUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-purple-800 font-medium hover:underline break-all"
+                          >
+                            {event.registrationUrl}
+                          </a>
+                          <p className="text-xs text-purple-600 mt-0.5">Klik untuk bergabung ke event secara online</p>
                         </div>
                       </div>
                     )}

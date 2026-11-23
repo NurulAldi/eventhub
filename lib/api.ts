@@ -471,9 +471,6 @@ export async function apiUpdateAdminUser(
   return response.json();
 }
 
-/**
- * Menghapus pengguna (role 'user') oleh Admin
- */
 export async function apiDeleteAdminUser(id: string): Promise<void> {
   const endpoint = typeof window !== "undefined"
     ? `/api/admin/users/${encodeURIComponent(id)}`
@@ -487,6 +484,31 @@ export async function apiDeleteAdminUser(id: string): Promise<void> {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || `Gagal menghapus pengguna (HTTP ${response.status})`);
+  }
+}
+
+/**
+ * Membuat notifikasi untuk pengguna tertentu (Admin)
+ */
+export async function apiCreateNotification(
+  userId: string,
+  title: string,
+  message: string,
+  href?: string
+): Promise<void> {
+  const endpoint = typeof window !== "undefined"
+    ? "/api/admin/notifications"
+    : `${getBaseUrl()}/api/admin/notifications`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, title, message, href }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Gagal membuat notifikasi (HTTP ${response.status})`);
   }
 }
 

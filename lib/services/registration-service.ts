@@ -200,6 +200,7 @@ export async function registerUserForEvent(
       date: formattedDate,
       time: updatedEvent.time || "Waktu belum ditentukan",
       location: updatedEvent.location,
+      eventPrice: Number(updatedEvent.price) || 0,
       registeredAt: regRecord.registered_at.toISOString().slice(0, 10),
       ticketStatus: regRecord.ticket_status,
       qrCodeMock: regRecord.qr_code_mock || undefined,
@@ -233,6 +234,7 @@ export async function getUserRegistrations(userId: string): Promise<RegisteredEv
       e.date AS event_date,
       e.time AS event_time,
       e.location AS event_location,
+      e.price AS event_price,
       e.status AS event_status
     FROM event_registrations r
     JOIN events e ON r.event_id = e.id
@@ -252,6 +254,7 @@ export async function getUserRegistrations(userId: string): Promise<RegisteredEv
     event_date: string;
     event_time: string | null;
     event_location: string;
+    event_price: number;
     event_status: string;
   }
 
@@ -273,6 +276,7 @@ export async function getUserRegistrations(userId: string): Promise<RegisteredEv
       date: formattedDate,
       time: row.event_time || "Waktu belum ditentukan",
       location: row.event_location,
+      eventPrice: Number(row.event_price) || 0,
       registeredAt: row.registered_at.toISOString().slice(0, 10),
       ticketStatus: row.ticket_status,
       qrCodeMock:

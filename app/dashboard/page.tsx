@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiGetEvents, apiGetAdminStats, apiUpdateEvent, apiDeleteEvent } from "@/lib/api";
+import { apiGetEvents, apiGetAdminStats, apiDeleteEvent, apiUpdateEvent, apiCreateNotification } from "@/lib/api";
 import { Event } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 
@@ -20,7 +20,29 @@ export default function AdminDashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [selectedStatus, setSelectedStatus] = useState("Semua");
 
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [viewDetailEvent, setViewDetailEvent] = useState<Event | null>(null);
+  const [revisionNote, setRevisionNote] = useState<{ event: Event; note: string } | null>(null);
+
+  const loadAdminData = () => {
+    Promise.all([apiGetEvents({ status: "Semua" }), apiGetAdminStats()])
+      .then(([data, stats]) => {
+        setEventList(data);
+        setTotalUsers(stats.totalUsers);
+        setError(null);
+      })
+      .catch((err) => {
+        console.error("Gagal memuat event admin:", err);
+        setError("Gagal mengambil data event dari database.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
+
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    loadAdminData();
+  };
 
   useEffect(() => {
     if (user?.role !== "admin") {
@@ -30,28 +52,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (user?.role !== "admin") return;
-    let isMounted = true;
-
-    Promise.all([apiGetEvents({ status: "Semua" }), apiGetAdminStats()])
-      .then(([data, stats]) => {
-        if (isMounted) {
-          setEventList(data);
-          setTotalUsers(stats.totalUsers);
-          setError(null);
-          setIsLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (isMounted) {
-          console.error("Gagal memuat event admin:", err);
-          setError("Gagal mengambil data event dari database.");
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
+    loadAdminData();
   }, [refreshKey, user?.role]);
 
   if (user?.role !== "admin") return null;
@@ -89,36 +90,37 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleStatusChange = async (id: string, nextStatus: Event["status"]) => {
-    try {
-      const updated = await apiUpdateEvent(id, { status: nextStatus });
-      setEventList((prev) =>
-        prev.map((e) => (e.id === id ? updated : e))
-      );
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal memperbarui status event.");
-    }
-  };
-
-  // Action: Save Edited Event (API)
-  const handleSaveEdit = async () => {
-    if (!editingEvent) return;
+  // Action: Submit Revision Note
+  const handleSubmitRevisionNote = async () => {
+    if (!revisionNote || !revisionNote.note.trim()) return;
 
     try {
-      const updated = await apiUpdateEvent(editingEvent.id, {
-        title: editingEvent.title,
-        location: editingEvent.location,
-        status: editingEvent.status,
-        rejectionReason: editingEvent.rejectionReason,
+      const updated = await apiUpdateEvent(revisionNote.event.id, {
+        status: "needs_revision",
+        rejectionReason: revisionNote.note.trim(),
       });
+      setEventList((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
 
-      setEventList((prev) =>
-        prev.map((e) => (e.id === editingEvent.id ? updated : e))
-      );
-      setEditingEvent(null);
-      alert("Perubahan data event berhasil disimpan ke database!");
+      // Create notification for the user who submitted the event
+      if (revisionNote.event.createdBy) {
+        try {
+          await apiCreateNotification(
+            revisionNote.event.createdBy,
+            "Event Perlu Diperbaiki",
+            `Pengajuan event "${revisionNote.event.title}" memerlukan perbaikan. Silakan lihat catatan admin dan edit kembali pengajuan Anda.`,
+            `/pengajuan-event?edit=${revisionNote.event.id}`
+          );
+        } catch (notifError) {
+          console.error("Gagal membuat notifikasi:", notifError);
+          // Don't fail the whole operation if notification fails
+        }
+      }
+
+      setRevisionNote(null);
+      setViewDetailEvent(null);
+      alert("Event berhasil diubah ke status 'Perlu Perbaikan' dan catatan telah disimpan.");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal menyimpan perubahan event.");
+      alert(err instanceof Error ? err.message : "Gagal menyimpan catatan perbaikan.");
     }
   };
 
@@ -127,14 +129,7 @@ export default function AdminDashboardPage() {
     0
   );
   const activeEventsCount = eventList.filter((event) => event.status === "active").length;
-  const statusOptions: Array<{ value: NonNullable<Event["status"]>; label: string }> = [
-    { value: "pending_review", label: "Menunggu Review" },
-    { value: "needs_revision", label: "Perlu Perbaikan" },
-    { value: "rejected", label: "Ditolak" },
-    { value: "active", label: "Aktif" },
-    { value: "completed", label: "Selesai" },
-    { value: "cancelled", label: "Dibatalkan" },
-  ];
+
   const statusColors: Record<string, string> = {
     pending_review: "bg-amber-50 text-amber-800 border-amber-200",
     needs_revision: "bg-orange-50 text-orange-800 border-orange-200",
@@ -142,6 +137,20 @@ export default function AdminDashboardPage() {
     active: "bg-emerald-50 text-emerald-800 border-emerald-200",
     completed: "bg-[#EAE2D4] text-[#29374A] border-[#E4DCCF]",
     cancelled: "bg-rose-50 text-rose-800 border-rose-200",
+    draft: "bg-gray-50 text-gray-700 border-gray-200",
+    approved: "bg-blue-50 text-blue-800 border-blue-200",
+    published: "bg-cyan-50 text-cyan-800 border-cyan-200",
+  };
+  const statusLabels: Record<string, string> = {
+    pending_review: "Menunggu Review",
+    needs_revision: "Perlu Perbaikan",
+    rejected: "Ditolak",
+    active: "Aktif",
+    completed: "Selesai",
+    cancelled: "Dibatalkan",
+    draft: "Draft",
+    approved: "Disetujui",
+    published: "Dipublikasikan",
   };
 
   return (
@@ -157,6 +166,16 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
+        <button
+          type="button"
+          onClick={handleRefresh}
+          className="self-start sm:self-auto px-4 py-2 border border-[#E4DCCF] bg-[#FFFCF6] text-[#29374A] hover:bg-[#F0E9DC] rounded-md text-xs font-semibold flex items-center gap-2 transition cursor-pointer shadow-xs"
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Segarkan Data
+        </button>
       </div>
 
       {error && (
@@ -323,27 +342,18 @@ export default function AdminDashboardPage() {
                           {evt.registeredCount || 0} / {evt.quota || 100}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <select
-                            aria-label={`Status ${evt.title}`}
-                            value={evt.status || "draft"}
-                            onChange={(e) => handleStatusChange(evt.id, e.target.value as Event["status"])}
-                            className={`px-2 py-1 rounded-md text-xs font-semibold cursor-pointer border ${
-                              statusColors[evt.status || "draft"]
-                            }`}
-                          >
-                            {statusOptions.map((option) => (
-                              <option key={option.value} value={option.value}>{option.label}</option>
-                            ))}
-                          </select>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold border ${statusColors[evt.status || "draft"]}`}>
+                            {statusLabels[evt.status || "draft"]}
+                          </span>
                         </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
-                              onClick={() => setEditingEvent(evt)}
+                              onClick={() => setViewDetailEvent(evt)}
                               className="px-2 py-1 text-xs font-semibold text-[#29374A] hover:text-[#29374A] hover:bg-[#F0E9DC] rounded transition cursor-pointer"
                             >
-                              Edit
+                              Lihat Detail
                             </button>
                             <button
                               type="button"
@@ -370,88 +380,273 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Modal Edit Event */}
-      {editingEvent && (
+      {/* Modal Lihat Detail Event */}
+      {viewDetailEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-3">
+          <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-3 mb-4">
               <h3 className="text-base font-bold text-[#29374A]">
-                Edit Event #{editingEvent.id}
+                Detail Event #{viewDetailEvent.id}
               </h3>
               <button
                 type="button"
-                onClick={() => setEditingEvent(null)}
+                onClick={() => setViewDetailEvent(null)}
                 className="text-[#92959C] hover:text-[#6F7580] cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="flex flex-col gap-3 text-xs sm:text-sm">
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-[#29374A]">Judul Event</label>
-                <input
-                  type="text"
-                  value={editingEvent.title}
-                  onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
-                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none"
+            <div className="space-y-5 text-xs sm:text-sm">
+              {/* Poster Image */}
+              <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+                <img
+                  src={viewDetailEvent.image}
+                  alt={viewDetailEvent.title}
+                  className="w-full h-full object-cover"
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-[#29374A]">Lokasi</label>
-                <input
-                  type="text"
-                  value={editingEvent.location}
-                  onChange={(e) => setEditingEvent({ ...editingEvent, location: e.target.value })}
-                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none"
-                />
+              {/* Basic Info Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Judul Event</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.title}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Kategori</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#F0E9DC] text-[#29374A] border border-[#E4DCCF]">
+                      {viewDetailEvent.category}
+                    </span>
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Tanggal Pelaksanaan</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.date}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Waktu</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.time || "-"}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Lokasi</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.location}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Mode Event</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">
+                    {viewDetailEvent.eventMode ? viewDetailEvent.eventMode.charAt(0).toUpperCase() + viewDetailEvent.eventMode.slice(1) : "-"}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Penyelenggara</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.organizer}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Tipe Penyelenggara</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.organizerType || "-"}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Institusi</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.institution || "-"}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Kontak Penyelenggara</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.organizerContact || "-"}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Status</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold border ${statusColors[viewDetailEvent.status || "draft"]}`}>
+                      {statusLabels[viewDetailEvent.status || "draft"]}
+                    </span>
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Biaya</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">
+                    {viewDetailEvent.price === 0 ? "Gratis" : `Rp ${viewDetailEvent.price.toLocaleString("id-ID")}`}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Kuota</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.quota || "-"}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-[#29374A]">Pendaftar</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.registeredCount || 0}</p>
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="font-bold text-[#29374A]">Deadline Pendaftaran</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.registrationDeadline || "-"}</p>
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="font-bold text-[#29374A]">Link Pendaftaran</label>
+                  <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">
+                    {viewDetailEvent.registrationUrl ? (
+                      <a href={viewDetailEvent.registrationUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        {viewDetailEvent.registrationUrl}
+                      </a>
+                    ) : "-"}
+                  </p>
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-[#29374A]">Status Pendaftaran</label>
-                <select
-                  value={editingEvent.status || "active"}
-                  onChange={(e) => setEditingEvent({ ...editingEvent, status: e.target.value as Event["status"] })}
-                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md cursor-pointer"
-                >
-                  <option value="pending_review">Menunggu Review</option>
-                  <option value="needs_revision">Perlu Perbaikan</option>
-                  <option value="rejected">Ditolak</option>
-                  <option value="active">Buka (Aktif)</option>
-                  <option value="completed">Selesai</option>
-                  <option value="cancelled">Dibatalkan</option>
-                </select>
+              {/* Description */}
+              <div className="space-y-1 pt-2 border-t border-[#E4DCCF]">
+                <label className="font-bold text-[#29374A]">Deskripsi Event</label>
+                <div className="prose prose-sm max-w-none bg-[#F7F4EE] p-4 rounded-md border border-[#E4DCCF] text-[#6F7580] whitespace-pre-wrap">
+                  {viewDetailEvent.description}
+                </div>
               </div>
 
-              {(editingEvent.status === "rejected" || editingEvent.status === "needs_revision") && (
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-[#29374A]">Catatan admin</label>
-                  <textarea
-                    rows={3}
-                    value={editingEvent.rejectionReason || ""}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, rejectionReason: e.target.value })}
-                    placeholder="Jelaskan data yang perlu diperbaiki atau alasan penolakan."
-                    className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none"
-                  />
+              {/* Additional Fields */}
+              {(viewDetailEvent.purpose || viewDetailEvent.targetParticipants || viewDetailEvent.speakers || viewDetailEvent.facilities?.length || viewDetailEvent.requirements?.length) && (
+                <div className="space-y-1 pt-2 border-t border-[#E4DCCF]">
+                  <label className="font-bold text-[#29374A]">Informasi Tambahan</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {viewDetailEvent.purpose && (
+                      <div className="space-y-1">
+                        <label className="font-bold text-[#29374A]">Tujuan Event</label>
+                        <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.purpose}</p>
+                      </div>
+                    )}
+                    {viewDetailEvent.targetParticipants && (
+                      <div className="space-y-1">
+                        <label className="font-bold text-[#29374A]">Target Peserta</label>
+                        <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.targetParticipants}</p>
+                      </div>
+                    )}
+                    {viewDetailEvent.speakers && (
+                      <div className="space-y-1">
+                        <label className="font-bold text-[#29374A]">Pembicara/Narasumber</label>
+                        <p className="text-[#6F7580] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">{viewDetailEvent.speakers}</p>
+                      </div>
+                    )}
+                    {viewDetailEvent.facilities?.length && (
+                      <div className="space-y-1">
+                        <label className="font-bold text-[#29374A]">Fasilitas</label>
+                        <div className="bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">
+                          <ul className="list-disc list-inside space-y-1 text-[#6F7580]">
+                            {viewDetailEvent.facilities.map((f, i) => (
+                              <li key={i}>{f}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                    {viewDetailEvent.requirements?.length && (
+                      <div className="space-y-1 sm:col-span-2">
+                        <label className="font-bold text-[#29374A]">Persyaratan</label>
+                        <div className="bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">
+                          <ol className="list-decimal list-inside space-y-1 text-[#6F7580]">
+                            {viewDetailEvent.requirements.map((r, i) => (
+                              <li key={i}>{r}</li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
+
+              {/* Rejection Reason (if applicable) */}
+              {(viewDetailEvent.status === "rejected" || viewDetailEvent.status === "needs_revision") && viewDetailEvent.rejectionReason && (
+                <div className="space-y-1 pt-2 border-t border-[#E4DCCF] bg-red-50 rounded-md p-4 border border-red-200">
+                  <label className="font-bold text-red-800">Catatan Admin (Alasan Penolakan/Perbaikan)</label>
+                  <p className="text-red-700 bg-white p-3 rounded border border-red-200 whitespace-pre-wrap">
+                    {viewDetailEvent.rejectionReason}
+                  </p>
+                </div>
+              )}
+
+              {/* Metadata */}
+              <div className="space-y-1 pt-2 border-t border-[#E4DCCF]">
+                <label className="font-bold text-[#29374A]">Metadata</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-[#92959C] bg-[#F7F4EE] p-3 rounded-md border border-[#E4DCCF]">
+                  <div>
+                    <span className="font-medium">Dibuat oleh:</span> {viewDetailEvent.createdBy || "-"}
+                  </div>
+                  <div>
+                    <span className="font-medium">Terakhir diperbarui:</span> {viewDetailEvent.updatedAt || "-"}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#ECE5DA]">
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-[#ECE5DA]">
+              {viewDetailEvent && !["needs_revision", "rejected", "completed", "cancelled"].includes(viewDetailEvent.status || "") && (
+                <button
+                  type="button"
+                  onClick={() => setRevisionNote({ event: viewDetailEvent, note: "" })}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-md text-xs font-bold hover:bg-orange-700 transition cursor-pointer"
+                >
+                  Catatan Perbaikan
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => setEditingEvent(null)}
-                className="px-4 py-2 border border-[#E4DCCF] rounded-md text-xs font-semibold text-[#29374A] hover:bg-[#F7F4EE] cursor-pointer"
+                onClick={() => setViewDetailEvent(null)}
+                className="px-4 py-2 bg-[#315E9E] text-white rounded-md text-xs font-bold hover:bg-[#244777] cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Catatan Perbaikan */}
+      {revisionNote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-3 mb-4">
+              <h3 className="text-base font-bold text-[#29374A]">
+                Catatan Perbaikan untuk Event #{revisionNote.event.id}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRevisionNote(null)}
+                className="text-[#92959C] hover:text-[#6F7580] cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-xs text-[#6F7580]">
+                Event ini akan diubah statusnya menjadi <strong className="text-orange-700">"Perlu Perbaikan"</strong>.
+                Pengguna yang mengajukan event akan melihat catatan ini saat mengedit kembali pengajuannya.
+              </p>
+              <div className="space-y-1.5">
+                <label className="font-bold text-[#29374A] block">Catatan Perbaikan *</label>
+                <textarea
+                  value={revisionNote.note}
+                  onChange={(e) => setRevisionNote({ ...revisionNote, note: e.target.value })}
+                  rows={5}
+                  placeholder="Jelaskan bagian-bagian yang perlu diperbaiki atau ditambahkan pada pengajuan event ini..."
+                  className="w-full px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md focus:bg-[#FFFCF6] focus:outline-none focus:border-[#315E9E] resize-y"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-[#ECE5DA]">
+              <button
+                type="button"
+                onClick={() => setRevisionNote(null)}
+                className="px-4 py-2 border border-[#E4DCCF] text-[#29374A] rounded-md text-xs font-semibold hover:bg-[#F7F4EE] cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
-                onClick={handleSaveEdit}
-                className="px-4 py-2 bg-[#315E9E] text-white rounded-md text-xs font-bold hover:bg-[#244777] cursor-pointer"
+                onClick={handleSubmitRevisionNote}
+                className="px-4 py-2 bg-orange-600 text-white rounded-md text-xs font-bold hover:bg-orange-700 cursor-pointer"
               >
-                Simpan Perubahan
+                Kirim Catatan & Ubah Status
               </button>
             </div>
           </div>

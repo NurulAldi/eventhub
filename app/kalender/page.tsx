@@ -441,7 +441,12 @@ function CalendarPageContent() {
                               {daysLeft} hari lagi
                             </span>
                           )}
-                          {daysLeft !== null && daysLeft <= 0 && (
+                          {daysLeft !== null && daysLeft === 0 && (
+                            <span className="mt-1 inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                              Hari Terakhir
+                            </span>
+                          )}
+                          {daysLeft !== null && daysLeft < 0 && (
                             <span className="mt-1 inline-block px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold">
                               Sudah tutup
                             </span>

@@ -623,13 +623,6 @@ export default function ProfilePage() {
           {/* Tab 1: Event Diikuti (E-Tickets) */}
           {activeTab === "registered" && (
             <div className="p-6 flex flex-col gap-4">
-              <div className="flex items-center justify-between pb-2 border-b border-[#ECE5DA]">
-                <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider">
-                  TIKET PENDAFTARAN RESMI
-                </span>
-                <span className="text-xs text-[#6F7580]">Klik &quot;Lihat E-Ticket&quot; untuk menampilkan barcode QR</span>
-              </div>
-
               {registeredEvents.map((ticket) => (
                 (() => {
                   const eventStatus = registeredEventStatuses[ticket.eventId];
@@ -647,7 +640,7 @@ export default function ProfilePage() {
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
                         isClosed ? "bg-[#EAE2D4] text-[#29374A]" : "bg-emerald-100 text-emerald-800"
                       }`}>
-                        {isClosed ? "Event Selesai" : `Tiket Aktif #${ticket.ticketId}`}
+                        {isClosed ? "Event Selesai" : `Anda sudah terdaftar`}
                       </span>
                     </div>
 
@@ -663,7 +656,7 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex sm:flex-col gap-2 w-full sm:w-auto shrink-0">
-                    {!isClosed && (
+                    {!isClosed && ticket.eventPrice > 0 && (
                       <button
                         type="button"
                         onClick={() => setSelectedTicket(ticket)}
@@ -689,10 +682,6 @@ export default function ProfilePage() {
           {/* Tab 2: Event Disimpan (Wishlist) */}
           {activeTab === "saved" && (
             <div className="p-6 flex flex-col gap-4">
-              <span className="text-xs font-bold text-[#92959C] uppercase tracking-wider pb-2 border-b border-[#ECE5DA]">
-                EVENT YANG DISIMPAN KE WISHLIST
-              </span>
-
               {savedEvents.map((evt) => {
                 const lifecycle = getEventLifecycleStatus(evt);
 
@@ -749,7 +738,6 @@ export default function ProfilePage() {
           <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-5 shadow-xs flex flex-col gap-4">
             <div>
               <h3 className="text-sm font-bold text-[#29374A]">Pengaturan Notifikasi</h3>
-              <p className="text-[11px] text-[#6F7580] mt-0.5">Preferensi tersimpan di server PostgreSQL.</p>
             </div>
 
             <div className="flex flex-col gap-3 pt-1">
@@ -830,7 +818,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Modal E-Ticket QR Code */}
-      {selectedTicket && (
+      {selectedTicket && selectedTicket.eventPrice > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl max-w-sm w-full p-6 shadow-2xl flex flex-col items-center gap-5 text-center animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between w-full border-b border-[#E4DCCF] pb-3">

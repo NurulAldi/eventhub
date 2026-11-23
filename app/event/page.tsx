@@ -45,13 +45,16 @@ function EventListContent() {
   const initialCategory = searchParams.get("category") || "Semua";
   const initialSearch = searchParams.get("search") || "";
   const initialSort = searchParams.get("sortBy") || "terbaru";
+  const initialStatus = searchParams.get("status") || "";
 
   // Filter states
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     initialCategory === "Semua" ? [] : [initialCategory]
   );
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<string[]>(
+    initialStatus ? [initialStatus] : []
+  );
   const [selectedPriceFilter, setSelectedPriceFilter] = useState<"semua" | "gratis" | "berbayar">("semua");
   const [sortBy, setSortBy] = useState<"terbaru" | "populer" | "deadline-terdekat" | "harga-rendah">(
     initialSort as "terbaru" | "populer" | "deadline-terdekat" | "harga-rendah"
@@ -67,7 +70,9 @@ function EventListContent() {
     initialCategory === "Semua" ? [] : [initialCategory]
   );
   const [appliedTypes, setAppliedTypes] = useState<string[]>([]);
-  const [appliedStatus, setAppliedStatus] = useState<string[]>([]);
+  const [appliedStatus, setAppliedStatus] = useState<string[]>(
+    initialStatus ? [initialStatus] : []
+  );
   const [appliedPriceFilter, setAppliedPriceFilter] = useState<"semua" | "gratis" | "berbayar">("semua");
   const [appliedSearch, setAppliedSearch] = useState<string>(initialSearch);
 
@@ -81,7 +86,7 @@ function EventListContent() {
 
   const categories = ["Semua Kategori", "Lomba", "Seminar", "Beasiswa", "Workshop", "Organisasi", "Technopreneurship", "Kegiatan Kampus"];
   const eventTypes = ["Semua Jenis", "Online", "Offline", "Hybrid"];
-  const eventStatuses = ["Semua Status", "Terverifikasi"];
+  const eventStatuses = ["Semua Status", "Terverifikasi", "Berlangsung"];
 
   useEffect(() => {
     let isMounted = true;
@@ -121,6 +126,13 @@ function EventListContent() {
             openEvents = openEvents.filter((event) =>
               ["active", "published"].includes(event.status || "")
             );
+          }
+
+          if (appliedStatus.includes("Berlangsung")) {
+            openEvents = openEvents.filter((event) => {
+              const lifecycle = getEventLifecycleStatus(event);
+              return lifecycle.stage === "ongoing";
+            });
           }
 
           if (sortBy === "deadline-terdekat") {
@@ -776,6 +788,12 @@ function EventListContent() {
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200 text-xs font-medium">
                         Biaya: {appliedPriceFilter}
                         <button type="button" onClick={() => { setAppliedPriceFilter("semua"); setSelectedPriceFilter("semua"); }} className="hover:text-gray-500 cursor-pointer">✕</button>
+                      </span>
+                    )}
+                    {appliedStatus.length > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium">
+                        Status: {appliedStatus[0]}
+                        <button type="button" onClick={() => { setAppliedStatus([]); setSelectedStatus([]); }} className="hover:text-emerald-900 cursor-pointer">✕</button>
                       </span>
                     )}
                     {appliedSearch && (

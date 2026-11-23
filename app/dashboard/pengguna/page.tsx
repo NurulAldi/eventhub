@@ -20,7 +20,6 @@ export default function AdminUsersPage() {
   const [selectedUniv, setSelectedUniv] = useState("Semua");
 
   // Action states
-  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
@@ -133,7 +132,7 @@ export default function AdminUsersPage() {
     } catch (err) {
       alert(err instanceof Error ? err.message : "Gagal mengubah status akun.");
     }
-  };
+};
 
   // Delete user
   const handleDeleteUser = async (targetUser: AdminUser) => {
@@ -151,29 +150,6 @@ export default function AdminUsersPage() {
       showNotification(`Pengguna "${targetUser.name}" berhasil dihapus.`);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Gagal menghapus pengguna.");
-    }
-  };
-
-  // Save edited user
-  const handleSaveEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingUser) return;
-
-    setIsSaving(true);
-    try {
-      const updated = await apiUpdateAdminUser(editingUser.id, {
-        name: editingUser.name,
-        university: editingUser.university,
-        isActive: editingUser.isActive,
-      });
-
-      setUsers((prev) => prev.map((u) => (u.id === editingUser.id ? updated : u)));
-      setEditingUser(null);
-      showNotification(`Data pengguna "${updated.name}" berhasil diperbarui.`);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal memperbarui pengguna.");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -458,15 +434,6 @@ export default function AdminUsersPage() {
 
                           <button
                             type="button"
-                            onClick={() => setEditingUser({ ...u })}
-                            className="px-2.5 py-1 text-xs font-semibold rounded border border-[#E4DCCF] bg-[#FFFCF6] text-[#29374A] hover:bg-[#F0E9DC] transition cursor-pointer"
-                            title="Edit informasi pengguna"
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            type="button"
                             onClick={() => handleDeleteUser(u)}
                             className="px-2.5 py-1 text-xs font-semibold rounded border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition cursor-pointer"
                             title="Hapus akun pengguna"
@@ -481,96 +448,8 @@ export default function AdminUsersPage() {
               </tbody>
             </table>
           )}
-        </div>
+</div>
       </div>
-
-      {/* Edit User Modal */}
-      {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl max-w-md w-full p-6 shadow-xl flex flex-col gap-5">
-            <div className="flex items-center justify-between border-b border-[#E4DCCF] pb-3">
-              <h3 className="text-base font-bold text-[#29374A]">Edit Data Pengguna</h3>
-              <button
-                type="button"
-                onClick={() => setEditingUser(null)}
-                className="text-xs text-[#92959C] hover:text-[#29374A] font-bold p-1 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEdit} className="flex flex-col gap-4 text-xs">
-              <div className="flex flex-col gap-1.5">
-                <label className="font-bold text-[#29374A]">Email (Tetap)</label>
-                <input
-                  type="email"
-                  value={editingUser.email}
-                  disabled
-                  className="px-3 py-2 bg-[#F0E9DC] border border-[#E4DCCF] rounded-md text-[#6F7580] cursor-not-allowed"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="edit-name" className="font-bold text-[#29374A]">
-                  Nama Lengkap
-                </label>
-                <input
-                  id="edit-name"
-                  type="text"
-                  required
-                  value={editingUser.name}
-                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md text-[#29374A] focus:outline-none focus:border-[#315E9E]"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="edit-university" className="font-bold text-[#29374A]">
-                  Universitas / Perguruan Tinggi
-                </label>
-                <input
-                  id="edit-university"
-                  type="text"
-                  value={editingUser.university || ""}
-                  onChange={(e) => setEditingUser({ ...editingUser, university: e.target.value })}
-                  placeholder="Contoh: Universitas Negeri Padang"
-                  className="px-3 py-2 bg-[#F7F4EE] border border-[#E4DCCF] rounded-md text-[#29374A] focus:outline-none focus:border-[#315E9E]"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  id="edit-active"
-                  type="checkbox"
-                  checked={editingUser.isActive}
-                  onChange={(e) => setEditingUser({ ...editingUser, isActive: e.target.checked })}
-                  className="rounded border-[#E4DCCF] text-[#315E9E] focus:ring-[#315E9E] cursor-pointer"
-                />
-                <label htmlFor="edit-active" className="font-bold text-[#29374A] cursor-pointer">
-                  Akun Aktif (Dapat Login & Mengakses Sistem)
-                </label>
-              </div>
-
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#E4DCCF] mt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingUser(null)}
-                  className="px-4 py-2 border border-[#E4DCCF] text-[#29374A] rounded-md font-semibold hover:bg-[#F0E9DC] transition cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-4 py-2 bg-[#315E9E] text-white rounded-md font-semibold hover:bg-[#244777] transition cursor-pointer disabled:opacity-50"
-                >
-                  {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

@@ -158,6 +158,8 @@ const createInitialForm = (organizer = "") => ({
   facilities: [] as string[],
   requirements: [] as string[],
   contactPic: "",
+  eventLink: "",
+  rejectionReason: "",
 });
 const initialForm = createInitialForm();
 
@@ -226,6 +228,8 @@ export default function EventSubmissionPage() {
           facilities: parseList(event.facilities),
           requirements: event.requirements || [],
           contactPic: event.contactPic || "",
+          eventLink: event.registrationUrl || "",
+          rejectionReason: event.rejectionReason || "",
         });
         setEditingEventId(eventId);
       }).catch((loadError) => {
@@ -280,6 +284,11 @@ export default function EventSubmissionPage() {
       if (form.latitude === null || form.longitude === null) {
         nextFieldErrors.latitude = "Titik lokasi pada peta wajib dipilih.";
       }
+    } else {
+      requiredFields.push(["eventLink", "Link event (Zoom/Meet/Stream) wajib diisi."]);
+    }
+    if (form.eventMode === "hybrid") {
+      requiredFields.push(["eventLink", "Link event (Zoom/Meet/Stream) wajib diisi."]);
     }
     if (form.organizerType && form.organizerType !== "Individu") {
       requiredFields.splice(2, 0, ["institution", "Institusi/organisasi wajib diisi."]);
@@ -387,6 +396,7 @@ export default function EventSubmissionPage() {
         facilities: form.facilities.map((item) => item.trim()).filter(Boolean),
         requirements: form.requirements.map((item) => item.trim()).filter(Boolean),
         contactPic: form.contactPic,
+        registrationUrl: form.eventLink,
       };
       const submittedEvent = editingEventId
         ? await apiUpdateEvent(editingEventId, payload)
@@ -445,6 +455,22 @@ export default function EventSubmissionPage() {
       {error && (
         <div role="alert" className="fixed top-24 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg">
           {error}
+        </div>
+      )}
+      {editingEventId && form.rejectionReason && (
+        <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-5 h-5 text-orange-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h3 className="font-bold text-orange-800">Catatan Perbaikan dari Admin</h3>
+          </div>
+          <p className="text-sm text-orange-700 whitespace-pre-wrap bg-white p-3 rounded-lg border border-orange-200">
+            {form.rejectionReason}
+          </p>
+          <p className="text-xs text-orange-600 mt-2">
+            Silakan perbaiki pengajuan event sesuai catatan di atas, lalu kirim kembali untuk review.
+          </p>
         </div>
       )}
       <form onSubmit={handleSubmit} noValidate className="bg-[#FFFCF6] border border-[#E4DCCF] rounded-xl p-6 sm:p-8 flex flex-col gap-7">
@@ -608,6 +634,9 @@ export default function EventSubmissionPage() {
               </div>
             </div>
             <label className="flex flex-col gap-1">{requiredLabel("Lokasi event")}<input required={form.eventMode !== "online"} disabled={form.eventMode === "online"} value={form.eventMode === "online" ? "Online" : form.location} onChange={(e) => update("location", e.target.value)} placeholder="Gedung atau ruangan" className={`${getFieldClass("location")} disabled:cursor-not-allowed disabled:bg-[#EAE2D4] disabled:text-[#92959C]`} /></label>
+            {(form.eventMode === "online" || form.eventMode === "hybrid") && (
+              <label className="flex flex-col gap-1">{requiredLabel("Link event (Zoom/Meet/Stream)")}<input required type="url" value={form.eventLink} onChange={(e) => update("eventLink", e.target.value)} placeholder="https://..." className={getFieldClass("eventLink")} /></label>
+            )}
             {form.eventMode !== "online" && (
               <div className="sm:col-span-2 flex flex-col gap-2">
                 <div>

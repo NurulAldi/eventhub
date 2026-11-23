@@ -377,3 +377,23 @@ export async function syncUserNotifications(
 
   return getUserNotifications(userId, role);
 }
+
+/**
+ * Membuat notifikasi untuk pengguna tertentu
+ */
+export async function createUserNotification(
+  userId: string,
+  title: string,
+  message: string,
+  href?: string
+): Promise<void> {
+  if (!userId) return;
+  
+  const notifId = `custom-${userId}-${Date.now()}`;
+  await query(
+    `INSERT INTO user_notifications (id, user_id, role, title, message, href, read)
+     VALUES ($1, $2, 'user', $3, $4, $5, FALSE)
+     ON CONFLICT (id) DO NOTHING`,
+    [notifId, userId, title, message, href || '/profil']
+  );
+}

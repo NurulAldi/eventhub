@@ -70,6 +70,7 @@ export interface RegisteredEvent {
   date: string;
   time: string;
   location: string;
+  eventPrice: number;
   registeredAt: string;
   ticketStatus: "active" | "completed" | "cancelled";
   qrCodeMock?: string;

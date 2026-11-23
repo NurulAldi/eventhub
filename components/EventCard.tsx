@@ -115,7 +115,7 @@ export default function EventCard({ event, showPrice = true }: EventCardProps) {
               </svg>
               <span>{formattedDate}</span>
             </div>
-            {event.registrationDeadline && (
+            {event.registrationDeadline && lifecycle.deadlineDays !== null && lifecycle.deadlineDays >= 0 && (
               <div className="flex items-center gap-1.5 text-xs">
                 <svg className="w-3.5 h-3.5 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="9" strokeWidth="2"/>
